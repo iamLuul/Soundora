@@ -1,0 +1,57 @@
+# Fluxo completo de cadastro: e-mail → código → onboarding → feed.
+# Rodar: maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundora.dev -e USERNAME=teste1
+appId: app.soundora
+env:
+  MAILBOX_URL: http://10.0.2.2:54324 # emulador Android enxerga o PC em 10.0.2.2
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Soundora."
+- tapOn:
+    id: "email-input"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "send-code"
+- extendedWaitUntil:
+    visible:
+      id: "code-input"
+    timeout: 10000
+- runScript: scripts/get-otp.js
+- tapOn:
+    id: "code-input"
+- inputText: ${output.otp}
+- tapOn:
+    id: "verify-code"
+
+# Onboarding
+- extendedWaitUntil:
+    visible:
+      id: "username-input"
+    timeout: 10000
+- tapOn:
+    id: "username-input"
+- inputText: ${USERNAME}
+- tapOn:
+    id: "display-name-input"
+- inputText: "Teste E2E"
+- tapOn:
+    id: "onboarding-next"
+- tapOn: "DD"
+- inputText: "10"
+- tapOn: "MM"
+- inputText: "05"
+- tapOn: "AAAA"
+- inputText: "1995"
+- tapOn:
+    id: "onboarding-next"
+- tapOn: "Indie"
+- tapOn: "Rock"
+- tapOn: "Lo-fi"
+- tapOn:
+    id: "onboarding-next"
+- tapOn: "Li e concordo.*"
+- tapOn:
+    id: "onboarding-finish"
+- extendedWaitUntil:
+    visible: "Para você"
+    timeout: 10000

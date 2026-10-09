@@ -1,0 +1,124 @@
+{
+  "common": {
+    "next": "Next",
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "error": "Something went wrong. Please try again.",
+    "or": "or"
+  },
+  "auth": {
+    "welcome": "Welcome to Soundora!",
+    "tagline": "Ready to discover and share music?",
+    "email": "Email",
+    "emailPlaceholder": "you@email.com",
+    "sendCode": "Get code",
+    "codeSentTo": "We sent a 6-digit code to {{email}}",
+    "code": "Code",
+    "verify": "Sign in",
+    "resend": "Resend code",
+    "google": "Sign in with Google",
+    "apple": "Sign in with Apple",
+    "invalidEmail": "Enter a valid email.",
+    "invalidCode": "Invalid or expired code."
+  },
+  "onboarding": {
+    "step": "Step {{current}} of {{total}}",
+    "profileTitle": "How do you want to appear?",
+    "username": "Username",
+    "usernameHint": "3 to 20 characters: lowercase letters, numbers, _ and .",
+    "displayName": "Your name",
+    "birthdateTitle": "What is your date of birth?",
+    "birthdateHint": "It is not shown on your profile. We use it to apply age rules.",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year",
+    "genresTitle": "Which genres do you like?",
+    "genresHint": "Pick at least {{min}}.",
+    "termsTitle": "Terms of use and privacy",
+    "termsBody": "Soundora shows music previews and opens each track in the streaming app where it was released. By continuing, you agree to the Terms of Use and the Privacy Policy.",
+    "termsAccept": "I have read and agree to the Terms and the Privacy Policy",
+    "finish": "Get started"
+  },
+  "age": {
+    "too_young": "You must be at least {{min}} years old to use Soundora.",
+    "needs_guardian": "Accounts for people under {{under}} need a parent or guardian. This is coming soon.",
+    "invalid": "Invalid date of birth."
+  },
+  "errors": {
+    "username_taken": "That username is taken.",
+    "username_too_short": "Username is too short.",
+    "username_too_long": "Username is too long.",
+    "username_invalid_chars": "Use only lowercase letters, numbers, _ and .",
+    "username_invalid_dots": "A dot can't be at the start, at the end or repeated.",
+    "display_name_required": "Enter your name.",
+    "genres_too_few": "Pick at least 3 genres.",
+    "unsupported": "That link isn't from a supported music platform.",
+    "not_found": "We couldn't find the music in that link.",
+    "fetch_failed": "We couldn't read the link right now. Please try again.",
+    "post_text_too_long": "Text can be up to 500 characters.",
+    "comment_too_long": "Comments can be up to 300 characters.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "tabs": {
+    "feed": "For you",
+    "compose": "Post",
+    "profile": "Profile"
+  },
+  "feed": {
+    "empty": "Your feed is empty. Follow people or post the first song!",
+    "listenOn": "Listen on {{platform}}",
+    "like": "Like",
+    "unlike": "Unlike",
+    "comments": "Comments",
+    "report": "Report",
+    "block": "Block @{{username}}",
+    "reported": "Report sent. Thank you.",
+    "blocked": "You blocked @{{username}}.",
+    "delete": "Delete post"
+  },
+  "compose": {
+    "title": "Share music",
+    "linkLabel": "Music link",
+    "linkPlaceholder": "Paste a Spotify, Apple Music, Deezer, YouTube… link",
+    "paste": "Paste",
+    "preview": "Get preview",
+    "textLabel": "What does this song mean to you?",
+    "genreLabel": "Genre (optional)",
+    "publish": "Publish",
+    "published": "Published!"
+  },
+  "post": {
+    "commentPlaceholder": "Write a comment…",
+    "send": "Send",
+    "noComments": "No comments yet."
+  },
+  "profile": {
+    "followers": "Followers",
+    "following": "Following",
+    "posts": "Posts",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "signOut": "Sign out",
+    "language": "Language",
+    "noPosts": "No posts yet."
+  },
+  "report": {
+    "title": "Why are you reporting this?",
+    "spam": "Spam",
+    "harassment": "Harassment or bullying",
+    "hate": "Hate speech",
+    "sexual": "Sexual content",
+    "violence": "Violence",
+    "copyright": "Copyright",
+    "other": "Something else"
+  },
+  "time": {
+    "now": "now",
+    "minutes": "{{count}}m",
+    "hours": "{{count}}h",
+    "days": "{{count}}d"
+  }
+}

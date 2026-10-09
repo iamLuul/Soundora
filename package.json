@@ -1,0 +1,33 @@
+{
+  "name": "soundora",
+  "private": true,
+  "description": "Soundora — rede social de música (Android, iOS e Web)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "app": "npm run start --workspace apps/mobile",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test:core && npm run test:app",
+    "test:core": "npm run test --workspace packages/core",
+    "test:app": "npm run test:ci --workspace apps/mobile",
+    "test:db": "vitest run --config tests/db/vitest.config.mts",
+    "lint": "npm run lint --workspace apps/mobile",
+    "sync:shared": "node scripts/sync-shared.mjs",
+    "check:shared": "node scripts/sync-shared.mjs --check",
+    "typecheck:functions": "deno check --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "deno": "^2.9.6",
+    "pg": "^8.16.0",
+    "supabase": "^2.120.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

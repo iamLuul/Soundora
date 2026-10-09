@@ -1,0 +1,23 @@
+# Posta um link do Deezer e confere o cartão no feed. Precisa estar logado (rode 01-cadastro antes)
+# e da Edge Function rodando: npx supabase functions serve
+appId: app.soundora
+---
+- launchApp
+- tapOn: "Postar"
+- tapOn:
+    id: "link-input"
+- inputText: "https://www.deezer.com/br/track/3135556"
+- tapOn:
+    id: "load-preview"
+- extendedWaitUntil:
+    visible: "Harder, Better, Faster, Stronger"
+    timeout: 15000
+- tapOn:
+    id: "post-body"
+- inputText: "Clássico pra codar"
+- tapOn:
+    id: "publish"
+- extendedWaitUntil:
+    visible: "Clássico pra codar"
+    timeout: 10000
+- assertVisible: "Ouvir no Deezer"

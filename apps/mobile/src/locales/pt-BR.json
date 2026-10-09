@@ -1,0 +1,124 @@
+{
+  "common": {
+    "next": "Próximo",
+    "back": "Voltar",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "retry": "Tentar de novo",
+    "loading": "Carregando…",
+    "error": "Algo deu errado. Tente de novo.",
+    "or": "ou"
+  },
+  "auth": {
+    "welcome": "Bem-vindo ao Soundora!",
+    "tagline": "Pronto para descobrir e compartilhar música?",
+    "email": "E-mail",
+    "emailPlaceholder": "voce@email.com",
+    "sendCode": "Receber código",
+    "codeSentTo": "Enviamos um código de 6 dígitos para {{email}}",
+    "code": "Código",
+    "verify": "Entrar",
+    "resend": "Reenviar código",
+    "google": "Entrar com Google",
+    "apple": "Entrar com Apple",
+    "invalidEmail": "Digite um e-mail válido.",
+    "invalidCode": "Código inválido ou vencido."
+  },
+  "onboarding": {
+    "step": "Passo {{current}} de {{total}}",
+    "profileTitle": "Como você quer aparecer?",
+    "username": "Nome de usuário",
+    "usernameHint": "3 a 20 caracteres: letras minúsculas, números, _ e .",
+    "displayName": "Seu nome",
+    "birthdateTitle": "Qual a sua data de nascimento?",
+    "birthdateHint": "Não aparece no seu perfil. Usamos para aplicar as regras de idade.",
+    "day": "Dia",
+    "month": "Mês",
+    "year": "Ano",
+    "genresTitle": "Quais gêneros você curte?",
+    "genresHint": "Escolha pelo menos {{min}}.",
+    "termsTitle": "Termos de uso e privacidade",
+    "termsBody": "O Soundora mostra prévias de músicas e abre cada faixa no app de streaming onde ela foi lançada. Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.",
+    "termsAccept": "Li e concordo com os Termos e a Política de Privacidade",
+    "finish": "Começar"
+  },
+  "age": {
+    "too_young": "Você precisa ter pelo menos {{min}} anos para usar o Soundora.",
+    "needs_guardian": "Para quem tem menos de {{under}} anos, a conta precisa de um responsável. Esse recurso chega em breve.",
+    "invalid": "Data de nascimento inválida."
+  },
+  "errors": {
+    "username_taken": "Esse nome de usuário já está em uso.",
+    "username_too_short": "Nome de usuário muito curto.",
+    "username_too_long": "Nome de usuário muito longo.",
+    "username_invalid_chars": "Use só letras minúsculas, números, _ e .",
+    "username_invalid_dots": "O ponto não pode ficar no começo, no fim ou repetido.",
+    "display_name_required": "Digite seu nome.",
+    "genres_too_few": "Escolha pelo menos 3 gêneros.",
+    "unsupported": "Esse link não é de uma plataforma de música suportada.",
+    "not_found": "Não encontramos essa música no link.",
+    "fetch_failed": "Não conseguimos ler o link agora. Tente de novo.",
+    "post_text_too_long": "O texto pode ter até 500 caracteres.",
+    "comment_too_long": "O comentário pode ter até 300 caracteres.",
+    "generic": "Algo deu errado. Tente de novo."
+  },
+  "tabs": {
+    "feed": "Para você",
+    "compose": "Postar",
+    "profile": "Perfil"
+  },
+  "feed": {
+    "empty": "Seu feed está vazio. Siga pessoas ou poste a primeira música!",
+    "listenOn": "Ouvir no {{platform}}",
+    "like": "Curtir",
+    "unlike": "Descurtir",
+    "comments": "Comentários",
+    "report": "Denunciar",
+    "block": "Bloquear @{{username}}",
+    "reported": "Denúncia enviada. Obrigado.",
+    "blocked": "Você bloqueou @{{username}}.",
+    "delete": "Apagar post"
+  },
+  "compose": {
+    "title": "Compartilhar música",
+    "linkLabel": "Link da música",
+    "linkPlaceholder": "Cole o link do Spotify, Apple Music, Deezer, YouTube…",
+    "paste": "Colar",
+    "preview": "Gerar prévia",
+    "textLabel": "O que essa música significa para você?",
+    "genreLabel": "Gênero (opcional)",
+    "publish": "Publicar",
+    "published": "Publicado!"
+  },
+  "post": {
+    "commentPlaceholder": "Escreva um comentário…",
+    "send": "Enviar",
+    "noComments": "Nenhum comentário ainda."
+  },
+  "profile": {
+    "followers": "Seguidores",
+    "following": "Seguindo",
+    "posts": "Posts",
+    "follow": "Seguir",
+    "unfollow": "Deixar de seguir",
+    "signOut": "Sair",
+    "language": "Idioma",
+    "noPosts": "Nenhum post ainda."
+  },
+  "report": {
+    "title": "Por que você está denunciando?",
+    "spam": "Spam",
+    "harassment": "Assédio ou bullying",
+    "hate": "Discurso de ódio",
+    "sexual": "Conteúdo sexual",
+    "violence": "Violência",
+    "copyright": "Direitos autorais",
+    "other": "Outro motivo"
+  },
+  "time": {
+    "now": "agora",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "days": "{{count}} d"
+  }
+}

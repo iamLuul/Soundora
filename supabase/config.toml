@@ -1,0 +1,58 @@
+# Configuração do Supabase local (supabase start) e referência para o projeto na nuvem.
+project_id = "soundora"
+
+[api]
+port = 54321
+schemas = ["public"]
+max_rows = 100
+
+[db]
+port = 54322
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+port = 54323
+
+[inbucket]
+# Caixa de e-mail falsa para ver os códigos de login localmente: http://localhost:54324
+port = 54324
+
+[auth]
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["soundora://**", "http://localhost:8081/**", "exp://**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+otp_length = 6
+otp_expiry = 900
+
+# O e-mail de login manda um código de 6 dígitos em vez de link.
+[auth.email.template.magic_link]
+subject = "Seu código do Soundora / Your Soundora code"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Seu código do Soundora / Your Soundora code"
+content_path = "./supabase/templates/magic_link.html"
+
+# Preencha as chaves em supabase/.env (veja .env.example) e troque enabled para true.
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+skip_nonce_check = true
+
+[auth.external.apple]
+enabled = false
+client_id = "env(SUPABASE_AUTH_APPLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_APPLE_SECRET)"
+
+[functions.link-preview]
+verify_jwt = true

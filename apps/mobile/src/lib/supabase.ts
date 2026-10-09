@@ -1,0 +1,30 @@
+import 'expo-sqlite/localStorage/install';
+import { createClient } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error('Defina EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY em apps/mobile/.env.local (veja .env.example).');
+}
+
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+  auth: {
+    // Na renderização estática da Web (Node) não existe localStorage.
+    storage: typeof localStorage === 'undefined' ? undefined : localStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    // Na Web a sessão do login social volta na URL; no celular, não.
+    detectSessionInUrl: Platform.OS === 'web',
+    flowType: 'pkce',
+  },
+});
+
+// No celular, só renova o token com o app em primeiro plano.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}

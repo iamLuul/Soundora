@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.DS_Store
+Thumbs.db
+
+# Segredos
+.env
+.env*.local
+supabase/.env
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Builds nativos (gerados pelo Expo/EAS)
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+*.ipa
+
+coverage/
