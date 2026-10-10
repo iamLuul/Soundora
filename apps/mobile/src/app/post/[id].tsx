@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { Avatar, Button, ErrorText, TextField } from '../../components/ui';
 import { addComment, fetchComments } from '../../lib/api';
-import { errorMessageKey } from '../../lib/errors';
+import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
 import { keys } from '../../lib/queries';
 import { colors, fonts, space, text } from '../../theme';
@@ -28,7 +28,7 @@ export default function PostCommentsScreen() {
       await qc.invalidateQueries({ queryKey: keys.comments(id) });
       await qc.invalidateQueries({ queryKey: keys.feed });
     } catch (err) {
-      setError(t(errorMessageKey(err)));
+      setError(formatError(t, err));
     } finally {
       setSending(false);
     }

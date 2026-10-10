@@ -1,4 +1,5 @@
-import { commentSchema, postTextSchema, type ReportReason } from '@soundora/core';
+import { commentSchema, displayNameSchema, passwordSchema, postTextSchema, type ReportReason } from '@soundora/core';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
 import { supabase } from './supabase';
@@ -43,6 +44,13 @@ export async function getMyGenres(): Promise<string[]> {
   return data.map((r) => r.genre);
 }
 
+/** true se o username está livre (o formato também é conferido no banco). */
+export async function checkUsernameAvailable(username: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('username_available', { p_username: username });
+  if (error) throw error;
+  return data === true;
+}
+
 export interface OnboardingInput {
   username: string;
   displayName: string;
@@ -68,10 +76,13 @@ export async function previewLink(url: string): Promise<LinkPreviewRow> {
   const { data, error } = await supabase.functions.invoke<{ preview: LinkPreviewRow }>('link-preview', { body: { url } });
   if (error) {
     if (error instanceof FunctionsHttpError) {
-      const body = await error.context.json().catch(() => null);
-      throw new AppError(typeof body?.error === 'string' ? body.error : 'generic');
+      const res = error.context as Response;
+      const body = await res.json().catch(() => null);
+      const code = typeof body?.error === 'string' ? body.error : 'generic';
+      throw new AppError(code, `link-preview HTTP ${res.status}${body?.detail ? ` – ${body.detail}` : body ? ` – ${JSON.stringify(body)}` : ''}`);
     }
-    throw new AppError('fetch_failed');
+    // FunctionsFetchError / FunctionsRelayError: a função não respondeu (não está rodando ou não foi publicada).
+    throw new AppError('preview_unavailable', `${error.name}: ${error.message}`);
   }
   if (!data?.preview) throw new AppError('generic');
   return data.preview;
@@ -199,4 +210,68 @@ export async function searchTracks(query: string): Promise<TrackResult[]> {
   const { data, error } = await supabase.rpc('search_tracks', { p_query: query, p_limit: 20 });
   if (error) throw error;
   return data as TrackResult[];
+}
+
+export const BIO_MAX = 160;
+
+export async function updateProfile(input: { displayName: string; bio: string }): Promise<void> {
+  const name = displayNameSchema.safeParse(input.displayName);
+  if (!name.success) throw new AppError(name.error.issues[0]?.message ?? 'generic');
+  const bio = input.bio.trim();
+  if (bio.length > BIO_MAX) throw new AppError('bio_too_long');
+  const userId = await currentUserId();
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: name.data, bio: bio || null })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+/** Caminho do arquivo dentro do bucket a partir da URL pública (para apagar a foto antiga). */
+export function avatarPathFromUrl(url: string | null): string | null {
+  if (!url) return null;
+  const marker = '/storage/v1/object/public/avatars/';
+  const i = url.indexOf(marker);
+  return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length).split('?')[0] ?? '');
+}
+
+/**
+ * Reduz a foto para 512 px (JPEG), envia para avatars/{id}/ e grava a URL no perfil.
+ * Funciona igual em Android, iOS e Web.
+ */
+export async function uploadAvatar(localUri: string, previousUrl: string | null): Promise<string> {
+  const userId = await currentUserId();
+  const context = ImageManipulator.manipulate(localUri);
+  context.resize({ width: 512, height: null });
+  const rendered = await context.renderAsync();
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+  const bytes = await (await fetch(saved.uri)).arrayBuffer();
+
+  const path = `${userId}/avatar-${Date.now()}.jpg`;
+  const { error: uploadError } = await supabase.storage.from('avatars').upload(path, bytes, { contentType: 'image/jpeg', upsert: false });
+  if (uploadError) throw uploadError;
+
+  const publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+  const { error } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', userId);
+  if (error) throw error;
+
+  const old = avatarPathFromUrl(previousUrl);
+  if (old && old !== path) await supabase.storage.from('avatars').remove([old]).catch(() => undefined);
+  return publicUrl;
+}
+
+export async function removeAvatar(previousUrl: string | null): Promise<void> {
+  const userId = await currentUserId();
+  const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', userId);
+  if (error) throw error;
+  const old = avatarPathFromUrl(previousUrl);
+  if (old) await supabase.storage.from('avatars').remove([old]).catch(() => undefined);
+}
+
+/** Define ou troca a senha da conta logada (também serve para quem entrou só com código). */
+export async function changePassword(password: string): Promise<void> {
+  const parsed = passwordSchema.safeParse(password);
+  if (!parsed.success) throw new AppError(parsed.error.issues[0]?.message ?? 'password_too_short');
+  const { error } = await supabase.auth.updateUser({ password: parsed.data });
+  if (error) throw error;
 }

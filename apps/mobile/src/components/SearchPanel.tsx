@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { searchProfiles, searchTracks } from '../lib/api';
+import { useDebouncedValue } from '../lib/hooks';
 import type { Profile, TrackResult } from '../lib/types';
 import { colors, fonts, radius, space, text } from '../theme';
 import { TrendingRow } from './TrendingList';
@@ -12,15 +13,6 @@ import { Avatar } from './ui';
 
 export const MIN_QUERY = 2;
 
-/** Atraso para não buscar a cada tecla. */
-export function useDebouncedValue<T>(value: T, delayMs = 300): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(id);
-  }, [value, delayMs]);
-  return debounced;
-}
 
 export function SearchResults({
   query,

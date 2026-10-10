@@ -8,7 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { MusicCard } from '../../components/MusicCard';
 import { Button, Chip, ErrorText, Screen, TextField } from '../../components/ui';
 import { createPost, getMyGenres, previewLink } from '../../lib/api';
-import { errorMessageKey } from '../../lib/errors';
+import { formatError } from '../../lib/errors';
 import { genreLabel, keys, useGenres } from '../../lib/queries';
 import type { LinkPreviewRow } from '../../lib/types';
 import { space, text } from '../../theme';
@@ -36,7 +36,7 @@ export default function ComposeScreen() {
     try {
       setPreview(await previewLink(url));
     } catch (err) {
-      setError(t(errorMessageKey(err)));
+      setError(formatError(t, err));
     } finally {
       setLoadingPreview(false);
     }
@@ -61,7 +61,7 @@ export default function ComposeScreen() {
       await qc.invalidateQueries({ queryKey: keys.feed });
       router.navigate('/');
     } catch (err) {
-      setError(t(errorMessageKey(err)));
+      setError(formatError(t, err));
     } finally {
       setPublishing(false);
     }

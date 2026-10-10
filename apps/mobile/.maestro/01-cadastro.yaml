@@ -7,6 +7,7 @@ env:
 - launchApp:
     clearState: true
 - assertVisible: "Soundora."
+- tapOn: "Código por e-mail"
 - tapOn:
     id: "email-input"
 - inputText: ${EMAIL}
@@ -31,6 +32,9 @@ env:
 - tapOn:
     id: "username-input"
 - inputText: ${USERNAME}
+- extendedWaitUntil:
+    visible: "@${USERNAME} está disponível"
+    timeout: 5000
 - tapOn:
     id: "display-name-input"
 - inputText: "Teste E2E"

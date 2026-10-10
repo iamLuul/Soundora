@@ -19,17 +19,39 @@ const KNOWN = new Set([
   'too_young',
   'needs_guardian',
   'birthdate_invalid',
+  'preview_unavailable',
+  'not_authenticated',
+  'password_too_short',
+  'password_too_long',
+  'bio_too_long',
+  'passwords_differ',
 ]);
 
 export class AppError extends Error {
-  constructor(public readonly code: string) {
-    super(code);
+  constructor(
+    public readonly code: string,
+    /** Motivo técnico (status HTTP, resposta do servidor). Mostrado só em desenvolvimento. */
+    public readonly detail?: string,
+  ) {
+    super(detail ? `${code}: ${detail}` : code);
     this.name = 'AppError';
   }
 }
 
+/** Texto técnico do erro para exibir em desenvolvimento (vazio em produção). */
+export function errorDetail(err: unknown): string {
+  if (!__DEV__ || !err) return '';
+  if (err instanceof AppError) return err.detail ?? '';
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object') {
+    const e = err as { message?: unknown; code?: unknown };
+    return [e.code, e.message].filter(Boolean).join(' ');
+  }
+  return String(err);
+}
+
 export function errorCode(err: unknown): string {
-  if (err instanceof AppError) return err.code;
+  if (err instanceof AppError) return KNOWN.has(err.code) ? err.code : 'generic';
   if (err && typeof err === 'object') {
     const anyErr = err as { message?: unknown; code?: unknown; context?: unknown };
     // Funções do banco usam "raise exception 'codigo'"
@@ -48,4 +70,12 @@ export function errorMessageKey(err: unknown): string {
   if (code === 'too_young' || code === 'needs_guardian') return `age.${code}`;
   if (code === 'birthdate_invalid') return 'age.invalid';
   return `errors.${code}`;
+}
+
+/** Mensagem traduzida + (em desenvolvimento) o motivo técnico na linha de baixo. */
+export function formatError(t: (key: string, vars?: Record<string, unknown>) => string, err: unknown, vars?: Record<string, unknown>): string {
+  if (__DEV__) console.error('[Soundora]', err);
+  const detail = errorDetail(err);
+  const message = t(errorMessageKey(err), vars);
+  return detail ? `${message}\n${detail}` : message;
 }

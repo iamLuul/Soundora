@@ -52,6 +52,33 @@ describe('buildLinkPreview', () => {
     expect(p.title).toBe('Faixa');
   });
 
+  it('Spotify: se o oEmbed falhar, usa os metadados da página', async () => {
+    const { fetch } = fakeFetch({
+      [`https://open.spotify.com/oembed?url=${encodeURIComponent(SPOTIFY)}`]: { status: 503 },
+      [SPOTIFY]: {
+        body: `<meta property="og:title" content="Never Gonna Give You Up"><meta property="og:image" content="https://image-cdn-ak.spotifycdn.com/image/abc"><meta property="og:description" content="Listen to Never Gonna Give You Up on Spotify. Song · Rick Astley · 1987">`,
+      },
+    });
+    const p = await buildLinkPreview(SPOTIFY, { fetch });
+    expect(p).toMatchObject({ title: 'Never Gonna Give You Up', artist: 'Rick Astley', imageUrl: 'https://image-cdn-ak.spotifycdn.com/image/abc' });
+  });
+
+  it('segue redirecionamentos entre hosts permitidos', async () => {
+    const { fetch } = fakeFetch({
+      [`https://open.spotify.com/oembed?url=${encodeURIComponent(SPOTIFY)}`]: { status: 301, location: '/oembed/v2?u=1' },
+      'https://open.spotify.com/oembed/v2?u=1': { body: { title: 'Faixa' } },
+    });
+    expect((await buildLinkPreview(SPOTIFY, { fetch })).title).toBe('Faixa');
+  });
+
+  it('link curto que devolve página (sem redirecionar): acha o link no og:url', async () => {
+    const { fetch } = fakeFetch({
+      'https://spotify.link/Xyz': { body: `<meta property="og:url" content="${SPOTIFY}?si=abc&amp;x=1">` },
+      [`https://open.spotify.com/oembed?url=${encodeURIComponent(SPOTIFY)}`]: { body: { title: 'Faixa' } },
+    });
+    expect((await buildLinkPreview('https://spotify.link/Xyz', { fetch })).url).toBe(SPOTIFY);
+  });
+
   it('Deezer: usa a API pública', async () => {
     const { fetch } = fakeFetch({
       'https://api.deezer.com/track/3135556': {

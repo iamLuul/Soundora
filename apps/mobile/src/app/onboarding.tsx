@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Chip, ErrorText, Screen, TextField } from '../components/ui';
-import { completeOnboarding, getAppConfig } from '../lib/api';
+import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
 import { useAuth } from '../lib/auth';
-import { errorMessageKey } from '../lib/errors';
+import { errorMessageKey, formatError } from '../lib/errors';
 import { useGenres } from '../lib/queries';
+import { useUsernameStatus, validateUsernameFormat } from '../lib/username';
 import { colors, space, text } from '../theme';
 
 const TOTAL_STEPS = 4;
@@ -27,6 +28,9 @@ export default function Onboarding() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [checkingNext, setCheckingNext] = useState(false);
+  const usernameStatus = useUsernameStatus(username);
+
   const config = useQuery({ queryKey: ['app-config'], queryFn: getAppConfig });
   const genreList = useGenres();
 
@@ -34,13 +38,22 @@ export default function Onboarding() {
     ? { minAge: config.data.min_age, guardianRequiredUnder: config.data.guardian_required_under, guardianFlowEnabled: config.data.guardian_flow_enabled }
     : null;
 
-  const next = () => {
+  const next = async () => {
     setError(null);
     if (step === 1) {
-      const u = usernameSchema.safeParse(username);
-      if (!u.success) return setError(t(`errors.${u.error.issues[0]?.message ?? 'generic'}`));
+      const format = validateUsernameFormat(username);
+      if (!format.ok) return setError(t(`errors.${format.reason}`));
       const d = displayNameSchema.safeParse(displayName);
       if (!d.success) return setError(t(`errors.${d.error.issues[0]?.message ?? 'generic'}`));
+      // Confere de novo no banco na hora de avançar (alguém pode ter pego o nome nesse meio-tempo).
+      setCheckingNext(true);
+      try {
+        if (!(await checkUsernameAvailable(format.username))) return setError(t('errors.username_taken'));
+      } catch (err) {
+        return setError(formatError(t, err));
+      } finally {
+        setCheckingNext(false);
+      }
     }
     if (step === 2) {
       if (!policy) return setError(t('common.error'));
@@ -90,7 +103,15 @@ export default function Onboarding() {
           <TextField
             testID="username-input"
             label={t('onboarding.username')}
-            hint={t('onboarding.usernameHint')}
+            hint={usernameStatus.state === 'checking' ? t('onboarding.usernameChecking') : t('onboarding.usernameHint')}
+            error={
+              usernameStatus.state === 'invalid'
+                ? t(`errors.${usernameStatus.reason}`)
+                : usernameStatus.state === 'taken'
+                  ? t('errors.username_taken')
+                  : null
+            }
+            success={usernameStatus.state === 'available' ? t('onboarding.usernameAvailable', { username: usernameStatus.username }) : null}
             value={username}
             onChangeText={(v) => setUsername(v.toLowerCase())}
             autoCapitalize="none"
@@ -152,7 +173,13 @@ export default function Onboarding() {
       <View style={styles.footer}>
         {step > 1 ? <Button title={t('common.back')} variant="ghost" onPress={() => setStep((s) => s - 1)} /> : <View />}
         {step < TOTAL_STEPS ? (
-          <Button testID="onboarding-next" title={t('common.next')} onPress={next} />
+          <Button
+            testID="onboarding-next"
+            title={t('common.next')}
+            onPress={next}
+            loading={checkingNext}
+            disabled={step === 1 && (usernameStatus.state === 'taken' || usernameStatus.state === 'invalid')}
+          />
         ) : (
           <Button testID="onboarding-finish" title={t('onboarding.finish')} onPress={finish} disabled={!accepted} loading={busy} />
         )}

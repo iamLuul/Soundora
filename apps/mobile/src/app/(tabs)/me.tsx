@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { ProfileView } from '../../components/ProfileView';
+import { router } from 'expo-router';
 import { Button, Chip } from '../../components/ui';
 import { updateLocale } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -23,6 +24,7 @@ export default function MyProfileScreen() {
         username={profile.username}
         footer={
           <View style={{ gap: space.md }}>
+            <Button testID="edit-profile" title={t('profile.edit')} onPress={() => router.push('/settings/profile')} />
             <View style={{ flexDirection: 'row', gap: space.sm }}>
               {LOCALES.map((l) => (
                 <Chip key={l} label={l === 'pt-BR' ? 'Português' : 'English'} selected={i18n.language === l} onPress={() => changeLanguage(l)} />

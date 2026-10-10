@@ -11,6 +11,7 @@ export const colors = {
   textMuted: '#B3A9EB',
   border: 'rgba(179, 169, 235, 0.25)',
   danger: '#FF6B81',
+  success: '#5BD69A',
   overlay: 'rgba(0, 0, 0, 0.4)',
 } as const;
 

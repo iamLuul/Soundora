@@ -53,6 +53,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="u/[username]" options={{ title: '' }} />
         <Stack.Screen name="post/[id]" options={{ title: '' }} />
+        <Stack.Screen name="settings/profile" options={{ title: '' }} />
       </Stack.Protected>
 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />

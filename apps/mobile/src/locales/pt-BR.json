@@ -23,7 +23,21 @@
     "apple": "Entrar com Apple",
     "invalidEmail": "Digite um e-mail válido.",
     "invalidCode": "Código inválido ou vencido.",
-    "networkError": "Não foi possível conectar ao servidor. Confira a internet e o endereço do Supabase."
+    "networkError": "Não foi possível conectar ao servidor. Confira a internet e o endereço do Supabase.",
+    "modePassword": "Senha",
+    "modeCode": "Código por e-mail",
+    "password": "Senha",
+    "passwordHint": "Pelo menos 8 caracteres.",
+    "signIn": "Entrar",
+    "signUp": "Criar conta",
+    "forgot": "Esqueci a senha (entrar com código)",
+    "wrongPassword": "E-mail ou senha incorretos.",
+    "emailExists": "Esse e-mail já tem conta. Entre com a senha ou use o código por e-mail.",
+    "confirmEmail": "Conta criada! Confirme pelo link que enviamos ao seu e-mail e depois entre.",
+    "rateLimit": "Muitas tentativas. Espere um pouco e tente de novo.",
+    "codeHint": "Sem senha: enviamos um código de 6 dígitos para o seu e-mail.",
+    "showPassword": "Mostrar senha",
+    "hidePassword": "Ocultar senha"
   },
   "onboarding": {
     "step": "Passo {{current}} de {{total}}",
@@ -41,7 +55,9 @@
     "termsTitle": "Termos de uso e privacidade",
     "termsBody": "O Soundora mostra prévias de músicas e abre cada faixa no app de streaming onde ela foi lançada. Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.",
     "termsAccept": "Li e concordo com os Termos e a Política de Privacidade",
-    "finish": "Começar"
+    "finish": "Começar",
+    "usernameChecking": "Verificando se está disponível…",
+    "usernameAvailable": "@{{username}} está disponível"
   },
   "age": {
     "too_young": "Você precisa ter pelo menos {{min}} anos para usar o Soundora.",
@@ -61,7 +77,13 @@
     "fetch_failed": "Não conseguimos ler o link agora. Tente de novo.",
     "post_text_too_long": "O texto pode ter até 500 caracteres.",
     "comment_too_long": "O comentário pode ter até 300 caracteres.",
-    "generic": "Algo deu errado. Tente de novo."
+    "generic": "Algo deu errado. Tente de novo.",
+    "preview_unavailable": "O serviço de prévia de links não respondeu. Tente de novo em instantes.",
+    "not_authenticated": "Sua sessão expirou. Entre de novo.",
+    "password_too_short": "A senha precisa ter pelo menos 8 caracteres.",
+    "password_too_long": "A senha pode ter no máximo 72 caracteres.",
+    "bio_too_long": "A bio pode ter até 160 caracteres.",
+    "passwords_differ": "As senhas não são iguais."
   },
   "tabs": {
     "feed": "Para você",
@@ -105,7 +127,8 @@
     "unfollow": "Deixar de seguir",
     "signOut": "Sair",
     "language": "Idioma",
-    "noPosts": "Nenhum post ainda."
+    "noPosts": "Nenhum post ainda.",
+    "edit": "Editar perfil"
   },
   "report": {
     "title": "Por que você está denunciando?",
@@ -148,5 +171,18 @@
     "tracks": "Músicas",
     "noResults": "Nada encontrado para “{{query}}”.",
     "minChars": "Digite pelo menos 2 letras."
+  },
+  "editProfile": {
+    "title": "Editar perfil",
+    "changePhoto": "Trocar foto",
+    "removePhoto": "Remover foto",
+    "bio": "Bio",
+    "bioPlaceholder": "Conte um pouco sobre você e o que você ouve",
+    "passwordTitle": "Senha",
+    "passwordHint": "Crie ou troque a senha para entrar sem precisar do código por e-mail.",
+    "newPassword": "Nova senha",
+    "confirmPassword": "Repita a nova senha",
+    "savePassword": "Salvar senha",
+    "passwordSaved": "Senha salva. Da próxima vez, entre com e-mail e senha."
   }
 }

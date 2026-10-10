@@ -149,3 +149,28 @@ describe('denúncias', () => {
     expect((await db.sql(`select status from public.reports where reporter_id = $1`, [bia]))[0]).toEqual({ status: 'open' });
   });
 });
+
+describe('conta: username e foto', () => {
+  it('username_available: livre, ocupado (sem diferenciar maiúsculas) e inválido', async () => {
+    expect((await db.as(bia, `select public.username_available('novo_nome') as ok`))[0]).toEqual({ ok: true });
+    expect((await db.as(bia, `select public.username_available('ANA') as ok`))[0]).toEqual({ ok: false });
+    expect((await db.as(bia, `select public.username_available('a b') as ok`))[0]).toEqual({ ok: false });
+    expect((await db.as(bia, `select public.username_available('.ana') as ok`))[0]).toEqual({ ok: false });
+  });
+
+  it('username_available só para quem está logado', async () => {
+    await expect(db.anon(`select public.username_available('x')`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('foto de perfil só da própria pasta do bucket avatars', async () => {
+    const mine = `http://127.0.0.1:54321/storage/v1/object/public/avatars/${ana}/avatar-1.jpg`;
+    await db.as(ana, `update public.profiles set avatar_url = $1 where id = $2`, [mine, ana]);
+    expect((await db.sql(`select avatar_url from public.profiles where id = $1`, [ana]))[0]).toEqual({ avatar_url: mine });
+
+    const others = `http://127.0.0.1:54321/storage/v1/object/public/avatars/${bia}/avatar-1.jpg`;
+    await expect(db.as(ana, `update public.profiles set avatar_url = $1 where id = $2`, [others, ana])).rejects.toThrow(/profiles_avatar_url_own_folder/);
+    await expect(db.as(ana, `update public.profiles set avatar_url = 'https://evil.example/x.jpg' where id = $1`, [ana])).rejects.toThrow(
+      /profiles_avatar_url_own_folder/,
+    );
+  });
+});

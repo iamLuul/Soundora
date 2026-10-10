@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, Text, View } from 'react-native';
 import { blockUser, deletePost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { errorMessageKey } from '../lib/errors';
+import { formatError } from '../lib/errors';
 import { useToggleLike } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
 import { colors, space, text } from '../theme';
@@ -59,7 +59,7 @@ export function PostList({
       }
       await qc.invalidateQueries();
     } catch (err) {
-      notify(t(errorMessageKey(err)));
+      notify(formatError(t, err));
     }
   };
 

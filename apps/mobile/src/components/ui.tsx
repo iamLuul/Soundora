@@ -70,7 +70,13 @@ export function Button({
   );
 }
 
-export function TextField({ label, hint, error, ...props }: TextInputProps & { label: string; hint?: string; error?: string | null }) {
+export function TextField({
+  label,
+  hint,
+  error,
+  success,
+  ...props
+}: TextInputProps & { label: string; hint?: string; error?: string | null; success?: string | null }) {
   return (
     <View style={{ gap: space.xs }}>
       <Text style={text.label}>{label}</Text>
@@ -78,9 +84,19 @@ export function TextField({ label, hint, error, ...props }: TextInputProps & { l
         placeholderTextColor={colors.muted}
         accessibilityLabel={label}
         {...props}
-        style={[styles.input, !!error && { borderColor: colors.danger }, props.style]}
+        style={[styles.input, !!error && { borderColor: colors.danger }, !!success && { borderColor: colors.success }, props.style]}
       />
-      {error ? <Text style={[text.small, { color: colors.danger }]}>{error}</Text> : hint ? <Text style={text.small}>{hint}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={[text.small, { color: colors.danger }]}>
+          {error}
+        </Text>
+      ) : success ? (
+        <Text accessibilityLiveRegion="polite" style={[text.small, { color: colors.success }]}>
+          {success}
+        </Text>
+      ) : hint ? (
+        <Text style={text.small}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
@@ -169,6 +185,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 15,
     backgroundColor: 'rgba(255,255,255,0.04)',
+    outlineWidth: 0, // Web: sem o contorno branco do navegador; a borda colorida mostra o estado
   },
   chip: { paddingVertical: space.sm, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },

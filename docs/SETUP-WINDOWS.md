@@ -115,6 +115,8 @@ Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
 | Web: `Worker chunk not found ... expo-sqlite\web\worker.ts` | Código antigo ainda rodando (antes do commit `81b0a17`) | `git pull`, feche o Expo (Ctrl+C) e abra de novo com `npm run app -- --clear` |
 | Celular: erro ao tocar em "Receber código", com "Não foi possível conectar ao servidor" | O celular não alcança o Supabase do PC | Mesmo Wi-Fi, porta 54321 liberada no firewall e `npx supabase start` rodando. A mensagem de erro mostra o endereço que o app tentou |
 | Console: `WebCrypto API is not supported. Code challenge method will default to use plain` | Aviso do Supabase no Android/iOS (o celular não tem WebCrypto) | Só um aviso, não é o erro. Não afeta o login por código |
+| Postar: erro ao gerar a prévia do link | A Edge Function não está rodando, ou não foi publicada na nuvem | Local: deixe `npx supabase functions serve` aberto num terminal. Nuvem: `npx supabase functions deploy link-preview`. Em desenvolvimento, a tela mostra o código HTTP e o motivo logo abaixo da mensagem |
+| "Conta criada! Confirme pelo link..." ao criar conta com senha | Na nuvem, o Supabase pede confirmação de e-mail por padrão | Para testes, desligue em Authentication → Sign In / Providers → Email → Confirm email. Localmente já vem desligado |
 | `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
 
 Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundora] Supabase em ...` ao abrir o app.

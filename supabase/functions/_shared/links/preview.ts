@@ -69,8 +69,23 @@ async function safeFetch(url: string, opts: PreviewOptions, accept = 'applicatio
   }
 }
 
+/**
+ * Faz a requisição seguindo redirecionamentos (até 5), mas validando cada destino
+ * contra a lista de hosts permitidos. Muitas plataformas redirecionam (idioma, www, região).
+ */
+async function fetchFollowing(url: string, opts: PreviewOptions, accept: string) {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await safeFetch(current, opts, accept);
+    const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+    if (!location) return res;
+    current = new URL(location, current).toString();
+  }
+  throw new LinkPreviewError('fetch_failed', 'too many redirects');
+}
+
 async function getJson<T>(url: string, opts: PreviewOptions): Promise<T> {
-  const res = await safeFetch(url, opts);
+  const res = await fetchFollowing(url, opts, 'application/json');
   if (res.status === 404) throw new LinkPreviewError('not_found');
   if (!res.ok) throw new LinkPreviewError('fetch_failed', `HTTP ${res.status}`);
   try {
@@ -86,7 +101,19 @@ export async function resolveShortLink(url: string, opts: PreviewOptions): Promi
   for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
     const res = await safeFetch(current, opts, 'text/html');
     const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
-    if (!location) break;
+    if (!location) {
+      // Alguns encurtadores devolvem uma página (200) em vez de redirecionar:
+      // procura o link da plataforma no og:url ou no próprio HTML.
+      if (res.ok) {
+        const html = (await res.text()).slice(0, opts.maxHtmlChars ?? 500_000);
+        const candidates = [parseOpenGraph(html)['og:url'], ...(html.match(/https:\/\/[a-z0-9.-]+\/[^\s"'<>\\]+/gi) ?? [])];
+        for (const c of candidates) {
+          const parsed = c ? parseStreamingUrl(decodeEntities(c)) : null;
+          if (parsed && !parsed.isShortLink) return parsed;
+        }
+      }
+      break;
+    }
     current = new URL(location, current).toString();
     const parsed = parseStreamingUrl(current);
     if (parsed && !parsed.isShortLink) return parsed;
@@ -116,7 +143,7 @@ export function parseOpenGraph(html: string): Record<string, string> {
 }
 
 async function openGraph(url: string, opts: PreviewOptions): Promise<Record<string, string>> {
-  const res = await safeFetch(url, opts, 'text/html');
+  const res = await fetchFollowing(url, opts, 'text/html');
   if (res.status === 404) throw new LinkPreviewError('not_found');
   if (!res.ok) throw new LinkPreviewError('fetch_failed', `HTTP ${res.status}`);
   const html = (await res.text()).slice(0, opts.maxHtmlChars ?? 500_000);
@@ -159,7 +186,15 @@ interface OEmbed {
 }
 
 async function spotify(link: ParsedLink, opts: PreviewOptions): Promise<LinkPreview> {
-  const data = await getJson<OEmbed>(`https://open.spotify.com/oembed?url=${encodeURIComponent(link.url)}`, opts);
+  let data: OEmbed;
+  try {
+    data = await getJson<OEmbed>(`https://open.spotify.com/oembed?url=${encodeURIComponent(link.url)}`, opts);
+  } catch (err) {
+    if (err instanceof LinkPreviewError && err.code === 'not_found') throw err;
+    // oEmbed fora do ar ou bloqueado: tenta os metadados da própria página.
+    const og = await openGraph(link.url, opts);
+    return { ...fromOpenGraph(link, og), artist: spotifyArtistFromDescription(og['og:description']) };
+  }
   const title = limit(data.title);
   if (!title) throw new LinkPreviewError('not_found');
   let artist: string | null = null;

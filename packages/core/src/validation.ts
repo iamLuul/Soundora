@@ -67,3 +67,7 @@ export const birthdateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'birthdat
 
 export const reportReasonSchema = z.enum(['spam', 'harassment', 'hate', 'sexual', 'violence', 'copyright', 'other']);
 export type ReportReason = z.infer<typeof reportReasonSchema>;
+
+/** Senha: 8 a 72 caracteres (72 é o limite do bcrypt usado pelo Supabase Auth). */
+export const PASSWORD_MIN = 8;
+export const passwordSchema = z.string().min(PASSWORD_MIN, 'password_too_short').max(72, 'password_too_long');

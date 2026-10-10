@@ -52,7 +52,13 @@
       "expo-sqlite",
       "expo-localization",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Soundora usa suas fotos só quando você escolhe uma foto de perfil."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

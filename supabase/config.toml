@@ -25,6 +25,7 @@ port = 54324
 site_url = "http://localhost:8081"
 additional_redirect_urls = ["soundora://**", "http://localhost:8081/**", "exp://**"]
 jwt_expiry = 3600
+minimum_password_length = 8
 enable_refresh_token_rotation = true
 
 [auth.email]

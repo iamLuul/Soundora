@@ -4,12 +4,12 @@ Rede social de música para Android, iOS e Web. As pessoas postam links de strea
 
 Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 
-- cadastro por código no e-mail (e Google/Apple), com onboarding de 4 passos;
+- cadastro com e-mail e senha ou código por e-mail (e Google/Apple), com onboarding de 4 passos e username checado enquanto se digita;
 - regra de idade configurável, aplicada no app e no banco;
 - indexador de links de 9 plataformas, com cache e proteção contra SSRF;
 - postar música, feed "Para você", curtir, comentar, seguir;
 - Descobrir (cartões com swipe: destaques da curadoria e indicações da comunidade), Em alta (ranking da semana por gênero) e Buscar (pessoas e músicas);
-- perfil, denunciar, bloquear e apagar post;
+- perfil com edição de foto, nome, bio e senha; denunciar, bloquear e apagar post;
 - interface em português do Brasil e inglês.
 
 ## Estrutura
@@ -55,6 +55,7 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm test` | Testes do core (Vitest) e do app (Jest) |
 | `npm run test:db` | Testes do banco e RLS (precisa de PostgreSQL; veja [docs/TESTES.md](docs/TESTES.md)) |
 | `npm run typecheck:functions` | Confere a Edge Function com Deno |
+| `npm run test:functions` | Testa a Edge Function no Deno, com Spotify e Supabase simulados |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
 ## Decisões importantes
@@ -74,4 +75,4 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 
 ## Próximos passos do roteiro
 
-Painel admin (moderação e curadoria sem SQL), notificações push, edição de perfil com avatar (o bucket `avatars` já existe), vídeos e Vibes, e vínculo com responsável.
+Painel admin (moderação e curadoria sem SQL), notificações push, vídeos e Vibes, e vínculo com responsável.

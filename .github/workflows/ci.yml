@@ -28,6 +28,8 @@ jobs:
       - run: npm run test:app
       - name: Typecheck da Edge Function (Deno)
         run: npm run typecheck:functions
+      - name: Testes da Edge Function (Deno)
+        run: npm run test:functions
       - name: Servidor de desenvolvimento Web abre sem erro
         working-directory: apps/mobile
         env:
