@@ -28,6 +28,23 @@ jobs:
       - run: npm run test:app
       - name: Typecheck da Edge Function (Deno)
         run: npm run typecheck:functions
+      - name: Servidor de desenvolvimento Web abre sem erro
+        working-directory: apps/mobile
+        env:
+          CI: 1
+          EXPO_OFFLINE: 1
+          EXPO_PUBLIC_SUPABASE_URL: http://localhost:54321
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci
+        run: |
+          npx expo start --web --port 8081 > expo.log 2>&1 &
+          code=000
+          for i in $(seq 1 60); do
+            code=$(curl -s -o page.html -w "%{http_code}" http://localhost:8081/sign-in || true)
+            [ "$code" != "000" ] && break
+            sleep 3
+          done
+          tail -n 30 expo.log
+          test "$code" = "200"
 
   banco:
     name: Migrations e regras de acesso (RLS)
