@@ -26,9 +26,9 @@ jobs:
       - run: npm run lint
       - run: npm run test:core
       - run: npm run test:app
-      - name: Typecheck da Edge Function (Deno)
+      - name: Typecheck das Edge Functions (Deno)
         run: npm run typecheck:functions
-      - name: Testes da Edge Function (Deno)
+      - name: Testes das Edge Functions (Deno)
         run: npm run test:functions
       - name: Servidor de desenvolvimento Web abre sem erro
         working-directory: apps/mobile

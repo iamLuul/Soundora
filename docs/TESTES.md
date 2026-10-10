@@ -5,10 +5,10 @@ Quatro camadas, da mais rápida para a mais completa. O CI (`.github/workflows/c
 | Camada | Ferramenta | Onde | O que cobre | Comando |
 | --- | --- | --- | --- | --- |
 | Regras compartilhadas | Vitest | `packages/core/src/**/*.test.ts` | Reconhecimento de links de 9 plataformas, cartões de prévia (com `fetch` falso), proteção SSRF, idade, validações | `npm run test:core` |
-| Banco e regras de acesso | Vitest + PostgreSQL | `tests/db/*.test.ts` | Migrations aplicam do zero; RLS de perfis, posts, curtidas, comentários, bloqueios, denúncias e destaques; onboarding e regra de idade; feed, Descobrir, Em alta e busca | `npm run test:db` |
-| Edge Function | Deno test | `supabase/functions/link-preview/handler.test.ts` | A função inteira (login, cache, Spotify com a resposta real do oEmbed, erros, CORS) com Supabase e plataformas simulados | `npm run test:functions` |
-| App | Jest + Testing Library | `apps/mobile/__tests__` | Componentes (cartão de música, post, cartão do Descobrir com swipe, ranking, busca), checagem de username enquanto digita, erros de login, traduções completas em pt-BR e en, erros, curtida otimista | `npm run test:app` |
-| Ponta a ponta | Maestro | `apps/mobile/.maestro` | Cadastro completo, login com senha e postar música num app de verdade | `maestro test apps/mobile/.maestro` |
+| Banco e regras de acesso | Vitest + PostgreSQL | `tests/db/*.test.ts` | Migrations aplicam do zero; RLS de perfis, posts, curtidas, comentários, bloqueios, denúncias e destaques; onboarding e regra de idade; feed, Descobrir, Em alta e busca; o app nunca lê o e-mail de alguém pelo @ | `npm run test:db` |
+| Edge Functions | Deno test | `supabase/functions/*/handler.test.ts` | Indexador (login, cache, Spotify com a resposta real do oEmbed, erros, CORS) e login com @usuário (senha, código, e-mail nunca exposto, limites de tentativas) com Supabase e plataformas simulados | `npm run test:functions` |
+| App | Jest + Testing Library | `apps/mobile/__tests__` | Componentes (cartão de música, post, cartão do Descobrir com swipe, ranking, busca), cadastro com senha e código, login por e-mail ou @usuário com senha ou código, checagem de username enquanto digita, erros de login, traduções completas em pt-BR e en, erros, curtida otimista | `npm run test:app` |
+| Ponta a ponta | Maestro | `apps/mobile/.maestro` | Cadastro completo (senha + código), login com @usuário (senha e código) e postar música num app de verdade | `maestro test apps/mobile/.maestro` |
 
 ## Testes do banco
 
@@ -30,11 +30,12 @@ O banco de teste é separado; os dados do seu Supabase local não são tocados.
 3. Rode:
 
 ```powershell
-maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundora.dev -e USERNAME=teste1
+maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundora.dev -e USERNAME=teste1 -e PASSWORD=senha-forte-123
 maestro test apps/mobile/.maestro/02-postar-musica.yaml
+maestro test apps/mobile/.maestro/03-login-usuario.yaml -e USERNAME=teste1 -e PASSWORD=senha-forte-123
 ```
 
-O fluxo de cadastro lê o código de login direto da caixa de e-mail local (`scripts/get-otp.js`).
+Os fluxos leem o código direto da caixa de e-mail local (`scripts/get-otp.js`).
 
 ## Antes de cada commit
 

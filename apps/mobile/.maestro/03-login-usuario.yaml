@@ -1,0 +1,45 @@
+# Entra com @usuário e senha, sai, e entra de novo com @usuário e código por e-mail.
+# Precisa de uma conta já criada pelo 01-cadastro (mesmos USERNAME e PASSWORD).
+# Rodar: maestro test apps/mobile/.maestro/03-login-usuario.yaml -e USERNAME=teste1 -e PASSWORD=senha-forte-123
+# (a Edge Function auth-username precisa estar rodando: npx supabase functions serve)
+appId: app.soundora
+env:
+  MAILBOX_URL: http://10.0.2.2:54324
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "identifier-input"
+- inputText: "@${USERNAME}"
+- tapOn:
+    id: "password-input"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "sign-in"
+- extendedWaitUntil:
+    visible: "Para você"
+    timeout: 10000
+
+# De novo, agora com código: o código vai para o e-mail ligado ao @
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "identifier-input"
+- inputText: "@${USERNAME}"
+- tapOn: "Código por e-mail"
+- tapOn:
+    id: "send-code"
+- extendedWaitUntil:
+    visible:
+      id: "code-input"
+    timeout: 10000
+- runScript: scripts/get-otp.js
+- tapOn:
+    id: "code-input"
+- inputText: ${output.otp}
+- tapOn:
+    id: "verify-code"
+- extendedWaitUntil:
+    visible: "Para você"
+    timeout: 10000

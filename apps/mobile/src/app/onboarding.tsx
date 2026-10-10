@@ -1,23 +1,34 @@
-import { checkAge, displayNameSchema, MIN_GENRES, usernameSchema, type AgePolicy } from '@soundora/core';
+import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy } from '@soundora/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PasswordField } from '../components/auth/PasswordField';
 import { Button, Chip, ErrorText, Screen, TextField } from '../components/ui';
 import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
 import { useAuth } from '../lib/auth';
+import { setPassword as savePassword } from '../lib/auth-flows';
 import { errorMessageKey, formatError } from '../lib/errors';
 import { useGenres } from '../lib/queries';
 import { useUsernameStatus, validateUsernameFormat } from '../lib/username';
 import { colors, space, text } from '../theme';
 
-const TOTAL_STEPS = 4;
+type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'terms';
 
 export default function Onboarding() {
   const { t, i18n } = useTranslation();
-  const { refreshProfile } = useAuth();
-  const [step, setStep] = useState(1);
+  const { refreshProfile, session } = useAuth();
+  // Quem entrou com Google ou Apple ainda não tem senha: cria aqui, para poder entrar também
+  // com e-mail/@usuário e senha. Quem criou a conta pelo e-mail já definiu a senha no cadastro.
+  const provider = session?.user.app_metadata?.provider;
+  const [needsPassword] = useState(() => !!provider && provider !== 'email');
+  const steps: Step[] = needsPassword ? ['password', 'profile', 'birthdate', 'genres', 'terms'] : ['profile', 'birthdate', 'genres', 'terms'];
+  const [index, setIndex] = useState(0);
+  const step = steps[index]!;
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [savedPassword, setSavedPassword] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [day, setDay] = useState('');
@@ -40,7 +51,22 @@ export default function Onboarding() {
 
   const next = async () => {
     setError(null);
-    if (step === 1) {
+    if (step === 'password') {
+      const pw = passwordSchema.safeParse(password);
+      if (!pw.success) return setError(t(`errors.${pw.error.issues[0]?.message ?? 'password_too_short'}`));
+      if (confirm !== password) return setError(t('errors.passwords_differ'));
+      setCheckingNext(true);
+      try {
+        // Voltar e avançar de novo não regrava a mesma senha (o Supabase recusaria).
+        if (savedPassword !== password) await savePassword(password);
+        setSavedPassword(password);
+      } catch (err) {
+        return setError(formatError(t, err));
+      } finally {
+        setCheckingNext(false);
+      }
+    }
+    if (step === 'profile') {
       const format = validateUsernameFormat(username);
       if (!format.ok) return setError(t(`errors.${format.reason}`));
       const d = displayNameSchema.safeParse(displayName);
@@ -55,15 +81,15 @@ export default function Onboarding() {
         setCheckingNext(false);
       }
     }
-    if (step === 2) {
+    if (step === 'birthdate') {
       if (!policy) return setError(t('common.error'));
       const result = checkAge(toIsoDate(day, month, year), policy);
       if (result.status === 'invalid') return setError(t('age.invalid'));
       if (result.status === 'too_young') return setError(t('age.too_young', { min: policy.minAge }));
       if (result.status === 'needs_guardian') return setError(t('age.needs_guardian', { under: policy.guardianRequiredUnder }));
     }
-    if (step === 3 && genres.length < MIN_GENRES) return setError(t('errors.genres_too_few'));
-    setStep((s) => s + 1);
+    if (step === 'genres' && genres.length < MIN_GENRES) return setError(t('errors.genres_too_few'));
+    setIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
   const finish = async () => {
@@ -81,7 +107,7 @@ export default function Onboarding() {
     } catch (err) {
       const key = errorMessageKey(err);
       setError(t(key, { min: policy?.minAge, under: policy?.guardianRequiredUnder }));
-      if (key === 'errors.username_taken') setStep(1);
+      if (key === 'errors.username_taken') setIndex(steps.indexOf('profile'));
     } finally {
       setBusy(false);
     }
@@ -92,12 +118,21 @@ export default function Onboarding() {
 
   return (
     <Screen scroll style={styles.container}>
-      <Text style={text.small}>{t('onboarding.step', { current: step, total: TOTAL_STEPS })}</Text>
+      <Text style={text.small}>{t('onboarding.step', { current: index + 1, total: steps.length })}</Text>
       <View style={styles.progress}>
-        <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%` }]} />
+        <View style={[styles.progressFill, { width: `${((index + 1) / steps.length) * 100}%` }]} />
       </View>
 
-      {step === 1 && (
+      {step === 'password' && (
+        <>
+          <Text style={text.title}>{t('onboarding.passwordTitle')}</Text>
+          <Text style={text.small}>{t('onboarding.passwordHint')}</Text>
+          <PasswordField testID="new-password-input" label={t('auth.password')} hint={t('auth.passwordHint')} value={password} onChangeText={setPassword} newPassword />
+          <PasswordField testID="confirm-password-input" label={t('auth.confirmPassword')} value={confirm} onChangeText={setConfirm} newPassword />
+        </>
+      )}
+
+      {step === 'profile' && (
         <>
           <Text style={text.title}>{t('onboarding.profileTitle')}</Text>
           <TextField
@@ -122,7 +157,7 @@ export default function Onboarding() {
         </>
       )}
 
-      {step === 2 && (
+      {step === 'birthdate' && (
         <>
           <Text style={text.title}>{t('onboarding.birthdateTitle')}</Text>
           <Text style={text.small}>{t('onboarding.birthdateHint')}</Text>
@@ -140,7 +175,7 @@ export default function Onboarding() {
         </>
       )}
 
-      {step === 3 && (
+      {step === 'genres' && (
         <>
           <Text style={text.title}>{t('onboarding.genresTitle')}</Text>
           <Text style={text.small}>{t('onboarding.genresHint', { min: MIN_GENRES })}</Text>
@@ -152,7 +187,7 @@ export default function Onboarding() {
         </>
       )}
 
-      {step === 4 && (
+      {step === 'terms' && (
         <>
           <Text style={text.title}>{t('onboarding.termsTitle')}</Text>
           <Text style={text.body}>{t('onboarding.termsBody')}</Text>
@@ -171,14 +206,14 @@ export default function Onboarding() {
       <ErrorText>{error}</ErrorText>
 
       <View style={styles.footer}>
-        {step > 1 ? <Button title={t('common.back')} variant="ghost" onPress={() => setStep((s) => s - 1)} /> : <View />}
-        {step < TOTAL_STEPS ? (
+        {index > 0 ? <Button title={t('common.back')} variant="ghost" onPress={() => setIndex((i) => i - 1)} /> : <View />}
+        {step !== 'terms' ? (
           <Button
             testID="onboarding-next"
             title={t('common.next')}
             onPress={next}
             loading={checkingNext}
-            disabled={step === 1 && (usernameStatus.state === 'taken' || usernameStatus.state === 'invalid')}
+            disabled={step === 'profile' && (usernameStatus.state === 'taken' || usernameStatus.state === 'invalid')}
           />
         ) : (
           <Button testID="onboarding-finish" title={t('onboarding.finish')} onPress={finish} disabled={!accepted} loading={busy} />

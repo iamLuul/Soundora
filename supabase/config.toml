@@ -30,7 +30,8 @@ enable_refresh_token_rotation = true
 
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+# Toda conta nova confirma o e-mail com o código de 6 dígitos antes de entrar.
+enable_confirmations = true
 otp_length = 6
 otp_expiry = 900
 
@@ -57,3 +58,7 @@ secret = "env(SUPABASE_AUTH_APPLE_SECRET)"
 
 [functions.link-preview]
 verify_jwt = true
+
+# Entrar com @usuário: é a própria tela de login, então não exige sessão.
+[functions.auth-username]
+verify_jwt = false

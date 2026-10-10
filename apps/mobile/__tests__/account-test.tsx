@@ -16,7 +16,7 @@ jest.mock('../src/lib/api', () => ({
 }));
 
 function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } }) // Infinity: sem timer de limpeza segurando o Jest;
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 

@@ -16,8 +16,8 @@
     "lint": "npm run lint --workspace apps/mobile",
     "sync:shared": "node scripts/sync-shared.mjs",
     "check:shared": "node scripts/sync-shared.mjs --check",
-    "typecheck:functions": "deno check --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/index.ts supabase/functions/link-preview/handler.test.ts",
-    "test:functions": "deno test --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/"
+    "typecheck:functions": "deno check --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/index.ts supabase/functions/link-preview/handler.test.ts supabase/functions/auth-username/index.ts supabase/functions/auth-username/handler.test.ts",
+    "test:functions": "deno test --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/ supabase/functions/auth-username/"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

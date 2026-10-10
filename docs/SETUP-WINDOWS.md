@@ -43,7 +43,7 @@ Na primeira vez demora alguns minutos. No fim, o terminal mostra:
 
 As migrations e o `seed.sql` são aplicados sozinhos. Para recriar o banco do zero: `npx supabase db reset`.
 
-Em outro terminal, suba a Edge Function do indexador de links (ela precisa de internet para ler as plataformas):
+Em outro terminal, suba as Edge Functions: o indexador de links (precisa de internet para ler as plataformas) e o login com @usuário:
 
 ```powershell
 npx supabase functions serve
@@ -70,7 +70,9 @@ npm run app
 - Leia o QR code com o **Expo Go** para abrir no celular.
 - Tecle **a** para abrir no emulador Android.
 
-Para entrar: digite um e-mail qualquer, abra `http://127.0.0.1:54324` e copie o código.
+Para criar conta: toque em **Criar conta**, digite um e-mail qualquer, a senha duas vezes, abra `http://127.0.0.1:54324` e copie o código de 6 dígitos.
+
+Para entrar depois: em **Entrar**, use o e-mail **ou** o @usuário, com a senha **ou** com um código por e-mail. Com @usuário, quem acha o e-mail da conta é a Edge Function `auth-username`, no servidor; o app nunca recebe o e-mail (no código, mostra só uma dica como `ra•••@gmail.com`). Cada @ aceita no máximo 5 senhas ou códigos errados a cada 15 minutos e 3 envios de código a cada 10 minutos.
 
 ## 5. Login com Google e Apple (opcional no começo)
 
@@ -88,11 +90,13 @@ npx supabase login
 npx supabase link --project-ref <ref-do-projeto>
 npx supabase db push
 npx supabase functions deploy link-preview
+npx supabase functions deploy auth-username --no-verify-jwt
 ```
 
-3. Em **Authentication → Email Templates → Magic Link**, cole o conteúdo de `supabase/templates/magic_link.html` (para mandar o código de 6 dígitos).
-4. Em **Authentication → URL Configuration**, adicione `soundora://**` e a URL do site em Redirect URLs.
-5. Rode o `seed.sql` no SQL Editor (gêneros).
+3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link).
+4. Em **Authentication → Sign In / Providers → Email**, deixe **Confirm email** ligado (toda conta nova confirma o código) e o tamanho do código (Email OTP Length) em 6.
+5. Em **Authentication → URL Configuration**, adicione `soundora://**` e a URL do site em Redirect URLs.
+6. Rode o `seed.sql` no SQL Editor (gêneros).
 
 ## 7. Builds e lojas (EAS)
 
@@ -116,7 +120,9 @@ Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
 | Celular: erro ao tocar em "Receber código", com "Não foi possível conectar ao servidor" | O celular não alcança o Supabase do PC | Mesmo Wi-Fi, porta 54321 liberada no firewall e `npx supabase start` rodando. A mensagem de erro mostra o endereço que o app tentou |
 | Console: `WebCrypto API is not supported. Code challenge method will default to use plain` | Aviso do Supabase no Android/iOS (o celular não tem WebCrypto) | Só um aviso, não é o erro. Não afeta o login por código |
 | Postar: erro ao gerar a prévia do link | A Edge Function não está rodando, ou não foi publicada na nuvem | Local: deixe `npx supabase functions serve` aberto num terminal. Nuvem: `npx supabase functions deploy link-preview`. Em desenvolvimento, a tela mostra o código HTTP e o motivo logo abaixo da mensagem |
-| "Conta criada! Confirme pelo link..." ao criar conta com senha | Na nuvem, o Supabase pede confirmação de e-mail por padrão | Para testes, desligue em Authentication → Sign In / Providers → Email → Confirm email. Localmente já vem desligado |
+| O e-mail de cadastro chega com um link em vez do código | Na nuvem, o modelo **Confirm signup** ainda é o padrão | Cole `supabase/templates/magic_link.html` em Authentication → Email Templates → Confirm signup |
+| "Entrar com @usuário não está disponível agora" | A Edge Function `auth-username` não está rodando ou não foi publicada | Local: `npx supabase functions serve`. Nuvem: `npx supabase functions deploy auth-username --no-verify-jwt`. Entrar com e-mail continua funcionando |
+| "Não achamos uma conta..." ao pedir código | Login por código não cria conta | Use a aba **Criar conta** |
 | `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
 
 Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundora] Supabase em ...` ao abrir o app.

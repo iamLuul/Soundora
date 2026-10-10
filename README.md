@@ -4,7 +4,8 @@ Rede social de música para Android, iOS e Web. As pessoas postam links de strea
 
 Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 
-- cadastro com e-mail e senha ou código por e-mail (e Google/Apple), com onboarding de 4 passos e username checado enquanto se digita;
+- cadastro com e-mail, senha e confirmação por código (e Google/Apple), com onboarding de 4 passos e username checado enquanto se digita;
+- login com e-mail ou @usuário, por senha ou por código no e-mail (com @usuário, o servidor acha o e-mail e limita tentativas);
 - regra de idade configurável, aplicada no app e no banco;
 - indexador de links de 9 plataformas, com cache e proteção contra SSRF;
 - postar música, feed "Para você", curtir, comentar, seguir;
@@ -26,6 +27,7 @@ packages/core/          Regras compartilhadas: links de streaming, idade, valida
 supabase/
   migrations/           Banco: tabelas, regras de acesso (RLS), feed
   functions/link-preview/  Edge Function do indexador de links
+  functions/auth-username/ Edge Function do login com @usuário
   seed.sql              Gêneros
   config.toml           Configuração do Supabase local
 tests/db/               Testes do banco e das regras de acesso (Vitest + PostgreSQL)
@@ -40,7 +42,7 @@ Guia completo, com todos os programas: [docs/SETUP-WINDOWS.md](docs/SETUP-WINDOW
 ```bash
 npm install                      # na raiz do repositório
 npx supabase start               # Supabase local (precisa do Docker Desktop aberto)
-npx supabase functions serve     # em outro terminal: Edge Function do indexador
+npx supabase functions serve     # em outro terminal: Edge Functions (indexador e login com @)
 copy apps\mobile\.env.example apps\mobile\.env.local   # e cole a publishable key
 npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code no Expo Go
 ```
@@ -54,13 +56,14 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm run lint` | ESLint do app |
 | `npm test` | Testes do core (Vitest) e do app (Jest) |
 | `npm run test:db` | Testes do banco e RLS (precisa de PostgreSQL; veja [docs/TESTES.md](docs/TESTES.md)) |
-| `npm run typecheck:functions` | Confere a Edge Function com Deno |
-| `npm run test:functions` | Testa a Edge Function no Deno, com Spotify e Supabase simulados |
+| `npm run typecheck:functions` | Confere as Edge Functions com Deno |
+| `npm run test:functions` | Testa as Edge Functions no Deno, com Spotify e Supabase simulados |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
 ## Decisões importantes
 
 - **Sem reprodução de áudio.** Toda faixa abre no app ou site de origem. Isso evita licenças de música.
+- **Login com @usuário sem expor e-mail.** O app manda o @ para a Edge Function `auth-username`, que acha o e-mail com a chave secreta (função `login_lookup`, fechada para o app) e devolve só a sessão. Tentativas ficam em `public.login_attempts`.
 - **Segurança no banco.** O app usa só a chave pública; o que cada pessoa pode ler e escrever está nas policies de RLS em `supabase/migrations`, cobertas por testes.
 - **Idade mínima ainda em decisão.** Está em `public.app_config` (`min_age`, padrão 13). Pelo ECA Digital, contas de 13 a 15 anos precisam de vínculo com um responsável; enquanto esse fluxo não existir (`guardian_flow_enabled = false`), essas idades são bloqueadas no cadastro. Para mudar: `update public.app_config set min_age = 18;`
 - **Curadoria do Descobrir.** Destaques ficam na tabela `public.featured` e aparecem primeiro no Descobrir, pelo gênero da pessoa. Para destacar uma música, poste o link no app (isso cria o cartão) e, como administrador, rode no SQL Editor:
