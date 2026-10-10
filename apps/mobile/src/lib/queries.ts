@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { FEED_PAGE_SIZE, fetchFeed, fetchProfilePosts, setLiked } from './api';
+import { FEED_PAGE_SIZE, fetchFeed, fetchProfilePosts, setLiked, type PostCursor } from './api';
 import { supabase } from './supabase';
 import type { FeedItem } from './types';
 
@@ -10,13 +10,37 @@ export const keys = {
   comments: (postId: string) => ['comments', postId] as const,
 };
 
+interface FeedPage {
+  page: number;
+  /** Instante em que o feed foi aberto (null na primeira página: usa o agora). */
+  openedAt: string | null;
+}
+
 export function useFeed() {
   return useInfiniteQuery({
     queryKey: keys.feed,
-    queryFn: ({ pageParam }) => fetchFeed(pageParam),
-    initialPageParam: 0,
-    getNextPageParam: (last, pages) => (last.length === FEED_PAGE_SIZE ? pages.length : undefined),
+    queryFn: async ({ pageParam }: { pageParam: FeedPage }) => {
+      const openedAt = pageParam.openedAt ?? new Date().toISOString();
+      return { items: await fetchFeed(pageParam.page, openedAt), openedAt };
+    },
+    initialPageParam: { page: 0, openedAt: null } as FeedPage,
+    getNextPageParam: (last, pages) =>
+      last.items.length === FEED_PAGE_SIZE ? { page: pages.length, openedAt: last.openedAt } : undefined,
+    // Telas recebem só a lista de posts, sem repetidos (por segurança, caso o servidor repita).
+    select: (data) => ({ ...data, pages: dedupePages(data.pages.map((p) => p.items)) }),
   });
+}
+
+/** Tira posts repetidos entre páginas (mantém a primeira ocorrência). */
+export function dedupePages(pages: FeedItem[][]): FeedItem[][] {
+  const seen = new Set<string>();
+  return pages.map((page) =>
+    page.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    }),
+  );
 }
 
 export function useProfilePosts(authorId: string | undefined) {
@@ -24,15 +48,22 @@ export function useProfilePosts(authorId: string | undefined) {
     queryKey: keys.profilePosts(authorId ?? ''),
     enabled: !!authorId,
     queryFn: ({ pageParam }) => fetchProfilePosts(authorId!, pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => (last.length === FEED_PAGE_SIZE ? (last[last.length - 1]?.created_at ?? undefined) : undefined),
+    initialPageParam: null as PostCursor | null,
+    getNextPageParam: (last) => {
+      const tail = last[last.length - 1];
+      return last.length === FEED_PAGE_SIZE && tail ? { createdAt: tail.created_at, id: tail.id } : undefined;
+    },
   });
 }
 
+/** Página em cache: lista de posts (perfil) ou { items, openedAt } (feed). */
+type CachedPage = FeedItem[] | { items: FeedItem[]; openedAt: string };
+
 /** Aplica uma mudança num post em todas as listas em cache. */
-export function patchPostInCache(data: InfiniteData<FeedItem[]> | undefined, postId: string, patch: (p: FeedItem) => FeedItem) {
+export function patchPostInCache<P extends CachedPage>(data: InfiniteData<P> | undefined, postId: string, patch: (p: FeedItem) => FeedItem) {
   if (!data) return data;
-  return { ...data, pages: data.pages.map((page) => page.map((p) => (p.id === postId ? patch(p) : p))) };
+  const fix = (items: FeedItem[]) => items.map((p) => (p.id === postId ? patch(p) : p));
+  return { ...data, pages: data.pages.map((page) => (Array.isArray(page) ? fix(page) : { ...page, items: fix(page.items) }) as P) };
 }
 
 export function toggleLikePatch(p: FeedItem): FeedItem {
@@ -46,7 +77,8 @@ export function useToggleLike() {
     mutationFn: (item: FeedItem) => setLiked(item.id, !item.liked_by_me),
     onMutate: async (item) => {
       await qc.cancelQueries({ queryKey: keys.feed });
-      const lists = qc.getQueriesData<InfiniteData<FeedItem[]>>({ predicate: (q) => ['feed', 'profile-posts'].includes(String(q.queryKey[0])) });
+      await qc.cancelQueries({ queryKey: ['profile-posts'] });
+      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'profile-posts'].includes(String(q.queryKey[0])) });
       for (const [key, data] of lists) qc.setQueryData(key, patchPostInCache(data, item.id, toggleLikePatch));
       return { lists };
     },

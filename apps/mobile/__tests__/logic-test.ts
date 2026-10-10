@@ -1,6 +1,6 @@
 import { toIsoDate } from '../src/lib/date';
 import { AppError, errorCode, errorMessageKey } from '../src/lib/errors';
-import { patchPostInCache, toggleLikePatch } from '../src/lib/queries';
+import { dedupePages, patchPostInCache, toggleLikePatch } from '../src/lib/queries';
 import type { FeedItem } from '../src/lib/types';
 
 jest.mock('../src/lib/supabase', () => ({ supabase: {} }));
@@ -53,6 +53,20 @@ describe('curtida otimista', () => {
     const out = patchPostInCache(data, 'p2', toggleLikePatch)!;
     expect(out.pages[0]![0]).toBe(samplePost);
     expect(out.pages[1]![0]).toMatchObject({ id: 'p2', liked_by_me: true });
+  });
+  test('também no formato do feed ({ items, openedAt })', () => {
+    const data = { pages: [{ items: [samplePost], openedAt: '2026-10-10T12:00:00Z' }], pageParams: [{ page: 0, openedAt: null }] };
+    const out = patchPostInCache(data, samplePost.id, toggleLikePatch)!;
+    expect(out.pages[0]).toMatchObject({ openedAt: '2026-10-10T12:00:00Z', items: [{ liked_by_me: true }] });
+  });
+});
+
+describe('feed sem repetidos', () => {
+  test('um post que aparece em duas páginas fica só na primeira', () => {
+    const a = samplePost;
+    const b = { ...samplePost, id: 'b' };
+    const c = { ...samplePost, id: 'c' };
+    expect(dedupePages([[a, b], [b, c]]).map((p) => p.map((x) => x.id))).toEqual([[samplePost.id, 'b'], ['c']]);
   });
 });
 

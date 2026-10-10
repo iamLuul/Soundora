@@ -32,6 +32,8 @@ const KNOWN = new Set([
   'invalid_image',
   'image_dimensions',
   'username_change_too_soon',
+  'confirmation_mismatch',
+  'reauth_required',
 ]);
 
 export class AppError extends Error {

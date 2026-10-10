@@ -82,11 +82,11 @@ describe('buildLinkPreview', () => {
   it('Deezer: usa a API pública', async () => {
     const { fetch } = fakeFetch({
       'https://api.deezer.com/track/3135556': {
-        body: { title: 'Harder, Better, Faster, Stronger', artist: { name: 'Daft Punk' }, album: { cover_xl: 'https://cdn/cover.jpg' } },
+        body: { title: 'Harder, Better, Faster, Stronger', artist: { name: 'Daft Punk' }, album: { cover_xl: 'https://e-cdns-images.dzcdn.net/images/cover/abc/1000x1000.jpg' } },
       },
     });
     const p = await buildLinkPreview('https://www.deezer.com/br/track/3135556', { fetch });
-    expect(p).toMatchObject({ title: 'Harder, Better, Faster, Stronger', artist: 'Daft Punk', imageUrl: 'https://cdn/cover.jpg' });
+    expect(p).toMatchObject({ title: 'Harder, Better, Faster, Stronger', artist: 'Daft Punk', imageUrl: 'https://e-cdns-images.dzcdn.net/images/cover/abc/1000x1000.jpg' });
   });
 
   it('Deezer: erro da API vira not_found', async () => {
@@ -97,11 +97,11 @@ describe('buildLinkPreview', () => {
   it('Apple Music: iTunes Lookup com capa em alta resolução', async () => {
     const { fetch } = fakeFetch({
       'https://itunes.apple.com/lookup?id=1440650711': {
-        body: { resultCount: 1, results: [{ trackName: 'Bohemian Rhapsody', artistName: 'Queen', artworkUrl100: 'https://a/100x100bb.jpg' }] },
+        body: { resultCount: 1, results: [{ trackName: 'Bohemian Rhapsody', artistName: 'Queen', artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/abc/100x100bb.jpg' }] },
       },
     });
     const p = await buildLinkPreview('https://music.apple.com/br/album/x/1440650428?i=1440650711', { fetch });
-    expect(p).toMatchObject({ title: 'Bohemian Rhapsody', artist: 'Queen', imageUrl: 'https://a/600x600bb.jpg' });
+    expect(p).toMatchObject({ title: 'Bohemian Rhapsody', artist: 'Queen', imageUrl: 'https://is1-ssl.mzstatic.com/image/thumb/abc/600x600bb.jpg' });
   });
 
   it('YouTube Music: oEmbed do YouTube e limpa " - Topic"', async () => {
@@ -178,3 +178,15 @@ describe('spotifyArtistFromDescription', () => {
   it('álbum', () => expect(spotifyArtistFromDescription('Listen to X on Spotify. Queen · Album · 1975 · 12 songs.')).toBe('Queen'));
   it('playlist não tem artista', () => expect(spotifyArtistFromDescription('Playlist · Spotify · 50 items')).toBeNull());
 });
+
+describe('capa só de CDNs das plataformas', () => {
+  it('descarta capa de outro domínio (evita rastrear quem vê o post)', async () => {
+    const url = 'https://artista.bandcamp.com/track/faixa';
+    const { fetch } = fakeFetch({
+      [url]: { body: `<meta property="og:title" content="Faixa, by Artista"><meta property="og:image" content="https://rastreador.example/pixel.gif">` },
+    });
+    const p = await buildLinkPreview(url, { fetch });
+    expect(p.imageUrl).toBeNull();
+  });
+});
+

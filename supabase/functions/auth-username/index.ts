@@ -16,8 +16,13 @@ import { createHandler, type AuthResult, type Session } from './handler.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const noSession = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 const admin = createClient(supabaseUrl, apiKey('secret'), noSession);
-/** Um cliente novo por login, para a sessão de uma pessoa nunca ficar guardada na função. */
-const publicClient = () => createClient(supabaseUrl, apiKey('publishable'), noSession);
+/**
+ * Um cliente novo por login, para a sessão de uma pessoa nunca ficar guardada na função.
+ * Repassa o IP de quem pediu: sem isso, o Supabase Auth veria sempre o IP da função, e o
+ * limite por IP dele valeria para todo mundo junto. (Confirme na nuvem: docs/SEGURANCA.md.)
+ */
+const publicClient = (ip: string | null) =>
+  createClient(supabaseUrl, apiKey('publishable'), { ...noSession, global: { headers: ip ? { 'X-Forwarded-For': ip } : {} } });
 
 function sessionResult(data: { session: { access_token: string; refresh_token: string } | null }, error: unknown): AuthResult<Session> {
   if (error) return { data: null, error: error as AuthResult<Session>['error'] & object };
@@ -34,30 +39,25 @@ Deno.serve(
       const row = (data as { user_id: string; email: string | null }[] | null)?.[0];
       return row?.email ? { userId: row.user_id, email: row.email } : null;
     },
-    async countAttempts(username, action, minutes, failuresOnly) {
-      const { data, error } = await admin.rpc('login_attempts_recent', {
-        p_username: username,
-        p_kind: action,
-        p_minutes: minutes,
-        p_failures_only: failuresOnly,
-      });
+    async startAttempt(username, action, ip) {
+      const { data, error } = await admin.rpc('login_attempt_start', { p_username: username, p_kind: action, p_ip: ip });
       if (error) throw error;
-      return (data as number) ?? 0;
+      return (data as number | null) ?? null;
     },
-    async recordAttempt(username, action, success) {
-      const { error } = await admin.from('login_attempts').insert({ username, kind: action, success });
+    async finishAttempt(id, success) {
+      const { error } = await admin.rpc('login_attempt_finish', { p_id: id, p_success: success });
       if (error) throw error;
     },
-    async signInWithPassword(email, password) {
-      const { data, error } = await publicClient().auth.signInWithPassword({ email, password });
+    async signInWithPassword(email, password, ip) {
+      const { data, error } = await publicClient(ip).auth.signInWithPassword({ email, password });
       return sessionResult(data, error);
     },
-    async sendCode(email) {
-      const { error } = await publicClient().auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    async sendCode(email, ip) {
+      const { error } = await publicClient(ip).auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
       return error ? { data: null, error } : { data: true, error: null };
     },
-    async verifyCode(email, code) {
-      const { data, error } = await publicClient().auth.verifyOtp({ email, token: code, type: 'email' });
+    async verifyCode(email, code, ip) {
+      const { data, error } = await publicClient(ip).auth.verifyOtp({ email, token: code, type: 'email' });
       return sessionResult(data, error);
     },
   }),

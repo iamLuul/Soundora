@@ -10,7 +10,7 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 - indexador de links de 9 plataformas, com cache e proteção contra SSRF;
 - postar música, feed "Para você", curtir, comentar, seguir;
 - Descobrir (cartões com swipe: destaques da curadoria e indicações da comunidade), Em alta (ranking da semana por gênero) e Buscar (pessoas e músicas);
-- perfil no layout do Figma (banner, foto centralizada, números), com troca de foto e banner, menu de opções e Configurações (editar perfil, alterar @, redefinir senha, idioma, sair); denunciar, bloquear e apagar post;
+- perfil no layout do Figma (banner, foto centralizada, números), com troca de foto e banner, menu de opções e Configurações (editar perfil, alterar @, redefinir senha, idioma, sair, excluir conta); denunciar, bloquear e apagar post;
 - interface em português do Brasil e inglês.
 
 ## Estrutura
@@ -29,6 +29,7 @@ supabase/
   functions/link-preview/  Edge Function do indexador de links
   functions/auth-username/ Edge Function do login com @usuário
   functions/profile-image/ Edge Function que confere e grava a foto e o banner do perfil
+  functions/delete-account/ Edge Function que exclui a conta
   seed.sql              Gêneros
   config.toml           Configuração do Supabase local
 tests/db/               Testes do banco e das regras de acesso (Vitest + PostgreSQL)

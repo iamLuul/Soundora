@@ -53,8 +53,8 @@ describe('feed_for_you', () => {
   });
 
   it('pagina sem repetir itens', async () => {
-    const page1 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 0)`);
-    const page2 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 2)`);
+    const page1 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 0, now())`);
+    const page2 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 2, now())`);
     expect(page1).toHaveLength(2);
     expect(page2.some((r) => page1.some((p) => p.id === r.id))).toBe(false);
   });
@@ -82,8 +82,51 @@ describe('perfil e busca', () => {
   });
 
   it('profile_posts pagina por data', async () => {
-    const rows = await db.as<{ created_at: Date }>(me, `select created_at from public.profile_posts($1, null, 50)`, [friend]);
+    const rows = await db.as<{ created_at: Date }>(me, `select created_at from public.profile_posts($1, null, null, 50)`, [friend]);
     const sorted = [...rows].sort((a, b) => +b.created_at - +a.created_at);
     expect(rows).toEqual(sorted);
   });
+
+  it('profile_posts não perde posts com o mesmo horário na virada da página', async () => {
+    const author = await createUser(db, 'feedempate');
+    const preview = await createPreview(db, 'https://open.spotify.com/track/empate');
+    // 5 posts com exatamente o mesmo created_at.
+    await db.sql(
+      `insert into public.posts (author_id, body, link_preview_id, created_at)
+       select $1, 'p' || g, $2, '2026-10-01T12:00:00Z' from generate_series(1, 5) g`,
+      [author, preview],
+    );
+    const seen: string[] = [];
+    let cursor: { created_at: Date; id: string } | null = null;
+    for (let i = 0; i < 5; i++) {
+      const page: { id: string; created_at: Date }[] = await db.as(
+        me,
+        `select id, created_at from public.profile_posts($1, $2, $3, 2)`,
+        [author, cursor?.created_at ?? null, cursor?.id ?? null],
+      );
+      if (!page.length) break;
+      seen.push(...page.map((p) => p.id));
+      cursor = page[page.length - 1]!;
+    }
+    expect(seen).toHaveLength(5);
+    expect(new Set(seen).size).toBe(5);
+  });
 });
+
+describe('feed_for_you com instante fixo', () => {
+  it('posts criados depois de abrir o feed não entram nas páginas seguintes', async () => {
+    const opened = new Date(Date.now() - 60_000).toISOString(); // feed aberto há 1 minuto
+    const preview = await createPreview(db, 'https://open.spotify.com/track/novo-no-feed');
+    const [post] = await db.as<{ id: string }>(friend, `insert into public.posts (author_id, body, link_preview_id) values ($1, 'novo', $2) returning id`, [friend, preview]);
+    const atOpen = await db.as<{ id: string }>(me, `select id from public.feed_for_you(50, 0, $1)`, [opened]);
+    expect(atOpen.map((r) => r.id)).not.toContain(post!.id);
+    const now = await db.as<{ id: string }>(me, `select id from public.feed_for_you(50, 0)`);
+    expect(now.map((r) => r.id)).toContain(post!.id);
+  });
+
+  it('instante no futuro não serve para nada (vale o agora)', async () => {
+    const rows = await db.as<{ id: string }>(me, `select id from public.feed_for_you(50, 0, now() + interval '10 years')`);
+    expect(rows.length).toBeGreaterThan(0);
+  });
+});
+

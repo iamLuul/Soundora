@@ -108,7 +108,9 @@
     "unsupported_image": "Use uma foto JPG, PNG ou WebP.",
     "invalid_image": "Não conseguimos ler essa imagem. Tente outra foto.",
     "image_dimensions": "A foto precisa ter entre 32 e 2048 pixels de lado.",
-    "username_change_too_soon": "Você só pode trocar de @ uma vez a cada 30 dias."
+    "username_change_too_soon": "Você só pode trocar de @ uma vez a cada 30 dias.",
+    "confirmation_mismatch": "O @ digitado não confere.",
+    "reauth_required": "Por segurança, saia, entre de novo na conta e volte aqui em até 30 minutos."
   },
   "tabs": {
     "feed": "Para você",
@@ -226,6 +228,16 @@
     "password": "Redefinir senha",
     "usernameHint": "Escolha seu novo @. Você pode trocar uma vez a cada {{days}} dias.",
     "usernameBlocked": "Você trocou de @ há pouco tempo. Poderá trocar de novo em {{date}}.",
-    "usernameNote": "Links antigos com o @ anterior deixam de funcionar, e o @ antigo fica livre para outra pessoa."
+    "usernameNote": "Links antigos com o @ anterior deixam de funcionar, e o @ antigo fica livre para outra pessoa.",
+    "deleteAccount": "Excluir conta",
+    "deleteIntro": "Ao excluir sua conta, apagamos:",
+    "deletePosts": "seus posts, comentários e curtidas",
+    "deleteProfile": "seu perfil, @, bio e data de nascimento",
+    "deletePhotos": "sua foto e seu banner",
+    "deleteSocial": "quem você segue, seus seguidores e seus bloqueios",
+    "deleteForever": "Não dá para desfazer. Seu @ fica livre para outra pessoa.",
+    "deleteConfirmLabel": "Para confirmar, digite @{{username}}",
+    "deleteButton": "Excluir minha conta",
+    "signInAgain": "Sair e entrar de novo"
   }
 }

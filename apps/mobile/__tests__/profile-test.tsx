@@ -7,6 +7,7 @@ import i18n from '../src/lib/i18n';
 import type { ProfileSummary } from '../src/lib/types';
 import { nextUsernameChange } from '../src/lib/username';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock não aceita import
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a), back: jest.fn() } }));

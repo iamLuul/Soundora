@@ -53,7 +53,8 @@ export default function SettingsScreen() {
       </SettingsSection>
 
       <SettingsSection title={t('settings.session')}>
-        <SettingsRow testID="settings-sign-out" icon="log-out-outline" label={t('profile.signOut')} danger onPress={signOut} last />
+        <SettingsRow testID="settings-sign-out" icon="log-out-outline" label={t('profile.signOut')} onPress={signOut} />
+        <SettingsRow testID="settings-delete" icon="trash-outline" label={t('settings.deleteAccount')} danger onPress={() => router.push('/settings/delete-account')} last />
       </SettingsSection>
 
       <Text style={[text.small, { textAlign: 'center' }]}>Soundora {Constants.expoConfig?.version ?? ''}</Text>

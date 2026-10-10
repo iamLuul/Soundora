@@ -6,7 +6,7 @@
  * O `fetch` é injetado para que os testes rodem sem rede e para que a Edge
  * Function aplique os mesmos limites de segurança.
  */
-import { isAllowedFetchHost, parseStreamingUrl, type LinkKind, type ParsedLink, type Platform } from './platforms.ts';
+import { isAllowedFetchHost, parseStreamingUrl, safeImageUrl, type LinkKind, type ParsedLink, type Platform } from './platforms.ts';
 
 export interface LinkPreview {
   platform: Platform;
@@ -314,5 +314,6 @@ export async function buildLinkPreview(input: string, opts: PreviewOptions): Pro
   let link = parseStreamingUrl(input);
   if (!link) throw new LinkPreviewError('unsupported');
   if (link.isShortLink) link = await resolveShortLink(link.url, opts);
-  return PROVIDERS[link.platform](link, opts);
+  const preview = await PROVIDERS[link.platform](link, opts);
+  return { ...preview, imageUrl: safeImageUrl(preview.imageUrl) };
 }

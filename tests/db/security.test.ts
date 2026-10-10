@@ -68,10 +68,20 @@ describe('invariantes do banco', () => {
     expect(rows).toEqual([]);
   });
 
+  it('nenhuma função com privilégio de dono procura objetos no schema public (search_path vazio)', async () => {
+    const rows = await db.sql<{ fn: string }>(
+      `select p.oid::regprocedure::text as fn from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname in ('public', 'private') and p.prosecdef
+         and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c in ('search_path=""', 'search_path='))`,
+    );
+    expect(rows).toEqual([]);
+  });
+
   it('funções só do servidor ficam fechadas para o app', async () => {
     for (const fn of [
       `select * from public.login_lookup('dani')`,
-      `select public.login_attempts_recent('dani', 'password', 15, true)`,
+      `select public.login_attempt_start('dani', 'password', null)`,
+      `select public.login_attempt_finish(1, true)`,
       `select public.rate_limit_hit('${dani}', 'x', 1, 60)`,
     ]) {
       await expect(db.as(dani, fn)).rejects.toThrow(/permission denied/);

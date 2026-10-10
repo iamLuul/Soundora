@@ -108,7 +108,9 @@
     "unsupported_image": "Use a JPG, PNG or WebP photo.",
     "invalid_image": "We couldn't read this image. Try another photo.",
     "image_dimensions": "The photo must be between 32 and 2048 pixels on each side.",
-    "username_change_too_soon": "You can only change your @ once every 30 days."
+    "username_change_too_soon": "You can only change your @ once every 30 days.",
+    "confirmation_mismatch": "The @ you typed doesn't match.",
+    "reauth_required": "For your security, sign out, sign in again and come back within 30 minutes."
   },
   "tabs": {
     "feed": "For you",
@@ -226,6 +228,16 @@
     "password": "Reset password",
     "usernameHint": "Pick your new @. You can change it once every {{days}} days.",
     "usernameBlocked": "You changed your @ recently. You can change it again on {{date}}.",
-    "usernameNote": "Old links with your previous @ stop working, and the old @ becomes available to others."
+    "usernameNote": "Old links with your previous @ stop working, and the old @ becomes available to others.",
+    "deleteAccount": "Delete account",
+    "deleteIntro": "When you delete your account, we erase:",
+    "deletePosts": "your posts, comments and likes",
+    "deleteProfile": "your profile, @, bio and birth date",
+    "deletePhotos": "your photo and banner",
+    "deleteSocial": "who you follow, your followers and your blocks",
+    "deleteForever": "This can't be undone. Your @ becomes available to others.",
+    "deleteConfirmLabel": "To confirm, type @{{username}}",
+    "deleteButton": "Delete my account",
+    "signInAgain": "Sign out and sign in again"
   }
 }

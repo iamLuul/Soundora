@@ -3,7 +3,10 @@
 //
 // Entrar com @usuário em vez de e-mail. A troca usuário → e-mail acontece só aqui, no
 // servidor: o app manda o @ e recebe a sessão pronta, nunca o e-mail de outra pessoa.
-// Cada @ tem limite de tentativas, para ninguém ficar chutando senha ou código.
+//
+// Limites (no banco, login_attempt_start): por @ e por IP, reservados ANTES de falar com o
+// Supabase Auth. A tentativa nasce como falha e só vira sucesso no fim, então pedidos
+// simultâneos não furam o limite.
 import { readJsonLimited } from '../_shared/body.ts';
 
 export const corsHeaders = {
@@ -13,13 +16,7 @@ export const corsHeaders = {
 };
 
 export type Action = 'password' | 'send_code' | 'verify_code';
-
-/** Limites por @: quantas tentativas cabem em quantos minutos. */
-export const LIMITS: Record<Action, { max: number; minutes: number; failuresOnly: boolean }> = {
-  password: { max: 5, minutes: 15, failuresOnly: true },
-  send_code: { max: 3, minutes: 10, failuresOnly: false },
-  verify_code: { max: 5, minutes: 15, failuresOnly: true },
-};
+const ACTIONS: readonly Action[] = ['password', 'send_code', 'verify_code'];
 
 export interface Session {
   access_token: string;
@@ -39,27 +36,52 @@ export type AuthResult<T> = { data: T; error: null } | { data: null; error: Auth
 export interface Deps {
   /** E-mail da conta dona do @ (já normalizado), ou null. */
   lookup(username: string): Promise<{ userId: string; email: string } | null>;
-  countAttempts(username: string, action: Action, minutes: number, failuresOnly: boolean): Promise<number>;
-  recordAttempt(username: string, action: Action, success: boolean): Promise<void>;
-  signInWithPassword(email: string, password: string): Promise<AuthResult<Session>>;
-  sendCode(email: string): Promise<AuthResult<true>>;
-  verifyCode(email: string, code: string): Promise<AuthResult<Session>>;
+  /** Reserva uma tentativa (já contada como falha). null = passou do limite. */
+  startAttempt(username: string, action: Action, ip: string | null): Promise<string | number | null>;
+  finishAttempt(id: string | number, success: boolean): Promise<void>;
+  /** `ip`: IP de quem fez o pedido, repassado ao Supabase Auth. */
+  signInWithPassword(email: string, password: string, ip: string | null): Promise<AuthResult<Session>>;
+  sendCode(email: string, ip: string | null): Promise<AuthResult<true>>;
+  verifyCode(email: string, code: string, ip: string | null): Promise<AuthResult<Session>>;
   debug?: boolean;
   log?: (...args: unknown[]) => void;
 }
 
 const USERNAME = /^[a-z0-9_.]{3,20}$/;
+const IP = /^[0-9a-f.:]{3,45}$/i;
 
 /** "@Ana.Clara " → "ana.clara" */
 export function normalizeUsername(raw: string): string {
   return raw.trim().replace(/^@/, '').toLowerCase();
 }
 
-/** "raul.pereira@gmail.com" → "ra•••@gmail.com": mostra para onde o código foi, sem entregar o e-mail (nem o tamanho). */
+/**
+ * "raul.pereira@gmail.com" → "ra•••@g•••.com": mostra para onde o código foi sem entregar
+ * o e-mail, o tamanho nem o provedor.
+ */
 export function maskEmail(email: string): string {
   const [user = '', domain = ''] = email.split('@');
   const visible = user.length <= 2 ? user.slice(0, 1) : user.slice(0, 2);
-  return `${visible}•••@${domain}`;
+  const dot = domain.lastIndexOf('.');
+  const tld = dot > 0 ? domain.slice(dot) : '';
+  return `${visible}•••@${domain.slice(0, 1)}•••${tld}`;
+}
+
+/**
+ * IP de quem fez o pedido, como o Supabase informa à Edge Function. Usado nos limites por IP
+ * e repassado ao Supabase Auth. Valores estranhos viram null (não quebram o limite por @).
+ */
+export function clientIp(req: Request): string | null {
+  const candidates = [
+    req.headers.get('cf-connecting-ip'),
+    req.headers.get('x-real-ip'),
+    req.headers.get('x-forwarded-for')?.split(',')[0],
+  ];
+  for (const c of candidates) {
+    const ip = c?.trim();
+    if (ip && IP.test(ip)) return ip;
+  }
+  return null;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -101,8 +123,9 @@ export function createHandler(deps: Deps) {
     if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
     const body = (read.value && typeof read.value === 'object' ? read.value : {}) as Record<string, unknown>;
 
-    const action = body.action as Action;
-    if (!(action in LIMITS)) return json({ error: 'invalid_body' }, 400);
+    // Object.hasOwn/includes: "toString" ou "constructor" não passam por ação válida.
+    const action = ACTIONS.includes(body.action as Action) ? (body.action as Action) : null;
+    if (!action) return json({ error: 'invalid_body' }, 400);
     const username = typeof body.username === 'string' ? normalizeUsername(body.username.slice(0, 64)) : '';
     const password = typeof body.password === 'string' ? body.password.slice(0, 200) : '';
     const code = typeof body.code === 'string' ? body.code.replace(/\s/g, '').slice(0, 10) : '';
@@ -115,31 +138,29 @@ export function createHandler(deps: Deps) {
       action === 'password' ? json({ error: 'invalid_credentials' }, 400) : action === 'verify_code' ? json({ error: 'invalid_code' }, 400) : json({ error: 'no_account' }, 404);
     if (!USERNAME.test(username)) return notFound();
 
+    const ip = clientIp(req);
     try {
-      const limit = LIMITS[action];
-      const recent = await deps.countAttempts(username, action, limit.minutes, limit.failuresOnly);
-      if (recent >= limit.max) return json({ error: 'rate_limited', retry_after_minutes: limit.minutes }, 429);
+      // Reserva ANTES de qualquer outra coisa (inclusive de saber se o @ existe).
+      const attempt = await deps.startAttempt(username, action, ip);
+      if (attempt === null) return json({ error: 'rate_limited' }, 429);
 
       const account = await deps.lookup(username);
-      if (!account) {
-        await deps.recordAttempt(username, action, false);
-        return notFound();
-      }
+      if (!account) return notFound(); // a tentativa fica como falha
 
       if (action === 'password') {
-        const res = await deps.signInWithPassword(account.email, password);
-        await deps.recordAttempt(username, action, !res.error);
+        const res = await deps.signInWithPassword(account.email, password, ip);
+        await deps.finishAttempt(attempt, !res.error);
         return res.error ? authError(action, res.error) : json({ session: res.data });
       }
 
       if (action === 'send_code') {
-        const res = await deps.sendCode(account.email);
-        await deps.recordAttempt(username, action, !res.error);
+        const res = await deps.sendCode(account.email, ip);
+        await deps.finishAttempt(attempt, !res.error);
         return res.error ? authError(action, res.error) : json({ sent: true, email_hint: maskEmail(account.email) });
       }
 
-      const res = await deps.verifyCode(account.email, code);
-      await deps.recordAttempt(username, action, !res.error);
+      const res = await deps.verifyCode(account.email, code, ip);
+      await deps.finishAttempt(attempt, !res.error);
       return res.error ? authError(action, res.error) : json({ session: res.data });
     } catch (err) {
       log('auth-username: erro', action, err);

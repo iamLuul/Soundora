@@ -98,14 +98,29 @@ export async function deletePost(postId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function fetchFeed(page: number): Promise<FeedItem[]> {
-  const { data, error } = await supabase.rpc('feed_for_you', { p_limit: FEED_PAGE_SIZE, p_offset: page * FEED_PAGE_SIZE });
+/**
+ * Uma página do feed. `openedAt` é o instante em que a pessoa abriu o feed: todas as páginas
+ * usam o mesmo, então a ordem não muda no meio da rolagem (sem posts repetidos ou pulados).
+ */
+export async function fetchFeed(page: number, openedAt: string): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('feed_for_you', { p_limit: FEED_PAGE_SIZE, p_offset: page * FEED_PAGE_SIZE, p_now: openedAt });
   if (error) throw error;
   return data as FeedItem[];
 }
 
-export async function fetchProfilePosts(authorId: string, before: string | null): Promise<FeedItem[]> {
-  const { data, error } = await supabase.rpc('profile_posts', { p_author: authorId, p_before: before, p_limit: FEED_PAGE_SIZE });
+/** Cursor dos posts de um perfil: o último post da página anterior (data e id, para desempatar). */
+export interface PostCursor {
+  createdAt: string;
+  id: string;
+}
+
+export async function fetchProfilePosts(authorId: string, before: PostCursor | null): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('profile_posts', {
+    p_author: authorId,
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: FEED_PAGE_SIZE,
+  });
   if (error) throw error;
   return data as FeedItem[];
 }
@@ -304,4 +319,13 @@ export async function changePassword(password: string, nonce?: string): Promise<
 export async function requestReauthentication(): Promise<void> {
   const { error } = await supabase.auth.reauthenticate();
   if (error) throw error;
+}
+
+/**
+ * Exclui a conta (Edge Function delete-account). `confirm` é o @ da pessoa. O servidor
+ * exige login recente: se for antigo, responde "reauth_required".
+ */
+export async function deleteAccount(confirm: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('delete-account', { body: { confirm } });
+  if (error) throw await functionError('delete-account', error, 'generic');
 }

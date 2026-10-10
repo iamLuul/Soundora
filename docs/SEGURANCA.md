@@ -24,6 +24,7 @@ Se a chave secreta vazar: no painel, em **Project Settings → API Keys**, crie 
 - **Novas tabelas e funções nascem fechadas.** Os privilégios padrão foram removidos, então cada uma precisa de `grant` explícito.
 - **Sem TRUNCATE pelo app.** O TRUNCATE apaga a tabela inteira ignorando o RLS, e o Supabase o libera por padrão.
 - **Funções com privilégio de dono** (`security definer`) fixam o `search_path`, o que impede sequestro de funções.
+- **Capas das músicas só de CDNs das plataformas** (Spotify, Apple, Deezer, YouTube, SoundCloud, TIDAL, Amazon, Bandcamp). Capa de outro domínio é descartada, para ninguém usar uma imagem para registrar o IP de quem vê o post. O indexador só busca páginas numa lista fechada de domínios (o Amazon Music tem um domínio por país, listado um a um).
 - **Dados privados.** A data de nascimento fica em `profile_private`, que só a própria pessoa lê. O e-mail fica em `auth.users`, que o app não alcança. O login com @usuário acha o e-mail no servidor e nunca devolve o e-mail ao app.
 - **Tempo máximo por consulta:** 8 s para quem está logado e 3 s para visitantes. Cada pedido devolve no máximo 100 linhas (`max_rows`).
 
@@ -61,7 +62,9 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | Verificar código | 30 a cada 5 min por IP | Supabase Auth |
 | Renovar sessão | 150 a cada 5 min por IP | Supabase Auth |
 | E-mails para a mesma pessoa | 1 a cada 60 s | Supabase Auth (`max_frequency`) |
-| Login com @usuário | 5 senhas ou códigos errados a cada 15 min e 3 envios de código a cada 10 min, por @ | Edge Function `auth-username` |
+| Login com @usuário, por @ | 5 senhas erradas e 5 códigos errados a cada 15 min; 3 envios de código a cada 10 min e 6 por dia | Banco (`login_attempt_start`), chamado pela `auth-username` |
+| Login com @usuário, por IP | 20 falhas a cada 15 min somando todos os @; 10 envios de código por hora | Banco (`login_attempt_start`) |
+| Excluir conta | 3 por hora, com login feito nos últimos 30 min | Edge Function `delete-account` |
 | Prévia de link | 30 por minuto e 500 por dia, por pessoa | Edge Function `link-preview` |
 | Trocar foto | 10 por hora | Edge Function `profile-image` |
 | Trocar banner | 10 por hora | Edge Function `profile-image` |
@@ -75,9 +78,11 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | Swipes no Descobrir | 600 por hora | Banco |
 | Editar perfil | 30 por hora | Banco |
 
-Os limites do banco ficam em `supabase/migrations/20261010000004_security.sql`. Para mudar um, crie uma migration nova que recrie o trigger com o número novo.
+Os limites de ações ficam em `supabase/migrations/20261010000004_security.sql`, e os do login por @ em `20261010000006_review_fixes.sql`. As tentativas de login são reservadas **antes** de falar com o Supabase Auth, com trava no banco: pedidos simultâneos contam um por um (um teste dispara 50 de uma vez e só 5 passam). Para mudar um, crie uma migration nova que recrie o trigger com o número novo.
 
 Corpo dos pedidos às Edge Functions: até 8 KB no `link-preview` e 4 KB no `auth-username`.
+
+**IP no login por @.** Quem fala com o Supabase Auth é a Edge Function, então o Auth veria sempre o IP dela, e o limite por IP do Auth pegaria todo mundo junto. Por isso a função repassa o IP de quem pediu (`X-Forwarded-For`) e tem o próprio limite por IP no banco. **Confira na nuvem** antes de abrir ao público: entre por @ com 31 contas diferentes em 5 minutos, a partir de redes diferentes. Se a 31ª for barrada, o Auth não está lendo o IP repassado; aí, aumente o limite de logins em Authentication → Rate Limits.
 
 Contra DDoS de verdade, de muitos IPs ao mesmo tempo, quem segura é a rede do Supabase. As travas acima evitam que uma conta ou um script sozinho derrube o app ou gere custo.
 
@@ -98,7 +103,12 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
    npx supabase functions deploy link-preview
    npx supabase functions deploy auth-username --no-verify-jwt
    npx supabase functions deploy profile-image
+   npx supabase functions deploy delete-account
    ```
+
+## Excluir conta
+
+Em **Configurações → Excluir conta**, a pessoa digita o próprio @. A Edge Function `delete-account` confere o login, exige que ele tenha sido feito nos últimos 30 minutos, apaga a foto e o banner dos buckets e apaga o usuário do Supabase Auth. Perfil, posts, curtidas, comentários, seguidores, bloqueios e denúncias feitas saem junto, em cascata no banco (coberto por teste). É exigido pela App Store para apps com cadastro e é um direito pela LGPD.
 
 ## Próximos passos de segurança
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractFirstUrl, isAllowedFetchHost, parseStreamingUrl } from './platforms.ts';
+import { extractFirstUrl, isAllowedFetchHost, parseStreamingUrl, safeImageUrl } from './platforms.ts';
 
 describe('parseStreamingUrl', () => {
   it.each([
@@ -73,5 +73,22 @@ describe('isAllowedFetchHost', () => {
     for (const h of ['localhost', '127.0.0.1', '169.254.169.254', 'example.com', 'spotify.com.evil.io']) {
       expect(isAllowedFetchHost(h)).toBe(false);
     }
+  });
+  it('não aceita domínios que só começam como os da Amazon ou terminam como o Bandcamp', () => {
+    for (const h of ['music.amazon.evil.com', 'music.amazon.com.attacker.net', 'music.amazon.com.br.evil.io', 'evil.bandcamp.com.attacker.net', 'a.b.bandcamp.com']) {
+      expect(isAllowedFetchHost(h)).toBe(false);
+    }
+    expect(parseStreamingUrl('https://music.amazon.attacker.net/albums/B0X?trackAsin=B0Y')).toBeNull();
+  });
+});
+
+describe('safeImageUrl', () => {
+  it('aceita só https de CDNs conhecidos', () => {
+    expect(safeImageUrl('https://i.scdn.co/image/abc')).toBe('https://i.scdn.co/image/abc');
+    expect(safeImageUrl('https://f4.bcbits.com/img/a.jpg')).toBe('https://f4.bcbits.com/img/a.jpg');
+    expect(safeImageUrl('http://i.scdn.co/image/abc')).toBeNull();
+    expect(safeImageUrl('https://scdn.co.evil.io/x.jpg')).toBeNull();
+    expect(safeImageUrl('https://169.254.169.254/x')).toBeNull();
+    expect(safeImageUrl('lixo')).toBeNull();
   });
 });

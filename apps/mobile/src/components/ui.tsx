@@ -30,7 +30,7 @@ export function Screen({ children, scroll = false, style }: { children: ReactNod
   );
 }
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 export function Button({
   title,
@@ -175,6 +175,7 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: colors.primary },
   secondary: { backgroundColor: colors.text },
   ghost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
+  danger: { backgroundColor: colors.danger },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   buttonText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },

@@ -90,3 +90,7 @@ verify_jwt = false
 # Foto e banner do perfil: exige login (e a função confere o usuário de novo).
 [functions.profile-image]
 verify_jwt = true
+
+# Excluir a conta: exige login (e a função confere de novo, com login recente).
+[functions.delete-account]
+verify_jwt = true

@@ -42,6 +42,25 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   bandcamp: 'Bandcamp',
 };
 
+/**
+ * Domínios do Amazon Music, um por país. Lista fechada: uma regra como
+ * `music.amazon.*` aceitaria `music.amazon.site-qualquer.com` (SSRF).
+ */
+export const AMAZON_MUSIC_HOSTS = new Set([
+  'music.amazon.com',
+  'music.amazon.com.br',
+  'music.amazon.co.uk',
+  'music.amazon.de',
+  'music.amazon.fr',
+  'music.amazon.it',
+  'music.amazon.es',
+  'music.amazon.ca',
+  'music.amazon.com.mx',
+  'music.amazon.co.jp',
+  'music.amazon.in',
+  'music.amazon.com.au',
+]);
+
 /** Domínios de link curto e a plataforma a que pertencem. */
 export const SHORT_LINK_HOSTS: Record<string, Platform> = {
   'spotify.link': 'spotify',
@@ -201,7 +220,7 @@ export function parseStreamingUrl(input: string): ParsedLink | null {
   }
 
   // Amazon Music: music.amazon.com.br/albums/B0..?trackAsin=B0..
-  if (/^music\.amazon\.[a-z.]+$/.test(h)) {
+  if (AMAZON_MUSIC_HOSTS.has(h)) {
     const trackAsin = url.searchParams.get('trackAsin');
     if (parts[0] === 'albums' && trackAsin) {
       return { platform: 'amazon_music', kind: 'track', id: trackAsin, url: clean(url, ['trackAsin']), isShortLink: false };
@@ -244,7 +263,40 @@ export function isAllowedFetchHost(hostname: string): boolean {
     ...Object.keys(SHORT_LINK_HOSTS),
   ]);
   if (exact.has(h)) return true;
-  if (/^music\.amazon\.[a-z.]+$/.test(h)) return true;
-  if (h.endsWith('.bandcamp.com')) return true;
+  if (AMAZON_MUSIC_HOSTS.has(h)) return true;
+  // Subdomínio de artista do Bandcamp (artista.bandcamp.com): o DNS é do Bandcamp.
+  if (/^[a-z0-9-]+\.bandcamp\.com$/.test(h)) return true;
   return false;
+}
+
+/** CDNs de capa das plataformas. Capa de outro domínio é descartada (evita rastrear o IP de quem vê o post). */
+const IMAGE_HOST_SUFFIXES = [
+  'scdn.co', // Spotify
+  'spotifycdn.com',
+  'mzstatic.com', // Apple
+  'dzcdn.net', // Deezer
+  'ytimg.com', // YouTube
+  'ggpht.com',
+  'googleusercontent.com', // YouTube Music
+  'sndcdn.com', // SoundCloud
+  'tidal.com', // TIDAL (resources.tidal.com)
+  'media-amazon.com', // Amazon
+  'ssl-images-amazon.com',
+  'bcbits.com', // Bandcamp
+];
+
+export function isAllowedImageHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return IMAGE_HOST_SUFFIXES.some((d) => h === d || h.endsWith(`.${d}`));
+}
+
+/** Devolve a URL da capa só se for https e de um CDN conhecido; senão, null. */
+export function safeImageUrl(input: string | null | undefined): string | null {
+  if (!input) return null;
+  try {
+    const url = new URL(input);
+    return url.protocol === 'https:' && isAllowedImageHost(url.hostname) ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }

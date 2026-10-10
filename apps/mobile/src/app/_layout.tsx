@@ -57,6 +57,7 @@ function RootNavigator() {
         <Stack.Screen name="settings/profile" options={{ title: '' }} />
         <Stack.Screen name="settings/username" options={{ title: '' }} />
         <Stack.Screen name="settings/password" options={{ title: '' }} />
+        <Stack.Screen name="settings/delete-account" options={{ title: '' }} />
       </Stack.Protected>
 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />

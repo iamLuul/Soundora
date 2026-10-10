@@ -92,6 +92,7 @@ npx supabase db push
 npx supabase functions deploy link-preview
 npx supabase functions deploy auth-username --no-verify-jwt
 npx supabase functions deploy profile-image
+npx supabase functions deploy delete-account
 ```
 
 3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link), e `supabase/templates/reauthentication.html` em **Reauthentication**.
