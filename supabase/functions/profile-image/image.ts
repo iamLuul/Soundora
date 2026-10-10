@@ -9,11 +9,27 @@
 
 export type ImageType = 'jpeg' | 'png' | 'webp';
 
-export const IMAGE_LIMITS = {
+export interface ImageLimits {
+  maxBytes: number;
+  minSide: number;
+  maxSide: number;
+  maxPixels: number;
+}
+
+/** Foto de perfil: chega com 512 px. */
+export const IMAGE_LIMITS: ImageLimits = {
   maxBytes: 1024 * 1024,
   minSide: 32,
   maxSide: 2048,
   maxPixels: 2048 * 2048,
+};
+
+/** Banner (capa do perfil): chega com 1500 px de largura. */
+export const BANNER_LIMITS: ImageLimits = {
+  maxBytes: 2 * 1024 * 1024,
+  minSide: 32,
+  maxSide: 3000,
+  maxPixels: 3000 * 1500,
 };
 
 export const CONTENT_TYPES: Record<ImageType, string> = { jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
@@ -95,14 +111,14 @@ function webpSize(b: Uint8Array): { width: number; height: number; animated: boo
   return null;
 }
 
-export function inspectImage(bytes: Uint8Array): ImageCheck {
+export function inspectImage(bytes: Uint8Array, limits: ImageLimits = IMAGE_LIMITS): ImageCheck {
   const type = sniffType(bytes);
   if (!type) return { ok: false, error: 'unsupported_image' };
   const size = type === 'png' ? pngSize(bytes) : type === 'jpeg' ? jpegSize(bytes) : webpSize(bytes);
   if (!size) return { ok: false, error: 'invalid_image' };
   if ('animated' in size && size.animated) return { ok: false, error: 'unsupported_image' };
   const { width, height } = size;
-  const { minSide, maxSide, maxPixels } = IMAGE_LIMITS;
+  const { minSide, maxSide, maxPixels } = limits;
   if (width < minSide || height < minSide || width > maxSide || height > maxSide || width * height > maxPixels) {
     return { ok: false, error: 'image_dimensions' };
   }

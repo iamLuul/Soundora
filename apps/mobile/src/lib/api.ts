@@ -230,31 +230,63 @@ async function functionError(name: string, error: Error, unavailableCode: string
   return new AppError(unavailableCode, `${error.name}: ${error.message}`);
 }
 
+export type ProfileImageKind = 'avatar' | 'banner';
+
+/** Tamanho final de cada imagem: foto quadrada de 512 px, banner 3:1 com 1500 px. */
+export const PROFILE_IMAGE_SIZE: Record<ProfileImageKind, { width: number; aspect: number }> = {
+  avatar: { width: 512, aspect: 1 },
+  banner: { width: 1500, aspect: 3 },
+};
+
 /**
- * Reduz a foto para 512 px (JPEG) e manda para a Edge Function upload-avatar, que confere
- * o arquivo (tipo real, tamanho, dimensões) e grava no Storage e no perfil.
- * O app não tem permissão de escrever no bucket direto.
+ * Recorta no centro (quadrado para a foto, 3:1 para o banner), reduz e manda como JPEG
+ * para a Edge Function profile-image, que confere o arquivo (tipo real, tamanho, dimensões)
+ * e grava no Storage e no perfil. O app não tem permissão de escrever nos buckets.
  */
-export async function uploadAvatar(localUri: string): Promise<string> {
-  const context = ImageManipulator.manipulate(localUri);
-  context.resize({ width: 512, height: null });
+export async function uploadProfileImage(
+  kind: ProfileImageKind,
+  image: { uri: string; width: number; height: number },
+): Promise<string> {
+  const { width: targetWidth, aspect } = PROFILE_IMAGE_SIZE[kind];
+  const context = ImageManipulator.manipulate(image.uri);
+  if (image.width > 0 && image.height > 0) {
+    const cropWidth = Math.min(image.width, Math.round(image.height * aspect));
+    const cropHeight = Math.round(cropWidth / aspect);
+    context.crop({
+      originX: Math.round((image.width - cropWidth) / 2),
+      originY: Math.round((image.height - cropHeight) / 2),
+      width: cropWidth,
+      height: cropHeight,
+    });
+  }
+  context.resize({ width: targetWidth, height: null });
   const rendered = await context.renderAsync();
   const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
   const bytes = await (await fetch(saved.uri)).arrayBuffer();
 
-  const { data, error } = await supabase.functions.invoke<{ avatar_url: string }>('upload-avatar', {
+  const { data, error } = await supabase.functions.invoke<{ path: string }>(`profile-image?kind=${kind}`, {
     body: bytes,
     headers: { 'Content-Type': 'image/jpeg' },
   });
-  if (error) throw await functionError('upload-avatar', error, 'generic');
-  if (!data?.avatar_url) throw new AppError('generic');
-  return data.avatar_url;
+  if (error) throw await functionError('profile-image', error, 'generic');
+  if (!data?.path) throw new AppError('generic');
+  return data.path;
 }
 
-export async function removeAvatar(): Promise<void> {
-  const { error } = await supabase.functions.invoke('upload-avatar', { method: 'DELETE' });
-  if (error) throw await functionError('upload-avatar', error, 'generic');
+export async function removeProfileImage(kind: ProfileImageKind): Promise<void> {
+  const { error } = await supabase.functions.invoke(`profile-image?kind=${kind}`, { method: 'DELETE' });
+  if (error) throw await functionError('profile-image', error, 'generic');
 }
+
+/** Troca o @ (uma vez a cada 30 dias). Devolve o @ novo. */
+export async function changeUsername(username: string): Promise<string> {
+  const { data, error } = await supabase.rpc('change_username', { p_username: username });
+  if (error) throw error;
+  return data as string;
+}
+
+/** Dias de espera entre duas trocas de @ (igual à função change_username no banco). */
+export const USERNAME_CHANGE_DAYS = 30;
 
 /**
  * Define ou troca a senha da conta logada. Com `secure_password_change` ligado, uma sessão

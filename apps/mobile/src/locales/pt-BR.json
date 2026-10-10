@@ -107,7 +107,8 @@
     "payload_too_large": "A imagem é grande demais (máximo de 1 MB).",
     "unsupported_image": "Use uma foto JPG, PNG ou WebP.",
     "invalid_image": "Não conseguimos ler essa imagem. Tente outra foto.",
-    "image_dimensions": "A foto precisa ter entre 32 e 2048 pixels de lado."
+    "image_dimensions": "A foto precisa ter entre 32 e 2048 pixels de lado.",
+    "username_change_too_soon": "Você só pode trocar de @ uma vez a cada 30 dias."
   },
   "tabs": {
     "feed": "Para você",
@@ -152,7 +153,13 @@
     "signOut": "Sair",
     "language": "Idioma",
     "noPosts": "Nenhum post ainda.",
-    "edit": "Editar perfil"
+    "edit": "Editar perfil",
+    "likes": "Curtidas",
+    "changePhoto": "Trocar foto",
+    "changeBanner": "Trocar banner",
+    "banner": "Banner do perfil",
+    "options": "Opções do perfil",
+    "followingButton": "Seguindo"
   },
   "report": {
     "title": "Por que você está denunciando?",
@@ -198,7 +205,6 @@
   },
   "editProfile": {
     "title": "Editar perfil",
-    "changePhoto": "Trocar foto",
     "removePhoto": "Remover foto",
     "bio": "Bio",
     "bioPlaceholder": "Conte um pouco sobre você e o que você ouve",
@@ -207,6 +213,19 @@
     "newPassword": "Nova senha",
     "confirmPassword": "Repita a nova senha",
     "savePassword": "Salvar senha",
-    "passwordSaved": "Senha salva. Da próxima vez, entre com e-mail e senha."
+    "passwordSaved": "Senha salva. Da próxima vez, entre com e-mail e senha.",
+    "removeBanner": "Remover banner"
+  },
+  "settings": {
+    "title": "Configurações",
+    "account": "Conta",
+    "preferences": "Preferências",
+    "session": "Sessão",
+    "editProfileHint": "Foto, banner, nome e bio",
+    "username": "Alterar @usuário",
+    "password": "Redefinir senha",
+    "usernameHint": "Escolha seu novo @. Você pode trocar uma vez a cada {{days}} dias.",
+    "usernameBlocked": "Você trocou de @ há pouco tempo. Poderá trocar de novo em {{date}}.",
+    "usernameNote": "Links antigos com o @ anterior deixam de funcionar, e o @ antigo fica livre para outra pessoa."
   }
 }

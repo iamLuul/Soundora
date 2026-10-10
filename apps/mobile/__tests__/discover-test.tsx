@@ -91,6 +91,8 @@ describe('<SearchResults />', () => {
     display_name: 'Clairey',
     bio: null,
     avatar_url: null,
+    banner_url: null,
+    username_changed_at: null,
     locale: 'pt-BR',
     created_at: '2026-10-01T00:00:00Z',
   };

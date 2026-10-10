@@ -39,3 +39,12 @@ export function useUsernameStatus(raw: string): UsernameStatus {
   if (query.isError) return { state: 'error' };
   return query.data ? { state: 'available', username: format.username } : { state: 'taken', username: format.username };
 }
+
+const DAY = 86_400_000;
+
+/** Data a partir da qual a pessoa pode trocar o @ de novo (null = já pode). Mesma regra de change_username no banco. */
+export function nextUsernameChange(changedAt: string | null, now = Date.now(), days = 30): Date | null {
+  if (!changedAt) return null;
+  const next = new Date(new Date(changedAt).getTime() + days * DAY);
+  return next.getTime() > now ? next : null;
+}

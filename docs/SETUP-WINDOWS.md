@@ -43,7 +43,7 @@ Na primeira vez demora alguns minutos. No fim, o terminal mostra:
 
 As migrations e o `seed.sql` são aplicados sozinhos. Para recriar o banco do zero: `npx supabase db reset`.
 
-Em outro terminal, suba as Edge Functions: o indexador de links (precisa de internet para ler as plataformas), o login com @usuário e a troca de foto:
+Em outro terminal, suba as Edge Functions: o indexador de links (precisa de internet para ler as plataformas), o login com @usuário e a troca de foto e banner:
 
 ```powershell
 npx supabase functions serve
@@ -91,7 +91,7 @@ npx supabase link --project-ref <ref-do-projeto>
 npx supabase db push
 npx supabase functions deploy link-preview
 npx supabase functions deploy auth-username --no-verify-jwt
-npx supabase functions deploy upload-avatar
+npx supabase functions deploy profile-image
 ```
 
 3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link), e `supabase/templates/reauthentication.html` em **Reauthentication**.
@@ -125,7 +125,7 @@ Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
 | "Entrar com @usuário não está disponível agora" | A Edge Function `auth-username` não está rodando ou não foi publicada | Local: `npx supabase functions serve`. Nuvem: `npx supabase functions deploy auth-username --no-verify-jwt`. Entrar com e-mail continua funcionando |
 | "Não achamos uma conta..." ao pedir código | Login por código não cria conta | Use a aba **Criar conta** |
 | "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY recebeu a chave SECRETA" | A chave secreta foi colada no `.env.local` do app | Troque pela publishable key (`sb_publishable_...`). A secreta nunca vai no app |
-| Trocar foto dá erro | A Edge Function `upload-avatar` não está rodando | Deixe `npx supabase functions serve` aberto |
+| Trocar foto ou banner dá erro | A Edge Function `profile-image` não está rodando | Deixe `npx supabase functions serve` aberto |
 | Depois de atualizar, o app pediu login de novo | A sessão no celular passou a ser criptografada; a antiga é descartada | Normal, só na primeira vez |
 | `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
 

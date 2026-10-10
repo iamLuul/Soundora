@@ -9,7 +9,9 @@ export interface Profile {
   display_name: string;
   bio: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
   locale: 'pt-BR' | 'en';
+  username_changed_at: string | null;
   created_at: string;
 }
 
@@ -53,9 +55,12 @@ export interface ProfileSummary {
   display_name: string;
   bio: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
   followers: number;
   following: number;
   posts: number;
+  /** Curtidas recebidas em todos os posts. */
+  likes: number;
   is_me: boolean;
   i_follow: boolean;
 }

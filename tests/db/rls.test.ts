@@ -164,7 +164,7 @@ describe('conta: username e foto', () => {
 
   it('a foto do perfil só muda pelo servidor, e só com um arquivo da própria pasta', async () => {
     const mine = `avatars/${ana}/avatar-1760000000000.jpg`;
-    // O app não grava a foto direto (só a Edge Function upload-avatar, com a chave secreta).
+    // O app não grava a foto direto (só a Edge Function profile-image, com a chave secreta).
     await expect(db.as(ana, `update public.profiles set avatar_url = $1 where id = $2`, [mine, ana])).rejects.toThrow(/permission denied/);
 
     await db.sql(`update public.profiles set avatar_url = $1 where id = $2`, [mine, ana]);

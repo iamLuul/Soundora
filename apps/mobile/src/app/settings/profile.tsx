@@ -1,32 +1,29 @@
 import { useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar, Button, ErrorText, Screen, TextField } from '../../components/ui';
-import { BIO_MAX, changePassword, removeAvatar, requestReauthentication, updateProfile, uploadAvatar } from '../../lib/api';
-import { authErrorKey } from '../../lib/auth-errors';
+import { BIO_MAX, removeProfileImage, updateProfile, type ProfileImageKind } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { AppError, formatError } from '../../lib/errors';
-import { colors, space, text } from '../../theme';
+import { bannerUrl } from '../../lib/avatar';
+import { formatError } from '../../lib/errors';
+import { pickAndUploadProfileImage } from '../../lib/pick-image';
+import { colors, fonts, space } from '../../theme';
 
+/** Editar perfil: banner, foto (centralizada sobre o banner, como no perfil), nome e bio. */
 export default function EditProfileScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  // Sessão antiga: o Supabase pede um código enviado ao e-mail antes de trocar a senha.
-  const [reauthCode, setReauthCode] = useState<string | null>(null);
-  const [busy, setBusy] = useState<null | 'photo' | 'save' | 'password'>(null);
+  const [busy, setBusy] = useState<null | ProfileImageKind | 'save'>(null);
   const [error, setError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   if (!profile) return null;
+  const banner = bannerUrl(profile.banner_url);
 
   const refreshEverywhere = async () => {
     await refreshProfile();
@@ -35,96 +32,59 @@ export default function EditProfileScreen() {
     await qc.invalidateQueries({ queryKey: ['profile-posts'] });
   };
 
-  const pickPhoto = async () => {
+  const run = async (kind: NonNullable<typeof busy>, task: () => Promise<unknown>) => {
+    setBusy(kind);
     setError(null);
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsEditing: true, aspect: [1, 1], quality: 0.9 });
-    if (result.canceled || !result.assets?.[0]) return;
-    setBusy('photo');
     try {
-      await uploadAvatar(result.assets[0].uri);
-      await refreshEverywhere();
+      await task();
+      return true;
     } catch (err) {
       setError(formatError(t, err));
+      return false;
     } finally {
       setBusy(null);
     }
   };
 
-  const deletePhoto = async () => {
-    setBusy('photo');
-    setError(null);
-    try {
-      await removeAvatar();
+  const change = (kind: ProfileImageKind) =>
+    run(kind, async () => {
+      if (await pickAndUploadProfileImage(kind)) await refreshEverywhere();
+    });
+  const remove = (kind: ProfileImageKind) =>
+    run(kind, async () => {
+      await removeProfileImage(kind);
       await refreshEverywhere();
-    } catch (err) {
-      setError(formatError(t, err));
-    } finally {
-      setBusy(null);
-    }
-  };
+    });
 
   const save = async () => {
-    setBusy('save');
-    setError(null);
-    setNotice(null);
-    try {
+    const ok = await run('save', async () => {
       await updateProfile({ displayName, bio });
       await refreshEverywhere();
-      router.back();
-    } catch (err) {
-      setError(formatError(t, err));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const savePassword = async () => {
-    setPasswordError(null);
-    setNotice(null);
-    if (password !== confirm) return setPasswordError(formatError(t, new AppError('passwords_differ')));
-    if (reauthCode !== null && reauthCode.length !== 6) return;
-    setBusy('password');
-    try {
-      await changePassword(password, reauthCode ?? undefined);
-      setPassword('');
-      setConfirm('');
-      setReauthCode(null);
-      setNotice(t('editProfile.passwordSaved'));
-    } catch (err) {
-      if (authErrorKey(err) === 'auth.reauthNeeded' && reauthCode === null) {
-        try {
-          await requestReauthentication();
-          setReauthCode('');
-          setNotice(t('auth.reauthNeeded'));
-        } catch (sendErr) {
-          setPasswordError(t(authErrorKey(sendErr)));
-        }
-      } else {
-        const key = authErrorKey(err);
-        setPasswordError(key === 'common.error' ? formatError(t, err) : t(key));
-      }
-    } finally {
-      setBusy(null);
-    }
+    });
+    if (ok) router.back();
   };
 
   return (
     <Screen scroll style={styles.container}>
       <Stack.Screen options={{ title: t('editProfile.title') }} />
 
-      <View style={styles.photoRow}>
-        <View>
-          <Avatar uri={profile.avatar_url} name={profile.display_name} size={96} />
-          {busy === 'photo' ? <ActivityIndicator color={colors.text} style={StyleSheet.absoluteFill} /> : null}
+      <View>
+        <Pressable testID="change-banner" onPress={() => change('banner')} disabled={!!busy} accessibilityRole="button" accessibilityLabel={t('profile.changeBanner')} style={styles.banner}>
+          {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+          {busy === 'banner' ? <ActivityIndicator color={colors.text} /> : <Text style={styles.bannerLabel}>{t('profile.changeBanner')}</Text>}
+        </Pressable>
+        <View style={styles.avatarWrap}>
+          <Pressable testID="change-photo" onPress={() => change('avatar')} disabled={!!busy} accessibilityRole="button" accessibilityLabel={t('profile.changePhoto')} style={styles.avatarRing}>
+            <Avatar uri={profile.avatar_url} name={profile.display_name} size={72} />
+            {busy === 'avatar' ? <ActivityIndicator color={colors.text} style={StyleSheet.absoluteFill} /> : null}
+          </Pressable>
         </View>
-        <View style={{ gap: space.sm, flex: 1 }}>
-          <Button testID="change-photo" title={t('editProfile.changePhoto')} onPress={pickPhoto} disabled={!!busy} />
-          {profile.avatar_url ? (
-            <Pressable accessibilityRole="button" onPress={deletePhoto} disabled={!!busy}>
-              <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{t('editProfile.removePhoto')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+      </View>
+
+      <View style={styles.links}>
+        <Link label={t('profile.changePhoto')} onPress={() => change('avatar')} disabled={!!busy} />
+        {profile.avatar_url ? <Link label={t('editProfile.removePhoto')} danger onPress={() => remove('avatar')} disabled={!!busy} /> : null}
+        {profile.banner_url ? <Link label={t('editProfile.removeBanner')} danger onPress={() => remove('banner')} disabled={!!busy} /> : null}
       </View>
 
       <TextField testID="edit-name" label={t('onboarding.displayName')} value={displayName} onChangeText={setDisplayName} maxLength={50} />
@@ -141,59 +101,34 @@ export default function EditProfileScreen() {
       />
       <ErrorText>{error}</ErrorText>
       <Button testID="save-profile" title={t('common.save')} onPress={save} loading={busy === 'save'} disabled={!!busy} />
-
-      <View style={styles.section}>
-        <Text style={text.subtitle}>{t('editProfile.passwordTitle')}</Text>
-        <Text style={text.small}>{t('editProfile.passwordHint')}</Text>
-        <TextField
-          testID="new-password"
-          label={t('editProfile.newPassword')}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete="new-password"
-          textContentType="newPassword"
-        />
-        <TextField
-          testID="confirm-password"
-          label={t('editProfile.confirmPassword')}
-          value={confirm}
-          onChangeText={setConfirm}
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete="new-password"
-          textContentType="newPassword"
-        />
-        {reauthCode !== null ? (
-          <TextField
-            testID="reauth-code"
-            label={t('auth.code')}
-            value={reauthCode}
-            onChangeText={(v) => setReauthCode(v.replace(/\D/g, '').slice(0, 6))}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            maxLength={6}
-          />
-        ) : null}
-        <ErrorText>{passwordError}</ErrorText>
-        {notice ? <Text style={[text.body, { color: colors.success }]}>{notice}</Text> : null}
-        <Button
-          testID="save-password"
-          title={t('editProfile.savePassword')}
-          variant="ghost"
-          onPress={savePassword}
-          loading={busy === 'password'}
-          disabled={!!busy || !password}
-        />
-      </View>
     </Screen>
+  );
+}
+
+function Link({ label, onPress, danger, disabled }: { label: string; onPress: () => void; danger?: boolean; disabled?: boolean }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled} hitSlop={8}>
+      <Text style={[styles.link, danger && { color: colors.danger }]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: space.xl },
-  section: { gap: space.md, marginTop: space.lg, paddingTop: space.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  banner: {
+    aspectRatio: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  bannerLabel: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text, backgroundColor: colors.overlay, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: 10, overflow: 'hidden' },
+  avatarWrap: { alignItems: 'center', marginTop: -44 },
+  avatarRing: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: space.lg, marginTop: -space.sm },
+  link: { fontFamily: fonts.semibold, fontSize: 12, color: colors.muted },
 });

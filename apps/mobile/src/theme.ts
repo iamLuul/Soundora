@@ -6,12 +6,15 @@ export const colors = {
   primary: '#6C62FF', // Blue Genie
   background: '#3A374C', // Plush
   surface: '#5A5577', // The Fang
+  card: '#322F42', // cartões do perfil (Figma: Profile page)
+  handle: '#857EAE', // @usuário
   muted: '#B3A9EB', // Maximum Blue Purple
   text: '#FFFFFF',
   textMuted: '#B3A9EB',
   border: 'rgba(179, 169, 235, 0.25)',
   danger: '#FF6B81',
   success: '#5BD69A',
+  warning: '#FFC266',
   overlay: 'rgba(0, 0, 0, 0.4)',
 } as const;
 

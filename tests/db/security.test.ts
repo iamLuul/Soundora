@@ -140,7 +140,7 @@ describe('storage: bucket de avatares', () => {
     expect(b).toEqual({ public: true, file_size_limit: '1048576', allowed_mime_types: ['image/jpeg', 'image/png', 'image/webp'] });
   });
 
-  it('o app não envia, troca, apaga nem lista arquivos (só a Edge Function upload-avatar)', async () => {
+  it('o app não envia, troca, apaga nem lista arquivos (só a Edge Function profile-image)', async () => {
     await expect(
       db.as(dani, `insert into storage.objects (bucket_id, name, owner) values ('avatars', $1, $2)`, [`${dani}/avatar-1.jpg`, dani]),
     ).rejects.toThrow(/row-level security/);

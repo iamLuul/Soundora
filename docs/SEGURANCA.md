@@ -36,20 +36,20 @@ Se a chave secreta vazar: no painel, em **Project Settings → API Keys**, crie 
 - **Na Web**, a sessão fica no `localStorage` do navegador. Não existe cofre do sistema lá.
 - **Em trânsito:** tudo vai por HTTPS na nuvem. **Em repouso:** o Supabase criptografa o disco do banco e do Storage (AES-256).
 
-## Arquivos (fotos de perfil)
+## Arquivos (foto e banner do perfil)
 
-O app não escreve no Storage. A foto passa pela Edge Function `upload-avatar`, que confere, nesta ordem:
+O app não escreve no Storage. A foto e o banner passam pela Edge Function `profile-image`, que confere, nesta ordem:
 
 1. Login, antes de ler qualquer byte do arquivo.
 2. Limite de 10 trocas por hora.
-3. Tamanho: até 1 MB. Um `Content-Length` maior é recusado na hora. Se o header faltar ou mentir, a leitura para assim que passa de 1 MB.
+3. Tamanho: até 1 MB a foto e 2 MB o banner. Um `Content-Length` maior é recusado na hora. Se o header faltar ou mentir, a leitura para assim que passa do limite.
 4. Tipo real pelos bytes (assinatura do arquivo). Aceita só JPEG, PNG e WebP. ZIP, SVG, GIF, HTML ou extensão trocada são recusados.
-5. Dimensões lidas do cabeçalho, sem abrir a imagem: entre 32 e 2048 px de lado. Isso barra a bomba de pixels, um arquivo pequeno que vira uma imagem gigante na memória.
+5. Dimensões lidas do cabeçalho, sem abrir a imagem: entre 32 e 2048 px de lado na foto, e até 3000 px no banner. Isso barra a bomba de pixels, um arquivo pequeno que vira uma imagem gigante na memória.
 6. Nada escondido depois do fim da imagem, como um ZIP colado num JPEG. WebP animado também é recusado.
 
-O nome do arquivo é gerado no servidor. O perfil guarda só o caminho (`avatars/{id}/avatar-123.jpg`), conferido por uma regra do banco, então ninguém aponta a própria foto para um site de fora.
+O nome do arquivo é gerado no servidor. O perfil guarda só o caminho (`avatars/{id}/avatar-123.jpg`, `banners/{id}/banner-123.jpg`), conferido por uma regra do banco, então ninguém aponta a própria foto para um site de fora.
 
-O bucket `avatars` é público para leitura: a foto abre pela URL. Mas não tem policy de listagem nem de escrita, e o próprio bucket limita 1 MB e os tipos de imagem.
+Os buckets `avatars` e `banners` são públicos para leitura: a imagem abre pela URL. Mas não têm policy de listagem nem de escrita, e cada bucket limita o tamanho (1 MB e 2 MB) e os tipos de imagem.
 
 Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo ganha a sua própria validação nesse mesmo modelo.
 
@@ -63,7 +63,9 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | E-mails para a mesma pessoa | 1 a cada 60 s | Supabase Auth (`max_frequency`) |
 | Login com @usuário | 5 senhas ou códigos errados a cada 15 min e 3 envios de código a cada 10 min, por @ | Edge Function `auth-username` |
 | Prévia de link | 30 por minuto e 500 por dia, por pessoa | Edge Function `link-preview` |
-| Trocar foto | 10 por hora | Edge Function `upload-avatar` |
+| Trocar foto | 10 por hora | Edge Function `profile-image` |
+| Trocar banner | 10 por hora | Edge Function `profile-image` |
+| Trocar @ | 1 a cada 30 dias | Banco (`change_username`) |
 | Posts | 30 por hora | Banco (trigger) |
 | Comentários | 60 a cada 10 min | Banco |
 | Curtidas | 300 por hora | Banco |
@@ -95,7 +97,7 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
    ```powershell
    npx supabase functions deploy link-preview
    npx supabase functions deploy auth-username --no-verify-jwt
-   npx supabase functions deploy upload-avatar
+   npx supabase functions deploy profile-image
    ```
 
 ## Próximos passos de segurança

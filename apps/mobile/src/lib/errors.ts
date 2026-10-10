@@ -31,6 +31,7 @@ const KNOWN = new Set([
   'unsupported_image',
   'invalid_image',
   'image_dimensions',
+  'username_change_too_soon',
 ]);
 
 export class AppError extends Error {

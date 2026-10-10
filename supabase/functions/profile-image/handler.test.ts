@@ -1,4 +1,4 @@
-// Testes da Edge Function upload-avatar no Deno, com o Supabase simulado.
+// Testes da Edge Function profile-image no Deno, com o Supabase simulado.
 // npm run test:functions
 import { fixtures } from './fixtures.ts';
 import { createHandler, type Deps } from './handler.ts';
@@ -86,9 +86,9 @@ Deno.test('readLimited para de ler no limite, mesmo sem Content-Length', async (
 });
 
 function makeDeps(overrides: Partial<Deps> = {}) {
-  const uploaded: { path: string; contentType: string; size: number }[] = [];
+  const uploaded: { kind: string; path: string; contentType: string; size: number }[] = [];
   const removed: string[] = [];
-  let avatar: string | null = `avatars/${USER}/avatar-1000.jpg`;
+  const images: Record<string, string | null> = { avatar: `avatars/${USER}/avatar-1000.jpg`, banner: null };
   let calls = 0;
   const deps: Deps = {
     debug: true,
@@ -96,24 +96,24 @@ function makeDeps(overrides: Partial<Deps> = {}) {
     now: () => 1760000000000,
     getUserId: async (h) => (h === 'Bearer valido' ? USER : null),
     rateLimit: async () => ++calls <= 10,
-    upload: async (path, bytes, contentType) => {
-      uploaded.push({ path, contentType, size: bytes.byteLength });
+    upload: async (kind, path, bytes, contentType) => {
+      uploaded.push({ kind, path, contentType, size: bytes.byteLength });
     },
-    setAvatar: async (_u, path) => {
-      const previous = avatar;
-      avatar = path;
+    setImage: async (_u, kind, path) => {
+      const previous = images[kind] ?? null;
+      images[kind] = path;
       return previous;
     },
-    remove: async (paths) => {
-      removed.push(...paths);
+    remove: async (kind, paths) => {
+      removed.push(...paths.map((p) => `${kind}:${p}`));
     },
     ...overrides,
   };
-  return { deps, uploaded, removed, getAvatar: () => avatar };
+  return { deps, uploaded, removed, getAvatar: () => images.avatar, getBanner: () => images.banner };
 }
 
 function post(body: BodyInit | null, headers: Record<string, string> = {}) {
-  return new Request('http://localhost/upload-avatar', { method: 'POST', body, headers: { Authorization: 'Bearer valido', ...headers } });
+  return new Request('http://localhost/profile-image', { method: 'POST', body, headers: { Authorization: 'Bearer valido', ...headers } });
 }
 
 Deno.test('sem login: recusa antes de ler o arquivo', async () => {
@@ -130,7 +130,7 @@ Deno.test('sem login: recusa antes de ler o arquivo', async () => {
     { highWaterMark: 0 },
   );
   const { deps, uploaded } = makeDeps();
-  const res = await createHandler(deps)(new Request('http://localhost/upload-avatar', { method: 'POST', body }));
+  const res = await createHandler(deps)(new Request('http://localhost/profile-image', { method: 'POST', body }));
   assertEquals(res.status, 401);
   assertEquals(uploaded, []);
   if (read) throw new Error('leu o corpo sem login');
@@ -140,10 +140,10 @@ Deno.test('foto válida: grava com nome gerado pelo servidor, atualiza o perfil 
   const { deps, uploaded, removed, getAvatar } = makeDeps();
   // O app diz que é PNG, mas os bytes são JPEG: vale o que os bytes dizem.
   const res = await createHandler(deps)(post(fixtures.jpeg, { 'Content-Type': 'image/png' }));
-  assertEquals(await res.json(), { avatar_url: `avatars/${USER}/avatar-1760000000000.jpg`, width: 64, height: 64 });
-  assertEquals(uploaded, [{ path: `${USER}/avatar-1760000000000.jpg`, contentType: 'image/jpeg', size: fixtures.jpeg.byteLength }]);
+  assertEquals(await res.json(), { path: `avatars/${USER}/avatar-1760000000000.jpg`, width: 64, height: 64 });
+  assertEquals(uploaded, [{ kind: 'avatar', path: `${USER}/avatar-1760000000000.jpg`, contentType: 'image/jpeg', size: fixtures.jpeg.byteLength }]);
   assertEquals(getAvatar(), `avatars/${USER}/avatar-1760000000000.jpg`);
-  assertEquals(removed, [`${USER}/avatar-1000.jpg`]);
+  assertEquals(removed, [`avatar:${USER}/avatar-1000.jpg`]);
 });
 
 Deno.test('arquivos ruins não chegam ao Storage', async () => {
@@ -158,7 +158,7 @@ Deno.test('arquivos ruins não chegam ao Storage', async () => {
 
 Deno.test('Content-Length grande demais é recusado na hora', async () => {
   const { deps } = makeDeps();
-  const req = new Request('http://localhost/upload-avatar', {
+  const req = new Request('http://localhost/profile-image', {
     method: 'POST',
     headers: { Authorization: 'Bearer valido', 'Content-Length': String(50 * 1024 * 1024) },
     body: fixtures.png,
@@ -176,8 +176,34 @@ Deno.test('no máximo 10 trocas por hora', async () => {
 
 Deno.test('DELETE remove a foto do perfil e o arquivo', async () => {
   const { deps, removed, getAvatar } = makeDeps();
-  const res = await createHandler(deps)(new Request('http://localhost/upload-avatar', { method: 'DELETE', headers: { Authorization: 'Bearer valido' } }));
-  assertEquals(await res.json(), { avatar_url: null });
+  const res = await createHandler(deps)(new Request('http://localhost/profile-image', { method: 'DELETE', headers: { Authorization: 'Bearer valido' } }));
+  assertEquals(await res.json(), { path: null });
   assertEquals(getAvatar(), null);
-  assertEquals(removed, [`${USER}/avatar-1000.jpg`]);
+  assertEquals(removed, [`avatar:${USER}/avatar-1000.jpg`]);
+});
+
+Deno.test('banner: vai para o bucket banners, com limite próprio de dimensões', async () => {
+  const { deps, uploaded, getBanner, getAvatar } = makeDeps();
+  const handler = createHandler(deps);
+  const banner = (body: BodyInit) =>
+    new Request('http://localhost/profile-image?kind=banner', { method: 'POST', body, headers: { Authorization: 'Bearer valido' } });
+
+  const res = await handler(banner(pngWithSize(1500, 500)));
+  assertEquals(await res.json(), { path: `banners/${USER}/banner-1760000000000.png`, width: 1500, height: 500 });
+  assertEquals(uploaded[0]?.kind, 'banner');
+  assertEquals(getBanner(), `banners/${USER}/banner-1760000000000.png`);
+  assertEquals(getAvatar(), `avatars/${USER}/avatar-1000.jpg`, 'a foto não muda');
+
+  // 1500 px passa no banner, mas 2500 px já passaria do limite da foto; 4000 px passa do banner.
+  assertEquals(inspectImage(pngWithSize(2500, 800)).ok, false);
+  assertEquals((await handler(banner(pngWithSize(4000, 1000)))).status, 422);
+});
+
+Deno.test('tipo de imagem desconhecido é recusado', async () => {
+  const { deps, uploaded } = makeDeps();
+  const res = await createHandler(deps)(
+    new Request('http://localhost/profile-image?kind=../avatars', { method: 'POST', body: fixtures.png, headers: { Authorization: 'Bearer valido' } }),
+  );
+  assertEquals(res.status, 400);
+  assertEquals(uploaded, []);
 });

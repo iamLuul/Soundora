@@ -107,7 +107,8 @@
     "payload_too_large": "This image is too large (1 MB max).",
     "unsupported_image": "Use a JPG, PNG or WebP photo.",
     "invalid_image": "We couldn't read this image. Try another photo.",
-    "image_dimensions": "The photo must be between 32 and 2048 pixels on each side."
+    "image_dimensions": "The photo must be between 32 and 2048 pixels on each side.",
+    "username_change_too_soon": "You can only change your @ once every 30 days."
   },
   "tabs": {
     "feed": "For you",
@@ -152,7 +153,13 @@
     "signOut": "Sign out",
     "language": "Language",
     "noPosts": "No posts yet.",
-    "edit": "Edit profile"
+    "edit": "Edit profile",
+    "likes": "Likes",
+    "changePhoto": "Change photo",
+    "changeBanner": "Change banner",
+    "banner": "Profile banner",
+    "options": "Profile options",
+    "followingButton": "Following"
   },
   "report": {
     "title": "Why are you reporting this?",
@@ -198,7 +205,6 @@
   },
   "editProfile": {
     "title": "Edit profile",
-    "changePhoto": "Change photo",
     "removePhoto": "Remove photo",
     "bio": "Bio",
     "bioPlaceholder": "Tell people about yourself and what you listen to",
@@ -207,6 +213,19 @@
     "newPassword": "New password",
     "confirmPassword": "Repeat the new password",
     "savePassword": "Save password",
-    "passwordSaved": "Password saved. Next time, sign in with email and password."
+    "passwordSaved": "Password saved. Next time, sign in with email and password.",
+    "removeBanner": "Remove banner"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "preferences": "Preferences",
+    "session": "Session",
+    "editProfileHint": "Photo, banner, name and bio",
+    "username": "Change @username",
+    "password": "Reset password",
+    "usernameHint": "Pick your new @. You can change it once every {{days}} days.",
+    "usernameBlocked": "You changed your @ recently. You can change it again on {{date}}.",
+    "usernameNote": "Old links with your previous @ stop working, and the old @ becomes available to others."
   }
 }

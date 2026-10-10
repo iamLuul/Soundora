@@ -31,7 +31,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="me"
-        options={{ title: t('tabs.profile'), tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} /> }}
+        options={{ title: t('tabs.profile'), headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} /> }}
       />
     </Tabs>
   );

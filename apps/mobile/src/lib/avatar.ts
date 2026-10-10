@@ -9,3 +9,10 @@ export function avatarUrl(path: string | null | undefined): string | null {
   if (!/^avatars\/[\w-]+\/avatar-\d+\.(jpg|png|webp)$/.test(path)) return null;
   return `${supabaseUrl}/storage/v1/object/public/${path}`;
 }
+
+/** Mesma ideia para o banner ("banners/{id}/banner-123.jpg"). */
+export function bannerUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (!/^banners\/[\w-]+\/banner-\d+\.(jpg|png|webp)$/.test(path)) return null;
+  return `${supabaseUrl}/storage/v1/object/public/${path}`;
+}
