@@ -23,9 +23,9 @@ beforeAll(async () => {
 afterAll(async () => db.close());
 
 describe('perfis', () => {
-  it('são públicos, inclusive sem login', async () => {
-    const rows = await db.anon(`select username from public.profiles where username = 'ana'`);
-    expect(rows).toEqual([{ username: 'ana' }]);
+  it('aparecem para quem está logado; sem login, nada', async () => {
+    expect(await db.as(bia, `select username from public.profiles where username = 'ana'`)).toEqual([{ username: 'ana' }]);
+    await expect(db.anon(`select username from public.profiles`)).rejects.toThrow(/permission denied/);
   });
 
   it('a pessoa edita o próprio nome e bio', async () => {
@@ -54,7 +54,7 @@ describe('perfis', () => {
   it('data de nascimento só aparece para a própria pessoa', async () => {
     expect(await db.as(bia, `select * from public.profile_private where user_id = $1`, [ana])).toEqual([]);
     expect(await db.as(ana, `select user_id from public.profile_private`)).toEqual([{ user_id: ana }]);
-    expect(await db.anon(`select * from public.profile_private`)).toEqual([]);
+    await expect(db.anon(`select * from public.profile_private`)).rejects.toThrow(/permission denied/);
   });
 });
 
@@ -162,15 +162,22 @@ describe('conta: username e foto', () => {
     await expect(db.anon(`select public.username_available('x')`)).rejects.toThrow(/permission denied/);
   });
 
-  it('foto de perfil só da própria pasta do bucket avatars', async () => {
-    const mine = `http://127.0.0.1:54321/storage/v1/object/public/avatars/${ana}/avatar-1.jpg`;
-    await db.as(ana, `update public.profiles set avatar_url = $1 where id = $2`, [mine, ana]);
+  it('a foto do perfil só muda pelo servidor, e só com um arquivo da própria pasta', async () => {
+    const mine = `avatars/${ana}/avatar-1760000000000.jpg`;
+    // O app não grava a foto direto (só a Edge Function upload-avatar, com a chave secreta).
+    await expect(db.as(ana, `update public.profiles set avatar_url = $1 where id = $2`, [mine, ana])).rejects.toThrow(/permission denied/);
+
+    await db.sql(`update public.profiles set avatar_url = $1 where id = $2`, [mine, ana]);
     expect((await db.sql(`select avatar_url from public.profiles where id = $1`, [ana]))[0]).toEqual({ avatar_url: mine });
 
-    const others = `http://127.0.0.1:54321/storage/v1/object/public/avatars/${bia}/avatar-1.jpg`;
-    await expect(db.as(ana, `update public.profiles set avatar_url = $1 where id = $2`, [others, ana])).rejects.toThrow(/profiles_avatar_url_own_folder/);
-    await expect(db.as(ana, `update public.profiles set avatar_url = 'https://evil.example/x.jpg' where id = $1`, [ana])).rejects.toThrow(
-      /profiles_avatar_url_own_folder/,
-    );
+    for (const bad of [
+      `avatars/${bia}/avatar-1760000000000.jpg`,
+      'https://evil.example/x.jpg',
+      `avatars/${ana}/../${bia}/avatar-1760000000000.jpg`,
+      `avatars/${ana}/avatar-1760000000000.svg`,
+    ]) {
+      await expect(db.sql(`update public.profiles set avatar_url = $1 where id = $2`, [bad, ana])).rejects.toThrow(/profiles_avatar_path/);
+    }
   });
 });
+

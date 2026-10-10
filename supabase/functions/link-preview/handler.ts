@@ -1,9 +1,16 @@
 // Lógica da Edge Function link-preview, separada do Deno.serve para poder ser testada
 // com Supabase e plataformas simulados (handler.test.ts).
 import { extractFirstUrl, parseStreamingUrl } from '../_shared/links/platforms.ts';
+import { readJsonLimited } from '../_shared/body.ts';
 import { buildLinkPreview, LinkPreviewError, type FetchLike, type LinkPreview } from '../_shared/links/preview.ts';
 
 export const CACHE_DAYS = 7;
+export const MAX_BODY_BYTES = 8 * 1024;
+/** Prévias por pessoa: 30 por minuto e 500 por dia (cada uma pode buscar nas plataformas). */
+export const PREVIEW_RATE = [
+  { max: 30, windowSeconds: 60 },
+  { max: 500, windowSeconds: 86_400 },
+];
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +36,8 @@ export interface Deps {
   getUserId(authHeader: string): Promise<string | null>;
   findPreview(url: string): Promise<PreviewRow | null>;
   savePreview(preview: LinkPreview): Promise<PreviewRow>;
+  /** true = dentro do limite de pedidos da pessoa. */
+  rateLimit?(userId: string): Promise<boolean>;
   /** fetch usado para ler as plataformas de música. */
   fetch: FetchLike;
   /** Inclui o motivo técnico do erro na resposta (só em desenvolvimento). */
@@ -64,13 +73,20 @@ export function createHandler(deps: Deps) {
     }
     if (!userId) return json({ error: 'not_authenticated' }, 401);
 
-    let input: string | null = null;
     try {
-      const body = await req.json();
-      input = typeof body?.url === 'string' ? extractFirstUrl(body.url.slice(0, 2048)) : null;
-    } catch {
-      return json({ error: 'invalid_body' }, 400);
+      if (deps.rateLimit && !(await deps.rateLimit(userId))) {
+        await req.body?.cancel().catch(() => {});
+        return json({ error: 'rate_limited' }, 429);
+      }
+    } catch (err) {
+      log('link-preview: falha no limite de pedidos', err);
+      return json({ error: 'internal', ...(deps.debug ? { detail: describe(err) } : {}) }, 500);
     }
+
+    const read = await readJsonLimited(req, MAX_BODY_BYTES);
+    if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
+    const body = read.value as { url?: unknown } | null;
+    const input = typeof body?.url === 'string' ? extractFirstUrl(body.url.slice(0, 2048)) : null;
     if (!input) return json({ error: 'unsupported' }, 422);
 
     const parsed = parseStreamingUrl(input);

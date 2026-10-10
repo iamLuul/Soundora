@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar, Button, ErrorText, Screen, TextField } from '../../components/ui';
-import { BIO_MAX, changePassword, removeAvatar, updateProfile, uploadAvatar } from '../../lib/api';
+import { BIO_MAX, changePassword, removeAvatar, requestReauthentication, updateProfile, uploadAvatar } from '../../lib/api';
+import { authErrorKey } from '../../lib/auth-errors';
 import { useAuth } from '../../lib/auth';
 import { AppError, formatError } from '../../lib/errors';
 import { colors, space, text } from '../../theme';
@@ -18,6 +19,8 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  // Sessão antiga: o Supabase pede um código enviado ao e-mail antes de trocar a senha.
+  const [reauthCode, setReauthCode] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | 'photo' | 'save' | 'password'>(null);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export default function EditProfileScreen() {
     if (result.canceled || !result.assets?.[0]) return;
     setBusy('photo');
     try {
-      await uploadAvatar(result.assets[0].uri, profile.avatar_url);
+      await uploadAvatar(result.assets[0].uri);
       await refreshEverywhere();
     } catch (err) {
       setError(formatError(t, err));
@@ -51,7 +54,7 @@ export default function EditProfileScreen() {
     setBusy('photo');
     setError(null);
     try {
-      await removeAvatar(profile.avatar_url);
+      await removeAvatar();
       await refreshEverywhere();
     } catch (err) {
       setError(formatError(t, err));
@@ -79,14 +82,27 @@ export default function EditProfileScreen() {
     setPasswordError(null);
     setNotice(null);
     if (password !== confirm) return setPasswordError(formatError(t, new AppError('passwords_differ')));
+    if (reauthCode !== null && reauthCode.length !== 6) return;
     setBusy('password');
     try {
-      await changePassword(password);
+      await changePassword(password, reauthCode ?? undefined);
       setPassword('');
       setConfirm('');
+      setReauthCode(null);
       setNotice(t('editProfile.passwordSaved'));
     } catch (err) {
-      setPasswordError(formatError(t, err));
+      if (authErrorKey(err) === 'auth.reauthNeeded' && reauthCode === null) {
+        try {
+          await requestReauthentication();
+          setReauthCode('');
+          setNotice(t('auth.reauthNeeded'));
+        } catch (sendErr) {
+          setPasswordError(t(authErrorKey(sendErr)));
+        }
+      } else {
+        const key = authErrorKey(err);
+        setPasswordError(key === 'common.error' ? formatError(t, err) : t(key));
+      }
     } finally {
       setBusy(null);
     }
@@ -149,6 +165,18 @@ export default function EditProfileScreen() {
           autoComplete="new-password"
           textContentType="newPassword"
         />
+        {reauthCode !== null ? (
+          <TextField
+            testID="reauth-code"
+            label={t('auth.code')}
+            value={reauthCode}
+            onChangeText={(v) => setReauthCode(v.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            maxLength={6}
+          />
+        ) : null}
         <ErrorText>{passwordError}</ErrorText>
         {notice ? <Text style={[text.body, { color: colors.success }]}>{notice}</Text> : null}
         <Button

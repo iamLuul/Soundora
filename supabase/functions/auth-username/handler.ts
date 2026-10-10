@@ -4,6 +4,7 @@
 // Entrar com @usuário em vez de e-mail. A troca usuário → e-mail acontece só aqui, no
 // servidor: o app manda o @ e recebe a sessão pronta, nunca o e-mail de outra pessoa.
 // Cada @ tem limite de tentativas, para ninguém ficar chutando senha ou código.
+import { readJsonLimited } from '../_shared/body.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,12 +97,9 @@ export function createHandler(deps: Deps) {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
     if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
-    let body: Record<string, unknown>;
-    try {
-      body = (await req.json()) ?? {};
-    } catch {
-      return json({ error: 'invalid_body' }, 400);
-    }
+    const read = await readJsonLimited(req, 4 * 1024);
+    if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
+    const body = (read.value && typeof read.value === 'object' ? read.value : {}) as Record<string, unknown>;
 
     const action = body.action as Action;
     if (!(action in LIMITS)) return json({ error: 'invalid_body' }, 400);

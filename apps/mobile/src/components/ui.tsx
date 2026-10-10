@@ -13,6 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { avatarUrl } from '../lib/avatar';
 import { colors, fonts, radius, space, text } from '../theme';
 
 export function Screen({ children, scroll = false, style }: { children: ReactNode; scroll?: boolean; style?: StyleProp<ViewStyle> }) {
@@ -114,8 +115,10 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
   );
 }
 
-export function Avatar({ uri, name, size = 40 }: { uri: string | null; name: string; size?: number }) {
+/** `path` é o caminho guardado no perfil (avatars/{id}/...); a URL é montada em lib/avatar. */
+export function Avatar({ uri: path, name, size = 40 }: { uri: string | null; name: string; size?: number }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
+  const uri = avatarUrl(path);
   return uri ? (
     <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityIgnoresInvertColors />
   ) : (

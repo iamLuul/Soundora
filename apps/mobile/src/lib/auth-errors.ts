@@ -12,7 +12,10 @@ export function authErrorKey(err: unknown): string {
     case 'email_exists':
       return 'auth.emailExists';
     case 'weak_password':
-      return 'errors.password_too_short';
+      return 'auth.weakPassword';
+    case 'reauthentication_needed':
+    case 'reauthentication_not_valid':
+      return 'auth.reauthNeeded';
     case 'email_not_confirmed':
       return 'auth.emailNotConfirmed';
     case 'over_email_send_rate_limit':

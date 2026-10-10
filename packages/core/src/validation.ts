@@ -69,5 +69,12 @@ export const reportReasonSchema = z.enum(['spam', 'harassment', 'hate', 'sexual'
 export type ReportReason = z.infer<typeof reportReasonSchema>;
 
 /** Senha: 8 a 72 caracteres (72 é o limite do bcrypt usado pelo Supabase Auth). */
-export const PASSWORD_MIN = 8;
-export const passwordSchema = z.string().min(PASSWORD_MIN, 'password_too_short').max(72, 'password_too_long');
+// Igual ao supabase/config.toml (minimum_password_length e password_requirements = "letters_digits").
+// 72 é o limite do bcrypt, o algoritmo com que o Supabase guarda o hash da senha.
+export const PASSWORD_MIN = 10;
+export const PASSWORD_MAX = 72;
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN, 'password_too_short')
+  .max(PASSWORD_MAX, 'password_too_long')
+  .refine((p) => /\p{L}/u.test(p) && /\d/.test(p), 'password_needs_letters_digits');

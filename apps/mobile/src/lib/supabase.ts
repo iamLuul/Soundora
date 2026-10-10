@@ -1,14 +1,19 @@
-import './storage-polyfill';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import { AppState, Platform } from 'react-native';
+import { isSecretKey } from './key-guard';
 import { resolveServerUrl } from './server-url';
+import { createSessionStorage } from './session-storage';
 
 const configuredUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 if (!configuredUrl || !supabasePublishableKey) {
   throw new Error('Defina EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY em apps/mobile/.env.local (veja .env.example).');
+}
+if (isSecretKey(supabasePublishableKey)) {
+  // A chave secreta ignora todas as regras de segurança do banco. O app nem abre com ela.
+  throw new Error('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY recebeu a chave SECRETA. Use a publishable key (sb_publishable_...). A secreta só vai nas Edge Functions.');
 }
 
 /** Endereço do Supabase usado de fato (no celular, localhost vira o IP do PC). */
@@ -22,8 +27,8 @@ if (__DEV__) console.log(`[Soundora] Supabase em ${supabaseUrl}`);
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
-    // Na renderização estática da Web (Node) não existe localStorage.
-    storage: typeof localStorage === 'undefined' ? undefined : localStorage,
+    // Celular: sessão criptografada (chave no Keychain/Keystore). Web: localStorage.
+    storage: createSessionStorage(),
     autoRefreshToken: true,
     persistSession: true,
     // Na Web a sessão do login social volta na URL; no celular, não.

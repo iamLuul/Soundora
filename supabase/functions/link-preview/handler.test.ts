@@ -151,3 +151,19 @@ Deno.test('OPTIONS responde CORS para a Web', async () => {
   const res = await createHandler(deps)(new Request('http://localhost/x', { method: 'OPTIONS' }));
   assertEquals(res.headers.get('access-control-allow-origin'), '*');
 });
+
+Deno.test('limite de prévias por pessoa: 429 sem chamar as plataformas', async () => {
+  const { fetch, calls } = fakeFetch({});
+  const { deps } = makeDeps(fetch, { rateLimit: async () => false });
+  const res = await createHandler(deps)(post({ url: TRACK }));
+  assertEquals([res.status, await res.json()], [429, { error: 'rate_limited' }]);
+  assertEquals(calls, []);
+});
+
+Deno.test('corpo grande demais: 413 sem ler tudo', async () => {
+  const { fetch, calls } = fakeFetch({});
+  const { deps } = makeDeps(fetch);
+  const res = await createHandler(deps)(post({ url: TRACK, lixo: 'x'.repeat(20_000) }));
+  assertEquals([res.status, await res.json()], [413, { error: 'payload_too_large' }]);
+  assertEquals(calls, []);
+});

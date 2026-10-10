@@ -14,6 +14,10 @@ major_version = 17
 enabled = true
 sql_paths = ["./seed.sql"]
 
+[storage]
+# Nenhum arquivo passa de 1 MB (o bucket avatars também limita).
+file_size_limit = "1MiB"
+
 [studio]
 port = 54323
 
@@ -25,8 +29,20 @@ port = 54324
 site_url = "http://localhost:8081"
 additional_redirect_urls = ["soundora://**", "http://localhost:8081/**", "exp://**"]
 jwt_expiry = 3600
-minimum_password_length = 8
+# Senhas: pelo menos 10 caracteres, com letras e números. O Supabase guarda só o hash
+# (bcrypt) em auth.users; a senha nunca fica no banco nem passa pelas nossas tabelas.
+minimum_password_length = 10
+password_requirements = "letters_digits"
+enable_anonymous_sign_ins = false
 enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+
+# Limites do próprio Supabase Auth, por endereço IP (janela de 5 minutos, exceto e-mails por hora).
+[auth.rate_limit]
+email_sent = 30
+sign_in_sign_ups = 30
+token_verifications = 30
+token_refresh = 150
 
 [auth.email]
 enable_signup = true
@@ -34,11 +50,19 @@ enable_signup = true
 enable_confirmations = true
 otp_length = 6
 otp_expiry = 900
+# No mínimo 60 s entre dois e-mails para a mesma pessoa.
+max_frequency = "60s"
+# Trocar a senha de uma sessão com mais de 24 h pede um código enviado ao e-mail.
+secure_password_change = true
 
 # O e-mail de login manda um código de 6 dígitos em vez de link.
 [auth.email.template.magic_link]
 subject = "Seu código do Soundora / Your Soundora code"
 content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.reauthentication]
+subject = "Código para trocar a senha / Password change code"
+content_path = "./supabase/templates/reauthentication.html"
 
 [auth.email.template.confirmation]
 subject = "Seu código do Soundora / Your Soundora code"
@@ -62,3 +86,7 @@ verify_jwt = true
 # Entrar com @usuário: é a própria tela de login, então não exige sessão.
 [functions.auth-username]
 verify_jwt = false
+
+# Troca de foto: exige login (e a função confere o usuário de novo).
+[functions.upload-avatar]
+verify_jwt = true

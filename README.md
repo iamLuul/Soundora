@@ -28,6 +28,7 @@ supabase/
   migrations/           Banco: tabelas, regras de acesso (RLS), feed
   functions/link-preview/  Edge Function do indexador de links
   functions/auth-username/ Edge Function do login com @usuário
+  functions/upload-avatar/ Edge Function que confere e grava a foto de perfil
   seed.sql              Gêneros
   config.toml           Configuração do Supabase local
 tests/db/               Testes do banco e das regras de acesso (Vitest + PostgreSQL)
@@ -42,7 +43,7 @@ Guia completo, com todos os programas: [docs/SETUP-WINDOWS.md](docs/SETUP-WINDOW
 ```bash
 npm install                      # na raiz do repositório
 npx supabase start               # Supabase local (precisa do Docker Desktop aberto)
-npx supabase functions serve     # em outro terminal: Edge Functions (indexador e login com @)
+npx supabase functions serve     # em outro terminal: Edge Functions (indexador, login com @ e foto)
 copy apps\mobile\.env.example apps\mobile\.env.local   # e cole a publishable key
 npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code no Expo Go
 ```
@@ -58,13 +59,14 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm run test:db` | Testes do banco e RLS (precisa de PostgreSQL; veja [docs/TESTES.md](docs/TESTES.md)) |
 | `npm run typecheck:functions` | Confere as Edge Functions com Deno |
 | `npm run test:functions` | Testa as Edge Functions no Deno, com Spotify e Supabase simulados |
+| `npm run check:secrets` | Confere que nenhuma chave secreta está no Git ou no app |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
 ## Decisões importantes
 
 - **Sem reprodução de áudio.** Toda faixa abre no app ou site de origem. Isso evita licenças de música.
 - **Login com @usuário sem expor e-mail.** O app manda o @ para a Edge Function `auth-username`, que acha o e-mail com a chave secreta (função `login_lookup`, fechada para o app) e devolve só a sessão. Tentativas ficam em `public.login_attempts`.
-- **Segurança no banco.** O app usa só a chave pública; o que cada pessoa pode ler e escrever está nas policies de RLS em `supabase/migrations`, cobertas por testes.
+- **Segurança.** O app usa só a chave pública e só acessa o banco logado; RLS em todas as tabelas, limites de ações por pessoa, uploads conferidos pelos bytes e sessão criptografada no celular. Detalhes, limites e o que ligar no painel da nuvem: [docs/SEGURANCA.md](docs/SEGURANCA.md).
 - **Idade mínima ainda em decisão.** Está em `public.app_config` (`min_age`, padrão 13). Pelo ECA Digital, contas de 13 a 15 anos precisam de vínculo com um responsável; enquanto esse fluxo não existir (`guardian_flow_enabled = false`), essas idades são bloqueadas no cadastro. Para mudar: `update public.app_config set min_age = 18;`
 - **Curadoria do Descobrir.** Destaques ficam na tabela `public.featured` e aparecem primeiro no Descobrir, pelo gênero da pessoa. Para destacar uma música, poste o link no app (isso cria o cartão) e, como administrador, rode no SQL Editor:
 

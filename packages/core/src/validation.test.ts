@@ -25,9 +25,12 @@ describe('genresSchema', () => {
 });
 
 describe('passwordSchema', () => {
-  it('exige de 8 a 72 caracteres', () => {
-    expect(passwordSchema.safeParse('1234567').success).toBe(false);
-    expect(passwordSchema.safeParse('12345678').success).toBe(true);
+  it('exige de 10 a 72 caracteres, com letras e números', () => {
+    expect(passwordSchema.safeParse('abc123456').error?.issues[0]?.message).toBe('password_too_short');
+    expect(passwordSchema.safeParse('1234567890').error?.issues[0]?.message).toBe('password_needs_letters_digits');
+    expect(passwordSchema.safeParse('senhaforte').error?.issues[0]?.message).toBe('password_needs_letters_digits');
+    expect(passwordSchema.safeParse('senha-forte-1').success).toBe(true);
+    expect(passwordSchema.safeParse('ação1234567').success).toBe(true);
     expect(passwordSchema.safeParse('x'.repeat(73)).success).toBe(false);
   });
 });

@@ -20,6 +20,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Nenhuma chave secreta no repositório nem no app
+        run: npm run check:secrets
       - name: Código compartilhado da Edge Function em dia
         run: npm run check:shared
       - run: npm run typecheck

@@ -26,7 +26,7 @@
     "modePassword": "Senha",
     "modeCode": "Código por e-mail",
     "password": "Senha",
-    "passwordHint": "Pelo menos 8 caracteres.",
+    "passwordHint": "Pelo menos 10 caracteres, com letras e números.",
     "signIn": "Entrar",
     "signUp": "Criar conta",
     "forgot": "Esqueci a senha (entrar com código)",
@@ -51,7 +51,9 @@
     "useOtherAccount": "Entrar com outra conta",
     "emailNotConfirmed": "Esse e-mail ainda não foi confirmado. Enviamos um código para confirmar.",
     "noAccount": "Não achamos uma conta com esse e-mail ou @usuário. Confira ou crie uma conta.",
-    "usernameUnavailable": "Entrar com @usuário não está disponível agora. Tente com o seu e-mail."
+    "usernameUnavailable": "Entrar com @usuário não está disponível agora. Tente com o seu e-mail.",
+    "weakPassword": "A senha precisa ter pelo menos 10 caracteres, com letras e números.",
+    "reauthNeeded": "Por segurança, confirme com o código que enviamos ao seu e-mail."
   },
   "onboarding": {
     "step": "Passo {{current}} de {{total}}",
@@ -96,10 +98,16 @@
     "generic": "Algo deu errado. Tente de novo.",
     "preview_unavailable": "O serviço de prévia de links não respondeu. Tente de novo em instantes.",
     "not_authenticated": "Sua sessão expirou. Entre de novo.",
-    "password_too_short": "A senha precisa ter pelo menos 8 caracteres.",
+    "password_too_short": "A senha precisa ter pelo menos 10 caracteres.",
     "password_too_long": "A senha pode ter no máximo 72 caracteres.",
     "bio_too_long": "A bio pode ter até 160 caracteres.",
-    "passwords_differ": "As senhas não são iguais."
+    "passwords_differ": "As senhas não são iguais.",
+    "password_needs_letters_digits": "A senha precisa ter letras e números.",
+    "rate_limited": "Você fez isso muitas vezes em pouco tempo. Espere um pouco e tente de novo.",
+    "payload_too_large": "A imagem é grande demais (máximo de 1 MB).",
+    "unsupported_image": "Use uma foto JPG, PNG ou WebP.",
+    "invalid_image": "Não conseguimos ler essa imagem. Tente outra foto.",
+    "image_dimensions": "A foto precisa ter entre 32 e 2048 pixels de lado."
   },
   "tabs": {
     "feed": "Para você",

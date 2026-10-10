@@ -43,7 +43,7 @@ Na primeira vez demora alguns minutos. No fim, o terminal mostra:
 
 As migrations e o `seed.sql` são aplicados sozinhos. Para recriar o banco do zero: `npx supabase db reset`.
 
-Em outro terminal, suba as Edge Functions: o indexador de links (precisa de internet para ler as plataformas) e o login com @usuário:
+Em outro terminal, suba as Edge Functions: o indexador de links (precisa de internet para ler as plataformas), o login com @usuário e a troca de foto:
 
 ```powershell
 npx supabase functions serve
@@ -91,10 +91,11 @@ npx supabase link --project-ref <ref-do-projeto>
 npx supabase db push
 npx supabase functions deploy link-preview
 npx supabase functions deploy auth-username --no-verify-jwt
+npx supabase functions deploy upload-avatar
 ```
 
-3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link).
-4. Em **Authentication → Sign In / Providers → Email**, deixe **Confirm email** ligado (toda conta nova confirma o código) e o tamanho do código (Email OTP Length) em 6.
+3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link), e `supabase/templates/reauthentication.html` em **Reauthentication**.
+4. Siga a lista de segurança da nuvem em [SEGURANCA.md](SEGURANCA.md#na-nuvem-o-que-ligar-no-painel) (confirmação de e-mail, regras de senha, limites, SSL).
 5. Em **Authentication → URL Configuration**, adicione `soundora://**` e a URL do site em Redirect URLs.
 6. Rode o `seed.sql` no SQL Editor (gêneros).
 
@@ -123,6 +124,9 @@ Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
 | O e-mail de cadastro chega com um link em vez do código | Na nuvem, o modelo **Confirm signup** ainda é o padrão | Cole `supabase/templates/magic_link.html` em Authentication → Email Templates → Confirm signup |
 | "Entrar com @usuário não está disponível agora" | A Edge Function `auth-username` não está rodando ou não foi publicada | Local: `npx supabase functions serve`. Nuvem: `npx supabase functions deploy auth-username --no-verify-jwt`. Entrar com e-mail continua funcionando |
 | "Não achamos uma conta..." ao pedir código | Login por código não cria conta | Use a aba **Criar conta** |
+| "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY recebeu a chave SECRETA" | A chave secreta foi colada no `.env.local` do app | Troque pela publishable key (`sb_publishable_...`). A secreta nunca vai no app |
+| Trocar foto dá erro | A Edge Function `upload-avatar` não está rodando | Deixe `npx supabase functions serve` aberto |
+| Depois de atualizar, o app pediu login de novo | A sessão no celular passou a ser criptografada; a antiga é descartada | Normal, só na primeira vez |
 | `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
 
 Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundora] Supabase em ...` ao abrir o app.

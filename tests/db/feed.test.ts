@@ -82,7 +82,7 @@ describe('perfil e busca', () => {
   });
 
   it('profile_posts pagina por data', async () => {
-    const rows = await db.anon<{ created_at: Date }>(`select created_at from public.profile_posts($1, null, 50)`, [friend]);
+    const rows = await db.as<{ created_at: Date }>(me, `select created_at from public.profile_posts($1, null, 50)`, [friend]);
     const sorted = [...rows].sort((a, b) => +b.created_at - +a.created_at);
     expect(rows).toEqual(sorted);
   });

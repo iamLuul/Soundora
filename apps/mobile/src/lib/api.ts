@@ -74,16 +74,8 @@ export async function completeOnboarding(input: OnboardingInput): Promise<Profil
 /** Pede à Edge Function o cartão de prévia do link. */
 export async function previewLink(url: string): Promise<LinkPreviewRow> {
   const { data, error } = await supabase.functions.invoke<{ preview: LinkPreviewRow }>('link-preview', { body: { url } });
-  if (error) {
-    if (error instanceof FunctionsHttpError) {
-      const res = error.context as Response;
-      const body = await res.json().catch(() => null);
-      const code = typeof body?.error === 'string' ? body.error : 'generic';
-      throw new AppError(code, `link-preview HTTP ${res.status}${body?.detail ? ` – ${body.detail}` : body ? ` – ${JSON.stringify(body)}` : ''}`);
-    }
-    // FunctionsFetchError / FunctionsRelayError: a função não respondeu (não está rodando ou não foi publicada).
-    throw new AppError('preview_unavailable', `${error.name}: ${error.message}`);
-  }
+  // Sem resposta (FunctionsFetchError / FunctionsRelayError): a função não está rodando ou não foi publicada.
+  if (error) throw await functionError('link-preview', error, 'preview_unavailable');
   if (!data?.preview) throw new AppError('generic');
   return data.preview;
 }
@@ -227,51 +219,57 @@ export async function updateProfile(input: { displayName: string; bio: string })
   if (error) throw error;
 }
 
-/** Caminho do arquivo dentro do bucket a partir da URL pública (para apagar a foto antiga). */
-export function avatarPathFromUrl(url: string | null): string | null {
-  if (!url) return null;
-  const marker = '/storage/v1/object/public/avatars/';
-  const i = url.indexOf(marker);
-  return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length).split('?')[0] ?? '');
+/** Erro de uma Edge Function → AppError com o código que ela mandou ({ error: 'codigo' }). */
+async function functionError(name: string, error: Error, unavailableCode: string): Promise<AppError> {
+  if (error instanceof FunctionsHttpError) {
+    const res = error.context as Response;
+    const body = await res.json().catch(() => null);
+    const code = typeof body?.error === 'string' ? body.error : 'generic';
+    return new AppError(code, `${name} HTTP ${res.status}${body?.detail ? ` – ${body.detail}` : ''}`);
+  }
+  return new AppError(unavailableCode, `${error.name}: ${error.message}`);
 }
 
 /**
- * Reduz a foto para 512 px (JPEG), envia para avatars/{id}/ e grava a URL no perfil.
- * Funciona igual em Android, iOS e Web.
+ * Reduz a foto para 512 px (JPEG) e manda para a Edge Function upload-avatar, que confere
+ * o arquivo (tipo real, tamanho, dimensões) e grava no Storage e no perfil.
+ * O app não tem permissão de escrever no bucket direto.
  */
-export async function uploadAvatar(localUri: string, previousUrl: string | null): Promise<string> {
-  const userId = await currentUserId();
+export async function uploadAvatar(localUri: string): Promise<string> {
   const context = ImageManipulator.manipulate(localUri);
   context.resize({ width: 512, height: null });
   const rendered = await context.renderAsync();
   const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
   const bytes = await (await fetch(saved.uri)).arrayBuffer();
 
-  const path = `${userId}/avatar-${Date.now()}.jpg`;
-  const { error: uploadError } = await supabase.storage.from('avatars').upload(path, bytes, { contentType: 'image/jpeg', upsert: false });
-  if (uploadError) throw uploadError;
-
-  const publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
-  const { error } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', userId);
-  if (error) throw error;
-
-  const old = avatarPathFromUrl(previousUrl);
-  if (old && old !== path) await supabase.storage.from('avatars').remove([old]).catch(() => undefined);
-  return publicUrl;
+  const { data, error } = await supabase.functions.invoke<{ avatar_url: string }>('upload-avatar', {
+    body: bytes,
+    headers: { 'Content-Type': 'image/jpeg' },
+  });
+  if (error) throw await functionError('upload-avatar', error, 'generic');
+  if (!data?.avatar_url) throw new AppError('generic');
+  return data.avatar_url;
 }
 
-export async function removeAvatar(previousUrl: string | null): Promise<void> {
-  const userId = await currentUserId();
-  const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', userId);
-  if (error) throw error;
-  const old = avatarPathFromUrl(previousUrl);
-  if (old) await supabase.storage.from('avatars').remove([old]).catch(() => undefined);
+export async function removeAvatar(): Promise<void> {
+  const { error } = await supabase.functions.invoke('upload-avatar', { method: 'DELETE' });
+  if (error) throw await functionError('upload-avatar', error, 'generic');
 }
 
-/** Define ou troca a senha da conta logada (também serve para quem entrou só com código). */
-export async function changePassword(password: string): Promise<void> {
+/**
+ * Define ou troca a senha da conta logada. Com `secure_password_change` ligado, uma sessão
+ * com mais de 24 h precisa do código de reautenticação (`nonce`), enviado por
+ * requestReauthentication(); sem ele, o Supabase responde "reauthentication_needed".
+ */
+export async function changePassword(password: string, nonce?: string): Promise<void> {
   const parsed = passwordSchema.safeParse(password);
   if (!parsed.success) throw new AppError(parsed.error.issues[0]?.message ?? 'password_too_short');
-  const { error } = await supabase.auth.updateUser({ password: parsed.data });
+  const { error } = await supabase.auth.updateUser(nonce ? { password: parsed.data, nonce } : { password: parsed.data });
+  if (error) throw error;
+}
+
+/** Envia ao e-mail da conta o código que confirma a troca de senha. */
+export async function requestReauthentication(): Promise<void> {
+  const { error } = await supabase.auth.reauthenticate();
   if (error) throw error;
 }

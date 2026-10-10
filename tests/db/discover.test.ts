@@ -45,14 +45,14 @@ describe('curadoria (featured)', () => {
     const p = await preview('Destaque negado');
     await expect(db.as(me, `insert into public.featured (link_preview_id) values ($1)`, [p])).rejects.toThrow(/row-level security/);
     await db.as(admin, `insert into public.featured (link_preview_id, note_pt, note_en) values ($1, 'escolha da casa', 'staff pick')`, [p]);
-    const rows = await db.anon(`select note_pt from public.featured where link_preview_id = $1`, [p]);
+    const rows = await db.as(me, `select note_pt from public.featured where link_preview_id = $1`, [p]);
     expect(rows).toEqual([{ note_pt: 'escolha da casa' }]);
   });
 
-  it('destaque vencido ou futuro não aparece para o público', async () => {
+  it('destaque vencido ou futuro não aparece para quem não é admin', async () => {
     const p = await preview('Destaque fora da janela');
     await db.as(admin, `insert into public.featured (link_preview_id, starts_at) values ($1, now() + interval '1 day')`, [p]);
-    expect(await db.anon(`select 1 from public.featured where link_preview_id = $1`, [p])).toEqual([]);
+    expect(await db.as(me, `select 1 from public.featured where link_preview_id = $1`, [p])).toEqual([]);
     expect(await db.as(admin, `select 1 from public.featured where link_preview_id = $1`, [p])).toHaveLength(1);
   });
 });
@@ -130,7 +130,8 @@ describe('trending_tracks', () => {
     const old = await preview('Velha', 'Banda Z');
     await post(other1, old, { genre: 'pop', likes: 99, daysAgo: 10 });
 
-    const rows = await db.anon<{ rank: number; title: string; post_count: number; like_count: number }>(
+    const rows = await db.as<{ rank: number; title: string; post_count: number; like_count: number }>(
+      me,
       `select rank, title, post_count, like_count from public.trending_tracks(7, 'pop', 10)`,
     );
     expect(rows.map((r) => r.title)).toEqual(['Hit da semana', 'Segunda']);
@@ -147,13 +148,13 @@ describe('trending_tracks', () => {
 
 describe('search_tracks', () => {
   it('acha por título ou artista, tolerando erro de digitação', async () => {
-    const byTitle = await db.anon<{ title: string }>(`select title from public.search_tracks('hit da semna')`);
+    const byTitle = await db.as<{ title: string }>(me, `select title from public.search_tracks('hit da semna')`);
     expect(byTitle.map((r) => r.title)).toContain('Hit da semana');
-    const byArtist = await db.anon<{ title: string; post_count: number }>(`select title, post_count from public.search_tracks('Banda Y')`);
+    const byArtist = await db.as<{ title: string; post_count: number }>(me, `select title, post_count from public.search_tracks('Banda Y')`);
     expect(byArtist[0]).toMatchObject({ title: 'Segunda', post_count: 1 });
   });
 
   it('ignora consultas curtas demais', async () => {
-    expect(await db.anon(`select * from public.search_tracks('a')`)).toEqual([]);
+    expect(await db.as(me, `select * from public.search_tracks('a')`)).toEqual([]);
   });
 });

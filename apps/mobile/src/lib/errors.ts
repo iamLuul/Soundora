@@ -25,6 +25,12 @@ const KNOWN = new Set([
   'password_too_long',
   'bio_too_long',
   'passwords_differ',
+  'password_needs_letters_digits',
+  'rate_limited',
+  'payload_too_large',
+  'unsupported_image',
+  'invalid_image',
+  'image_dimensions',
 ]);
 
 export class AppError extends Error {

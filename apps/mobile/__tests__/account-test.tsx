@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { avatarPathFromUrl } from '../src/lib/api';
 import { authErrorKey } from '../src/lib/auth-errors';
 import { AppError, errorMessageKey } from '../src/lib/errors';
 import { useUsernameStatus, validateUsernameFormat } from '../src/lib/username';
@@ -92,13 +91,5 @@ describe('erros do app', () => {
   test('erro desconhecido da Edge Function vira genérico (nunca mostra a chave crua)', () => {
     expect(errorMessageKey(new AppError('internal', 'HTTP 500'))).toBe('errors.generic');
     expect(errorMessageKey(new AppError('preview_unavailable'))).toBe('errors.preview_unavailable');
-  });
-});
-
-describe('avatarPathFromUrl', () => {
-  test('extrai o caminho dentro do bucket', () => {
-    expect(avatarPathFromUrl('http://192.168.0.10:54321/storage/v1/object/public/avatars/u1/avatar-1.jpg?v=2')).toBe('u1/avatar-1.jpg');
-    expect(avatarPathFromUrl('https://x.supabase.co/storage/v1/object/public/outro/u1/a.jpg')).toBeNull();
-    expect(avatarPathFromUrl(null)).toBeNull();
   });
 });
