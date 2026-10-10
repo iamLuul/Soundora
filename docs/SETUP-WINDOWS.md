@@ -55,7 +55,12 @@ npx supabase functions serve
 copy apps\mobile\.env.example apps\mobile\.env.local
 ```
 
-Edite `apps\mobile\.env.local` e cole a publishable key. Para abrir no celular, troque `127.0.0.1` pelo IP do seu PC na rede (veja com `ipconfig`) e libere a porta 54321 no Firewall do Windows.
+Edite `apps\mobile\.env.local` e cole a publishable key. Pode deixar `127.0.0.1`: no celular (Expo Go), o app troca sozinho pelo IP do seu PC, o mesmo do QR code. O celular precisa estar no mesmo Wi-Fi do PC, e a porta 54321 precisa estar liberada no Firewall do Windows:
+
+```powershell
+# PowerShell como administrador
+New-NetFirewallRule -DisplayName "Supabase local" -Direction Inbound -Protocol TCP -LocalPort 54321 -Action Allow
+```
 
 ```powershell
 npm run app
@@ -102,3 +107,14 @@ npx eas-cli@latest build --profile production --platform all     # lojas
 ```
 
 Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
+
+## 8. Problemas comuns
+
+| Sintoma | Causa | Solução |
+| --- | --- | --- |
+| Web: `Worker chunk not found ... expo-sqlite\web\worker.ts` | Código antigo ainda rodando (antes do commit `81b0a17`) | `git pull`, feche o Expo (Ctrl+C) e abra de novo com `npm run app -- --clear` |
+| Celular: erro ao tocar em "Receber código", com "Não foi possível conectar ao servidor" | O celular não alcança o Supabase do PC | Mesmo Wi-Fi, porta 54321 liberada no firewall e `npx supabase start` rodando. A mensagem de erro mostra o endereço que o app tentou |
+| Console: `WebCrypto API is not supported. Code challenge method will default to use plain` | Aviso do Supabase no Android/iOS (o celular não tem WebCrypto) | Só um aviso, não é o erro. Não afeta o login por código |
+| `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
+
+Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundora] Supabase em ...` ao abrir o app.

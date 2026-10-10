@@ -22,7 +22,8 @@
     "google": "Sign in with Google",
     "apple": "Sign in with Apple",
     "invalidEmail": "Enter a valid email.",
-    "invalidCode": "Invalid or expired code."
+    "invalidCode": "Invalid or expired code.",
+    "networkError": "Couldn't reach the server. Check your connection and the Supabase address."
   },
   "onboarding": {
     "step": "Step {{current}} of {{total}}",

@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Button, ErrorText, Screen, TextField } from '../components/ui';
 import { signInWithProvider } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { isNetworkError } from '../lib/server-url';
+import { supabase, supabaseUrl } from '../lib/supabase';
 import { colors, fonts, space, text } from '../theme';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,6 +18,15 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** Mensagem para a pessoa; em desenvolvimento, inclui o erro técnico para facilitar o diagnóstico. */
+  const describeError = (err: unknown): string => {
+    console.error('[Soundora] erro no login:', err);
+    const base = isNetworkError(err) ? t('auth.networkError') : t('common.error');
+    if (!__DEV__) return base;
+    const detail = err instanceof Error ? err.message : String(err);
+    return `${base}\n${detail}\n(${supabaseUrl})`;
+  };
+
   const sendCode = async () => {
     const value = email.trim().toLowerCase();
     if (!EMAIL_RE.test(value)) return setError(t('auth.invalidEmail'));
@@ -27,7 +37,7 @@ export default function SignIn() {
       options: { shouldCreateUser: true, data: { locale: i18n.language } },
     });
     setBusy(false);
-    if (err) return setError(t('common.error'));
+    if (err) return setError(describeError(err));
     setSent(true);
   };
 
@@ -36,7 +46,7 @@ export default function SignIn() {
     setError(null);
     const { error: err } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: 'email' });
     setBusy(false);
-    if (err) setError(t('auth.invalidCode'));
+    if (err) setError(isNetworkError(err) ? describeError(err) : t('auth.invalidCode'));
     // Com sucesso, o AuthProvider recebe a sessão e o roteador leva ao onboarding ou ao feed.
   };
 
@@ -44,8 +54,8 @@ export default function SignIn() {
     setError(null);
     try {
       await signInWithProvider(provider);
-    } catch {
-      setError(t('common.error'));
+    } catch (err) {
+      setError(describeError(err));
     }
   };
 

@@ -22,7 +22,8 @@
     "google": "Entrar com Google",
     "apple": "Entrar com Apple",
     "invalidEmail": "Digite um e-mail válido.",
-    "invalidCode": "Código inválido ou vencido."
+    "invalidCode": "Código inválido ou vencido.",
+    "networkError": "Não foi possível conectar ao servidor. Confira a internet e o endereço do Supabase."
   },
   "onboarding": {
     "step": "Passo {{current}} de {{total}}",

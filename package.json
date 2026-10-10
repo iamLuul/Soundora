@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "app": "npm run start --workspace apps/mobile",
+    "app": "npm run start --workspace apps/mobile --",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test:core && npm run test:app",
     "test:core": "npm run test --workspace packages/core",
