@@ -2,7 +2,17 @@ import { commentSchema, postTextSchema, type ReportReason } from '@soundora/core
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
 import { supabase } from './supabase';
-import type { AppConfig, CommentRow, FeedItem, LinkPreviewRow, Profile, ProfileSummary } from './types';
+import type {
+  AppConfig,
+  CommentRow,
+  DiscoverCard,
+  FeedItem,
+  LinkPreviewRow,
+  Profile,
+  ProfileSummary,
+  TrackResult,
+  TrendingTrack,
+} from './types';
 
 export const FEED_PAGE_SIZE = 20;
 
@@ -155,4 +165,38 @@ export async function updateLocale(locale: 'pt-BR' | 'en'): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from('profiles').update({ locale }).eq('id', userId);
   if (error) throw error;
+}
+
+export async function fetchDiscoverCards(limit = 20): Promise<DiscoverCard[]> {
+  const { data, error } = await supabase.rpc('discover_cards', { p_limit: limit });
+  if (error) throw error;
+  return data as DiscoverCard[];
+}
+
+/** Registra o swipe. Para a direita também curte o post de origem. */
+export async function swipeDiscover(card: Pick<DiscoverCard, 'link_preview_id' | 'post_id'>, liked: boolean): Promise<void> {
+  const { error } = await supabase.rpc('discover_swipe', {
+    p_link_preview_id: card.link_preview_id,
+    p_liked: liked,
+    p_post_id: card.post_id,
+  });
+  if (error) throw error;
+}
+
+export async function fetchTrending(genre: string | null, days = 7): Promise<TrendingTrack[]> {
+  const { data, error } = await supabase.rpc('trending_tracks', { p_days: days, p_genre: genre, p_limit: 50 });
+  if (error) throw error;
+  return data as TrendingTrack[];
+}
+
+export async function searchProfiles(query: string): Promise<Profile[]> {
+  const { data, error } = await supabase.rpc('search_profiles', { p_query: query, p_limit: 20 });
+  if (error) throw error;
+  return data as Profile[];
+}
+
+export async function searchTracks(query: string): Promise<TrackResult[]> {
+  const { data, error } = await supabase.rpc('search_tracks', { p_query: query, p_limit: 20 });
+  if (error) throw error;
+  return data as TrackResult[];
 }

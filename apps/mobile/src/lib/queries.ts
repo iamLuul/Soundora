@@ -1,5 +1,6 @@
-import { useInfiniteQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { FEED_PAGE_SIZE, fetchFeed, fetchProfilePosts, setLiked } from './api';
+import { supabase } from './supabase';
 import type { FeedItem } from './types';
 
 export const keys = {
@@ -53,4 +54,30 @@ export function useToggleLike() {
       for (const [key, data] of ctx?.lists ?? []) qc.setQueryData(key, data);
     },
   });
+}
+
+export interface GenreRow {
+  slug: string;
+  name_pt: string;
+  name_en: string;
+}
+
+/** Lista de gêneros (tabela genres), usada no onboarding, no Em alta e nos cartões. */
+export function useGenres() {
+  return useQuery({
+    queryKey: ['genres'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('genres').select('slug, name_pt, name_en').order('name_pt');
+      if (error) throw error;
+      return data as GenreRow[];
+    },
+  });
+}
+
+export function genreLabel(genres: GenreRow[] | undefined, slug: string | null, locale: string): string | null {
+  if (!slug) return null;
+  const g = genres?.find((x) => x.slug === slug);
+  if (!g) return slug.replace(/_/g, ' ');
+  return locale === 'pt-BR' ? g.name_pt : g.name_en;
 }

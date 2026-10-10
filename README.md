@@ -8,6 +8,7 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 - regra de idade configurável, aplicada no app e no banco;
 - indexador de links de 9 plataformas, com cache e proteção contra SSRF;
 - postar música, feed "Para você", curtir, comentar, seguir;
+- Descobrir (cartões com swipe: destaques da curadoria e indicações da comunidade), Em alta (ranking da semana por gênero) e Buscar (pessoas e músicas);
 - perfil, denunciar, bloquear e apagar post;
 - interface em português do Brasil e inglês.
 
@@ -61,8 +62,16 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 - **Sem reprodução de áudio.** Toda faixa abre no app ou site de origem. Isso evita licenças de música.
 - **Segurança no banco.** O app usa só a chave pública; o que cada pessoa pode ler e escrever está nas policies de RLS em `supabase/migrations`, cobertas por testes.
 - **Idade mínima ainda em decisão.** Está em `public.app_config` (`min_age`, padrão 13). Pelo ECA Digital, contas de 13 a 15 anos precisam de vínculo com um responsável; enquanto esse fluxo não existir (`guardian_flow_enabled = false`), essas idades são bloqueadas no cadastro. Para mudar: `update public.app_config set min_age = 18;`
+- **Curadoria do Descobrir.** Destaques ficam na tabela `public.featured` e aparecem primeiro no Descobrir, pelo gênero da pessoa. Para destacar uma música, poste o link no app (isso cria o cartão) e, como administrador, rode no SQL Editor:
+
+  ```sql
+  insert into public.featured (link_preview_id, genre, note_pt, note_en, position, ends_at)
+  select id, 'shoegaze', 'O som que definiu o gênero.', 'The sound that defined the genre.', 1, now() + interval '14 days'
+  from public.link_previews where url = 'https://open.spotify.com/track/<id>';
+  ```
+
 - **Moderação.** Para virar administrador: `insert into public.admins (user_id) values ('<seu id>');` Administradores veem todas as denúncias e podem apagar posts e comentários.
 
 ## Próximos passos do roteiro
 
-Curadoria de Descobrir e Em alta, busca na interface (a função `search_profiles` já existe), painel admin, notificações push, edição de perfil com avatar (o bucket `avatars` já existe) e vínculo com responsável.
+Painel admin (moderação e curadoria sem SQL), notificações push, edição de perfil com avatar (o bucket `avatars` já existe), vídeos e Vibes, e vínculo com responsável.

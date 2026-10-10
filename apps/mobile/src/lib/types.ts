@@ -76,3 +76,48 @@ export interface AppConfig {
 }
 
 export type { ReportReason };
+
+/** Cartão do Descobrir (função discover_cards). */
+export interface DiscoverCard {
+  link_preview_id: string;
+  url: string;
+  platform: Platform;
+  kind: LinkKind;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  genre: string | null;
+  source: 'featured' | 'community';
+  note: string | null;
+  post_id: string | null;
+  recommender_username: string | null;
+  recommender_display_name: string | null;
+  recommender_avatar_url: string | null;
+}
+
+/** Linha do Em alta (função trending_tracks). */
+export interface TrendingTrack {
+  rank: number;
+  link_preview_id: string;
+  url: string;
+  platform: Platform;
+  kind: LinkKind;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  post_count: number;
+  like_count: number;
+  score: number;
+}
+
+/** Resultado de música na busca (função search_tracks). */
+export interface TrackResult {
+  link_preview_id: string;
+  url: string;
+  platform: Platform;
+  kind: LinkKind;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  post_count: number;
+}

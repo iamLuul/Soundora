@@ -9,12 +9,13 @@ import { MusicCard } from '../../components/MusicCard';
 import { Button, Chip, ErrorText, Screen, TextField } from '../../components/ui';
 import { createPost, getMyGenres, previewLink } from '../../lib/api';
 import { errorMessageKey } from '../../lib/errors';
-import { keys } from '../../lib/queries';
+import { genreLabel, keys, useGenres } from '../../lib/queries';
 import type { LinkPreviewRow } from '../../lib/types';
 import { space, text } from '../../theme';
 
 export default function ComposeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const genres = useGenres();
   const qc = useQueryClient();
   const [link, setLink] = useState('');
   const [preview, setPreview] = useState<LinkPreviewRow | null>(null);
@@ -109,7 +110,7 @@ export default function ComposeScreen() {
               <Text style={text.label}>{t('compose.genreLabel')}</Text>
               <View style={styles.chips}>
                 {myGenres.data.map((g) => (
-                  <Chip key={g} label={g.replace(/_/g, ' ')} selected={genre === g} onPress={() => setGenre(genre === g ? null : g)} />
+                  <Chip key={g} label={genreLabel(genres.data, g, i18n.language) ?? g} selected={genre === g} onPress={() => setGenre(genre === g ? null : g)} />
                 ))}
               </View>
             </View>

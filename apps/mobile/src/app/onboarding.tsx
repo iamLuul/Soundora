@@ -8,7 +8,7 @@ import { completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
 import { useAuth } from '../lib/auth';
 import { errorMessageKey } from '../lib/errors';
-import { supabase } from '../lib/supabase';
+import { useGenres } from '../lib/queries';
 import { colors, space, text } from '../theme';
 
 const TOTAL_STEPS = 4;
@@ -28,14 +28,7 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
 
   const config = useQuery({ queryKey: ['app-config'], queryFn: getAppConfig });
-  const genreList = useQuery({
-    queryKey: ['genres'],
-    queryFn: async () => {
-      const { data, error: err } = await supabase.from('genres').select('slug, name_pt, name_en').order('name_pt');
-      if (err) throw err;
-      return data as { slug: string; name_pt: string; name_en: string }[];
-    },
-  });
+  const genreList = useGenres();
 
   const policy: AgePolicy | null = config.data
     ? { minAge: config.data.min_age, guardianRequiredUnder: config.data.guardian_required_under, guardianFlowEnabled: config.data.guardian_flow_enabled }

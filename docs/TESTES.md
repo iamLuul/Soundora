@@ -5,8 +5,8 @@ Quatro camadas, da mais rápida para a mais completa. O CI (`.github/workflows/c
 | Camada | Ferramenta | Onde | O que cobre | Comando |
 | --- | --- | --- | --- | --- |
 | Regras compartilhadas | Vitest | `packages/core/src/**/*.test.ts` | Reconhecimento de links de 9 plataformas, cartões de prévia (com `fetch` falso), proteção SSRF, idade, validações | `npm run test:core` |
-| Banco e regras de acesso | Vitest + PostgreSQL | `tests/db/*.test.ts` | Migrations aplicam do zero; RLS de perfis, posts, curtidas, comentários, bloqueios e denúncias; onboarding e regra de idade; feed e busca | `npm run test:db` |
-| App | Jest + Testing Library | `apps/mobile/__tests__` | Componentes (cartão de música, post), traduções completas em pt-BR e en, erros, curtida otimista | `npm run test:app` |
+| Banco e regras de acesso | Vitest + PostgreSQL | `tests/db/*.test.ts` | Migrations aplicam do zero; RLS de perfis, posts, curtidas, comentários, bloqueios, denúncias e destaques; onboarding e regra de idade; feed, Descobrir, Em alta e busca | `npm run test:db` |
+| App | Jest + Testing Library | `apps/mobile/__tests__` | Componentes (cartão de música, post, cartão do Descobrir com swipe, ranking, busca), traduções completas em pt-BR e en, erros, curtida otimista | `npm run test:app` |
 | Ponta a ponta | Maestro | `apps/mobile/.maestro` | Cadastro completo e postar música num app de verdade | `maestro test apps/mobile/.maestro` |
 
 ## Testes do banco

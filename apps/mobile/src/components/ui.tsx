@@ -109,6 +109,36 @@ export function Avatar({ uri, name, size = 40 }: { uri: string | null; name: str
   );
 }
 
+/** Seletor de seções (ex.: Descobrir | Em alta | Buscar). */
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <View style={styles.segmented} accessibilityRole="tablist">
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(o.value)}
+            style={[styles.segment, selected && styles.segmentSelected]}
+          >
+            <Text style={[styles.segmentText, selected && { color: colors.text }]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null;
   return (
@@ -142,5 +172,9 @@ const styles = StyleSheet.create({
   },
   chip: { paddingVertical: space.sm, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  segmented: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.pill, padding: 4, gap: 4 },
+  segment: { flex: 1, paddingVertical: space.sm, borderRadius: radius.pill, alignItems: 'center' },
+  segmentSelected: { backgroundColor: colors.primary },
+  segmentText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.textMuted },
   avatarFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
 });

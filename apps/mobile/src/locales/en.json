@@ -65,7 +65,8 @@
   "tabs": {
     "feed": "For you",
     "compose": "Post",
-    "profile": "Profile"
+    "profile": "Profile",
+    "discover": "Discover"
   },
   "feed": {
     "empty": "Your feed is empty. Follow people or post the first song!",
@@ -120,5 +121,31 @@
     "minutes": "{{count}}m",
     "hours": "{{count}}h",
     "days": "{{count}}d"
+  },
+  "discover": {
+    "segDiscover": "Discover",
+    "segTrending": "Trending",
+    "segSearch": "Search",
+    "featured": "Soundora pick",
+    "recommendedBy": "Recommended by @{{username}}",
+    "skip": "Skip",
+    "like": "Like",
+    "empty": "You've seen every song for now. Come back later!",
+    "reload": "Load more",
+    "hint": "Swipe right if you like it, left to skip."
+  },
+  "trending": {
+    "title": "Trending this week",
+    "all": "All",
+    "posts_one": "{{count}} post",
+    "posts_other": "{{count}} posts",
+    "empty": "Nothing trending in this genre yet."
+  },
+  "search": {
+    "placeholder": "Search people, songs or artists",
+    "people": "People",
+    "tracks": "Songs",
+    "noResults": "Nothing found for “{{query}}”.",
+    "minChars": "Type at least 2 letters."
   }
 }

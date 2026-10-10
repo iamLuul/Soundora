@@ -65,7 +65,8 @@
   "tabs": {
     "feed": "Para você",
     "compose": "Postar",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "discover": "Descobrir"
   },
   "feed": {
     "empty": "Seu feed está vazio. Siga pessoas ou poste a primeira música!",
@@ -120,5 +121,31 @@
     "minutes": "{{count}} min",
     "hours": "{{count}} h",
     "days": "{{count}} d"
+  },
+  "discover": {
+    "segDiscover": "Descobrir",
+    "segTrending": "Em alta",
+    "segSearch": "Buscar",
+    "featured": "Destaque do Soundora",
+    "recommendedBy": "Indicada por @{{username}}",
+    "skip": "Pular",
+    "like": "Curti",
+    "empty": "Você viu todas as músicas por agora. Volte mais tarde!",
+    "reload": "Buscar mais",
+    "hint": "Arraste para a direita se curtir, para a esquerda para pular."
+  },
+  "trending": {
+    "title": "Em alta na semana",
+    "all": "Todos",
+    "posts_one": "{{count}} post",
+    "posts_other": "{{count}} posts",
+    "empty": "Nada em alta ainda neste gênero."
+  },
+  "search": {
+    "placeholder": "Busque pessoas, músicas ou artistas",
+    "people": "Pessoas",
+    "tracks": "Músicas",
+    "noResults": "Nada encontrado para “{{query}}”.",
+    "minChars": "Digite pelo menos 2 letras."
   }
 }
