@@ -15,6 +15,16 @@ export interface Profile {
   created_at: string;
 }
 
+/** Pessoa na busca e na lista de bloqueados: só os campos do cartão. */
+export interface PersonCard {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  /** Busca: fui eu que bloqueei (aparece marcado, com a opção de desbloquear). */
+  blocked_by_me?: boolean;
+}
+
 export interface LinkPreviewRow {
   id: string;
   url: string;

@@ -9,6 +9,7 @@ import type {
   DiscoverCard,
   FeedItem,
   LinkPreviewRow,
+  PersonCard,
   Profile,
   ProfileSummary,
   TrackResult,
@@ -209,6 +210,12 @@ export async function blockUser(blockedId: string): Promise<void> {
   if (error && error.code !== '23505') throw error;
 }
 
+export async function unblockUser(blockedId: string): Promise<void> {
+  const userId = await currentUserId();
+  const { error } = await supabase.from('blocks').delete().eq('blocker_id', userId).eq('blocked_id', blockedId);
+  if (error) throw error;
+}
+
 export async function report(targetType: 'post' | 'comment' | 'profile' | 'vibe', targetId: string, reason: ReportReason): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from('reports').insert({ reporter_id: userId, target_type: targetType, target_id: targetId, reason });
@@ -302,10 +309,17 @@ export async function setStreamingPlatform(platform: StreamingChoice): Promise<v
   if (error) throw error;
 }
 
-export async function searchProfiles(query: string): Promise<Profile[]> {
+export async function searchProfiles(query: string): Promise<PersonCard[]> {
   const { data, error } = await supabase.rpc('search_profiles', { p_query: query, p_limit: 20 });
   if (error) throw error;
-  return data as Profile[];
+  return data as PersonCard[];
+}
+
+/** Quem eu bloqueei (o mais recente primeiro). */
+export async function fetchBlockedProfiles(): Promise<PersonCard[]> {
+  const { data, error } = await supabase.rpc('my_blocked_profiles');
+  if (error) throw error;
+  return data as PersonCard[];
 }
 
 export async function searchTracks(query: string): Promise<TrackResult[]> {

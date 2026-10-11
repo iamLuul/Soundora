@@ -80,11 +80,14 @@ describe('perfil e busca', () => {
     expect(await db.as(me, `select * from public.profile_summary('feedblocked')`)).toEqual([]);
   });
 
-  it('busca tolera erro de digitação e ignora bloqueados', async () => {
+  it('busca tolera erro de digitação; quem eu bloqueei aparece marcado, e eu sumo para quem bloqueei', async () => {
     const rows = await db.as<{ username: string }>(me, `select username from public.search_profiles('feedfrend')`);
     expect(rows.map((r) => r.username)).toContain('feedfriend');
-    const blockedRows = await db.as<{ username: string }>(me, `select username from public.search_profiles('feedblocked')`);
-    expect(blockedRows.map((r) => r.username)).not.toContain('feedblocked');
+    const blockedRows = await db.as<{ username: string; blocked_by_me: boolean }>(me, `select username, blocked_by_me from public.search_profiles('feedblocked')`);
+    expect(blockedRows.find((r) => r.username === 'feedblocked')?.blocked_by_me).toBe(true);
+    const meRow = (await db.sql<{ username: string }>(`select username from public.profiles where id = $1`, [me]))[0]!;
+    const fromBlocked = await db.as<{ username: string }>(blocked, `select username from public.search_profiles($1)`, [meRow.username]);
+    expect(fromBlocked.map((r) => r.username)).not.toContain(meRow.username);
   });
 
   it('profile_posts pagina por data', async () => {

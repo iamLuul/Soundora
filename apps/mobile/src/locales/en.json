@@ -301,7 +301,9 @@
     "push": "Phone notifications",
     "pushUnavailable": "Available in the installed app (not in Expo Go, emulators or the web).",
     "streaming": "Streaming platform",
-    "streamingNone": "Not chosen"
+    "streamingNone": "Not chosen",
+    "blocked": "Blocked accounts",
+    "blockedHint": "People you blocked"
   },
   "notifications": {
     "title": "Notifications",
@@ -387,5 +389,12 @@
     "title": "Where do you listen to music?",
     "hint": "Songs in Trending will always open on this platform. You can change it later in Settings.",
     "required": "Pick a platform to continue."
+  },
+  "blocked": {
+    "tag": "Blocked",
+    "unblock": "Unblock",
+    "title": "Blocked",
+    "empty": "You haven't blocked anyone.",
+    "hint": "People you block can't see your posts and vibes, and you don't see theirs. Unblocking doesn't follow them again."
   }
 }

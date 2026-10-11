@@ -39,6 +39,13 @@ export default function SettingsScreen() {
           label={t('settings.password')}
           value={session?.user.email ?? undefined}
           onPress={() => router.push('/settings/password')}
+        />
+        <SettingsRow
+          testID="settings-blocked"
+          icon="ban-outline"
+          label={t('settings.blocked')}
+          value={t('settings.blockedHint')}
+          onPress={() => router.push('/settings/blocked')}
           last
         />
       </SettingsSection>

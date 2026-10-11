@@ -82,6 +82,7 @@ function Navigator({ signedIn, onboarded }: { signedIn: boolean; onboarded: bool
         <Stack.Screen name="settings/username" options={{ title: '' }} />
         <Stack.Screen name="settings/password" options={{ title: '' }} />
         <Stack.Screen name="settings/streaming" options={{ title: '' }} />
+        <Stack.Screen name="settings/blocked" options={{ title: '' }} />
         <Stack.Screen name="settings/delete-account" options={{ title: '' }} />
       </Stack.Protected>
 

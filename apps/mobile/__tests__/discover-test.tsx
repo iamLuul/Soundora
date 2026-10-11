@@ -117,6 +117,18 @@ describe('<SearchResults />', () => {
     await fireEvent.press(screen.getByText('Clairey'));
     expect(onOpenProfile).toHaveBeenCalledWith('clairey');
   });
+
+  test('quem eu bloqueei aparece marcado, não abre o perfil e tem o botão de desbloquear', async () => {
+    const onOpenProfile = jest.fn();
+    const onUnblock = jest.fn();
+    const blocked = { ...person, blocked_by_me: true };
+    await render(<SearchResults query="cla" people={[blocked]} tracks={[]} loading={false} onOpenProfile={onOpenProfile} onUnblock={onUnblock} />);
+    expect(screen.getByText('Bloqueado')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Clairey'));
+    expect(onOpenProfile).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId('unblock-clairey'));
+    expect(onUnblock).toHaveBeenCalledWith(blocked);
+  });
 });
 
 describe('genreLabel', () => {

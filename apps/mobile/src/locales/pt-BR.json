@@ -301,7 +301,9 @@
     "push": "Notificações no celular",
     "pushUnavailable": "Disponível no app instalado (não no Expo Go, no emulador nem na Web).",
     "streaming": "Plataforma de streaming",
-    "streamingNone": "Não escolhida"
+    "streamingNone": "Não escolhida",
+    "blocked": "Bloqueados",
+    "blockedHint": "Pessoas que você bloqueou"
   },
   "notifications": {
     "title": "Notificações",
@@ -387,5 +389,12 @@
     "title": "Onde você escuta música?",
     "hint": "As músicas do Em alta vão abrir sempre nessa plataforma. Dá para trocar depois em Configurações.",
     "required": "Escolha uma plataforma para continuar."
+  },
+  "blocked": {
+    "tag": "Bloqueado",
+    "unblock": "Desbloquear",
+    "title": "Bloqueados",
+    "empty": "Você não bloqueou ninguém.",
+    "hint": "Quem você bloqueia não vê seus posts e vibes, e você não vê os dela. Desbloquear não volta a seguir automaticamente."
   }
 }
