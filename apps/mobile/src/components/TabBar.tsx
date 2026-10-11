@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { useEffect, type ComponentProps } from 'react';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -74,13 +74,17 @@ export function TabBar({ state, navigation }: TabBarProps) {
   );
 }
 
-/** O "+" gira 45° e vira um X enquanto a tela de postar está aberta. */
+/** Abrir: uma volta completa e mais 45° (o "+" para no X). Fechar: o caminho de volta. */
+export const PLUS_TURN_DEG = 360 + 45;
+const PLUS_TURN_MS = 380;
+
+/** O "+" dá uma volta rápida e vira um X enquanto a tela de postar está aberta. */
 function PlusToX({ open }: { open: boolean }) {
   const turn = useSharedValue(open ? 1 : 0);
   useEffect(() => {
-    turn.set(withSpring(open ? 1 : 0, { damping: 14, stiffness: 180 }));
+    turn.set(withTiming(open ? 1 : 0, { duration: PLUS_TURN_MS, easing: Easing.out(Easing.cubic) }));
   }, [open, turn]);
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 45}deg` }] }));
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * PLUS_TURN_DEG}deg` }] }));
   return (
     <Animated.View style={style} testID={open ? 'compose-close-icon' : 'compose-open-icon'}>
       <Icon name="plus" size={18} color={colors.text} />
