@@ -5,7 +5,8 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchField, TopTabs } from '../../components/figma';
 import { TrackRow } from '../../components/TrackRow';
-import { fetchLikedTracks, fetchMyTracks } from '../../lib/api';
+import { useStreamingOpener } from '../../components/StreamingOpener';
+import { fetchLikedTracks, fetchMyTracks, trackLink } from '../../lib/api';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 
@@ -13,7 +14,7 @@ type Tab = 'liked' | 'mine';
 
 /**
  * Músicas (Figma: Music page/Playlists): as que você curtiu no Descobrir e as que postou.
- * Tocar abre a música no streaming de origem.
+ * Tocar abre a música na plataforma de streaming que a pessoa escolheu.
  */
 export default function MusicScreen() {
   const { t } = useTranslation();
@@ -21,6 +22,8 @@ export default function MusicScreen() {
   const [tab, setTab] = useState<Tab>('liked');
   const [query, setQuery] = useState('');
   const tracks = useQuery({ queryKey: ['my-music', tab], queryFn: tab === 'liked' ? fetchLikedTracks : fetchMyTracks });
+
+  const { open, opening, message, platform, chooser } = useStreamingOpener((target, choice) => trackLink(target.key, choice));
 
   const q = query.trim().toLowerCase();
   const items = uniqueBy(tracks.data ?? [], (x) => x.link_preview_id, 'músicas').filter((x) => !q || x.title.toLowerCase().includes(q) || x.artist?.toLowerCase().includes(q));
@@ -45,7 +48,13 @@ export default function MusicScreen() {
             <SearchField placeholder={t('music.search')} value={query} onChangeText={setQuery} />
           </View>
         }
-        renderItem={({ item }) => <TrackRow item={item} />}
+        renderItem={({ item }) => (
+          <TrackRow
+            item={item}
+            platform={platform}
+            onPress={(x) => open({ key: x.link_preview_id, title: x.title, artist: x.artist ?? '' })}
+          />
+        )}
         ListEmptyComponent={
           tracks.isLoading ? (
             <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />
@@ -56,7 +65,10 @@ export default function MusicScreen() {
           )
         }
         refreshControl={<RefreshControl refreshing={tracks.isRefetching} onRefresh={() => tracks.refetch()} tintColor={colors.primary} />}
+        ListFooterComponent={opening ? <ActivityIndicator color={colors.primary} style={{ marginTop: space.md }} /> : null}
       />
+      {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center', paddingVertical: space.sm }]}>{message}</Text> : null}
+      {chooser}
     </View>
   );
 }

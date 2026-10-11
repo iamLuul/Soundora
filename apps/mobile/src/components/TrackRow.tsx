@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { PLATFORM_LABELS } from '@soundora/core';
+import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import type { ReactNode } from 'react';
@@ -9,16 +9,35 @@ import type { TrackItem } from '../lib/api';
 import { colors, fonts, space } from '../theme';
 import { PlatformLogo } from './figma';
 
-/** Linha de música (Figma: Music page/Playlists e Trending): capa, título, artista. */
-export function TrackRow({ item, leading, trailing, testID }: { item: TrackItem; leading?: ReactNode; trailing?: ReactNode; testID?: string }) {
+/**
+ * Linha de música (Figma: Music page/Playlists e Trending): capa, título, artista e o logo
+ * da plataforma onde ela abre. Com `platform` (a escolhida pela pessoa), mostra essa e
+ * `onPress` abre nela; sem, abre o link de origem.
+ */
+export function TrackRow({
+  item,
+  leading,
+  trailing,
+  testID,
+  platform: chosen,
+  onPress,
+}: {
+  item: TrackItem;
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  testID?: string;
+  platform?: StreamingChoice | null;
+  onPress?: (item: TrackItem) => void;
+}) {
   const { t } = useTranslation();
-  const platform = PLATFORM_LABELS[item.platform];
+  const target = chosen ?? item.platform;
+  const platform = PLATFORM_LABELS[target];
   return (
     <Pressable
       testID={testID}
       accessibilityRole="link"
       accessibilityLabel={`${item.title}${item.artist ? `, ${item.artist}` : ''}. ${t('feed.listenOn', { platform })}`}
-      onPress={() => Linking.openURL(item.url)}
+      onPress={() => (onPress ? onPress(item) : Linking.openURL(item.url))}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
     >
       {leading}
@@ -39,7 +58,7 @@ export function TrackRow({ item, leading, trailing, testID }: { item: TrackItem;
           </Text>
         ) : null}
       </View>
-      {trailing ?? <PlatformLogo platform={item.platform} size={20} />}
+      {trailing ?? <PlatformLogo platform={target} size={20} />}
     </Pressable>
   );
 }
