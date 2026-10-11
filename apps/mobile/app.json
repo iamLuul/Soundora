@@ -56,7 +56,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O Soundora usa suas fotos só quando você escolhe uma foto de perfil."
+          "photosPermission": "O Soundora usa suas fotos e vídeos só quando você escolhe uma foto de perfil ou cria uma vibe.",
+          "cameraPermission": "O Soundora usa a câmera só quando você cria uma vibe.",
+          "microphonePermission": "O Soundora usa o microfone só para gravar o som dos vídeos das vibes."
         }
       ],
       [
@@ -64,7 +66,8 @@
         {
           "color": "#6C62FF"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

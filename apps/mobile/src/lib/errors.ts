@@ -36,6 +36,12 @@ const KNOWN = new Set([
   'reauth_required',
   'server_outdated',
   'push_unavailable',
+  'invalid_media',
+  'unsupported_video',
+  'invalid_video',
+  'video_too_long',
+  'video_too_large',
+  'video_dimensions',
 ]);
 
 export class AppError extends Error {

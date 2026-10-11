@@ -1,15 +1,24 @@
 import type { ProfileImageKind } from './api';
 import { AppError } from './errors';
-import { JPEG_QUALITIES, PROFILE_IMAGE_OUTPUT, planProfileImage } from './image-plan';
+import { JPEG_QUALITIES, PROFILE_IMAGE_OUTPUT, VIBE_PHOTO_MAX, planProfileImage, planVibePhoto, type ImagePlan } from './image-plan';
 
 /**
  * Web: converte direto num canvas do tamanho final (o expo-image-manipulator da Web quebra
  * com "createImageData: Invalid width or height" e reamostra pixel a pixel, lento em fotos
  * grandes). Sai um JPEG do tamanho exato do perfil, sem metadados.
  */
-export async function convertProfileImage(kind: ProfileImageKind, uri: string, _width?: number, _height?: number): Promise<Uint8Array> {
+export function convertProfileImage(kind: ProfileImageKind, uri: string, _width?: number, _height?: number): Promise<Uint8Array> {
+  return convertImage(uri, (w, h) => planProfileImage(kind, w, h), PROFILE_IMAGE_OUTPUT[kind].maxBytes);
+}
+
+/** Foto de vibe: imagem inteira, até 1080 × 1920, JPEG sem metadados. */
+export function convertVibePhoto(uri: string, _width?: number, _height?: number): Promise<Uint8Array> {
+  return convertImage(uri, planVibePhoto, VIBE_PHOTO_MAX.maxBytes);
+}
+
+async function convertImage(uri: string, planFor: (w: number, h: number) => ImagePlan, maxBytes: number): Promise<Uint8Array> {
   const image = await decode(uri);
-  const plan = planProfileImage(kind, image.width, image.height);
+  const plan = planFor(image.width, image.height);
 
   const canvas = document.createElement('canvas');
   canvas.width = plan.width;
@@ -25,7 +34,6 @@ export async function convertProfileImage(kind: ProfileImageKind, uri: string, _
   ctx.drawImage(image.source, originX, originY, width, height, 0, 0, plan.width, plan.height);
   image.close();
 
-  const { maxBytes } = PROFILE_IMAGE_OUTPUT[kind];
   for (const quality of JPEG_QUALITIES) {
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
     if (!blob) throw new AppError('invalid_image', 'falha ao gerar o JPEG');

@@ -115,7 +115,13 @@
     "confirmation_mismatch": "The @ you typed doesn't match.",
     "reauth_required": "For your security, sign out, sign in again and come back within 30 minutes.",
     "server_outdated": "The server database is out of date (migrations missing). Local: npx supabase db reset. Cloud: npx supabase db push.",
-    "push_unavailable": "Phone notifications are not available on this device."
+    "push_unavailable": "Phone notifications are not available on this device.",
+    "invalid_media": "We couldn't find the uploaded file. Try again.",
+    "unsupported_video": "Use an MP4 or MOV video.",
+    "invalid_video": "This video is corrupted or in a format we don't accept.",
+    "video_too_long": "Videos can be up to 30 seconds.",
+    "video_too_large": "Videos can be up to 30 MB.",
+    "video_dimensions": "This video's resolution isn't supported."
   },
   "tabs": {
     "feed": "For you",
@@ -279,5 +285,44 @@
     "mineTitle": "Your songs",
     "empty": "No songs yet.",
     "search": "Search your songs"
+  },
+  "vibes": {
+    "background": "Background color",
+    "camera": "Camera",
+    "cameraDenied": "No camera access. Allow it in your phone settings.",
+    "captionPlaceholder": "Write something (optional)",
+    "delete": "Delete vibe",
+    "expiresHint": "Disappears in 24 hours.",
+    "library": "Gallery",
+    "loadMusic": "Make card",
+    "music": "Music",
+    "musicHint": "Paste a song link to make the card.",
+    "new": "New vibe",
+    "next": "Next",
+    "noViewers": "No one has seen it yet.",
+    "of": "@{{username}}'s vibes",
+    "openPost": "Open @{{username}}'s post",
+    "options": "Vibe options",
+    "previous": "Previous",
+    "publish": "Post vibe",
+    "seeMine": "See my vibes",
+    "shareToVibes": "Share to Vibes",
+    "text": "Text",
+    "textHint": "Write your message below.",
+    "textPlaceholder": "What are you listening to?",
+    "viewProfile": "View profile",
+    "viewersTitle": "Seen by",
+    "views_one": "{{count}} view",
+    "views_other": "{{count}} views",
+    "you": "You",
+    "style": {
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "green": "Green",
+      "orange": "Orange",
+      "dark": "Dark"
+    },
+    "views_zero": "No views yet"
   }
 }

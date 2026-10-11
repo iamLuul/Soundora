@@ -16,8 +16,8 @@
     "lint": "npm run lint --workspace apps/mobile",
     "sync:shared": "node scripts/sync-shared.mjs",
     "check:shared": "node scripts/sync-shared.mjs --check",
-    "typecheck:functions": "deno check --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/index.ts supabase/functions/link-preview/handler.test.ts supabase/functions/auth-username/index.ts supabase/functions/auth-username/handler.test.ts supabase/functions/profile-image/index.ts supabase/functions/profile-image/handler.test.ts supabase/functions/delete-account/index.ts supabase/functions/delete-account/handler.test.ts",
-    "test:functions": "deno test --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/ supabase/functions/auth-username/ supabase/functions/profile-image/ supabase/functions/delete-account/",
+    "typecheck:functions": "deno check --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/index.ts supabase/functions/link-preview/handler.test.ts supabase/functions/auth-username/index.ts supabase/functions/auth-username/handler.test.ts supabase/functions/profile-image/index.ts supabase/functions/profile-image/handler.test.ts supabase/functions/delete-account/index.ts supabase/functions/delete-account/handler.test.ts supabase/functions/vibe-media/index.ts supabase/functions/vibe-media/handler.test.ts",
+    "test:functions": "deno test --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/ supabase/functions/auth-username/ supabase/functions/profile-image/ supabase/functions/delete-account/ supabase/functions/vibe-media/",
     "check:secrets": "node scripts/check-secrets.mjs"
   },
   "devDependencies": {

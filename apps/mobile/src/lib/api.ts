@@ -154,7 +154,7 @@ export async function blockUser(blockedId: string): Promise<void> {
   if (error && error.code !== '23505') throw error;
 }
 
-export async function report(targetType: 'post' | 'comment' | 'profile', targetId: string, reason: ReportReason): Promise<void> {
+export async function report(targetType: 'post' | 'comment' | 'profile' | 'vibe', targetId: string, reason: ReportReason): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from('reports').insert({ reporter_id: userId, target_type: targetType, target_id: targetId, reason });
   if (error && error.code !== '23505') throw error;
@@ -430,4 +430,125 @@ export async function registerPushToken(token: string, platform: 'ios' | 'androi
 export async function unregisterPushToken(token: string): Promise<void> {
   const { error } = await supabase.rpc('push_token_unregister', { p_token: token });
   if (error) throw error;
+}
+
+// ---------- Vibes (como os Stories: somem em 24 h) ----------
+
+export type VibeKind = 'photo' | 'video' | 'text' | 'music' | 'post';
+export const VIBE_STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'] as const;
+export type VibeStyle = (typeof VIBE_STYLES)[number];
+
+/** Limites do vídeo, iguais aos da Edge Function vibe-media. */
+export const VIBE_VIDEO_MAX = { seconds: 30, bytes: 30 * 1024 * 1024 };
+
+export interface VibeTrayItem {
+  author_id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  vibe_count: number;
+  unseen: boolean;
+  latest_at: string;
+  is_me: boolean;
+}
+
+export interface Vibe {
+  id: string;
+  kind: VibeKind;
+  media_path: string | null;
+  duration_ms: number | null;
+  text: string | null;
+  style: VibeStyle;
+  created_at: string;
+  seen: boolean;
+  /** Só para o autor. */
+  view_count: number | null;
+  preview_url: string | null;
+  preview_platform: string | null;
+  preview_title: string | null;
+  preview_artist: string | null;
+  preview_image_url: string | null;
+  post_id: string | null;
+  post_body: string | null;
+  post_author_username: string | null;
+  post_author_avatar_url: string | null;
+}
+
+export interface VibeViewer {
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  viewed_at: string;
+}
+
+export async function fetchVibesTray(): Promise<VibeTrayItem[]> {
+  const { data, error } = await supabase.rpc('vibes_tray');
+  if (error) throw error;
+  return (data ?? []) as VibeTrayItem[];
+}
+
+export async function fetchVibesOf(authorId: string): Promise<Vibe[]> {
+  const { data, error } = await supabase.rpc('vibes_of', { p_author: authorId });
+  if (error) throw error;
+  return (data ?? []) as Vibe[];
+}
+
+export async function markVibeSeen(id: string): Promise<void> {
+  const { error } = await supabase.rpc('vibe_mark_seen', { p_vibe: id });
+  if (error) throw error;
+}
+
+export async function fetchVibeViewers(id: string): Promise<VibeViewer[]> {
+  const { data, error } = await supabase.rpc('vibe_viewers', { p_vibe: id });
+  if (error) throw error;
+  return (data ?? []) as VibeViewer[];
+}
+
+export async function deleteVibe(id: string): Promise<void> {
+  const { error } = await supabase.rpc('vibe_delete', { p_vibe: id });
+  if (error) throw error;
+}
+
+/** URL temporária (1 h) da foto/vídeo: o bucket é privado e só libera vibe ativa e sem bloqueio. */
+export async function vibeMediaUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from('vibes').createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/** Envia a foto (já convertida) ou o vídeo para a Edge Function, que confere e grava. */
+export async function uploadVibeMedia(type: 'photo' | 'video', bytes: Uint8Array): Promise<{ path: string; durationMs?: number }> {
+  // ArrayBuffer (não Uint8Array): com Content-Type próprio, o supabase-js transformaria em JSON.
+  const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const { data, error } = await supabase.functions.invoke<{ path: string; durationMs?: number }>(`vibe-media?type=${type}`, {
+    body,
+    headers: { 'Content-Type': type === 'photo' ? 'image/jpeg' : 'video/mp4' },
+  });
+  if (error) throw await functionError('vibe-media', error, 'generic');
+  if (!data?.path) throw new AppError('generic');
+  return data;
+}
+
+export interface NewVibe {
+  kind: VibeKind;
+  mediaPath?: string;
+  durationMs?: number;
+  text?: string;
+  style?: VibeStyle;
+  linkPreviewId?: string;
+  postId?: string;
+}
+
+export async function createVibe(v: NewVibe): Promise<string> {
+  const { data, error } = await supabase.rpc('vibe_create', {
+    p_kind: v.kind,
+    p_media_path: v.mediaPath ?? null,
+    p_duration_ms: v.durationMs ?? null,
+    p_text: v.text?.trim() ? v.text.trim() : null,
+    p_style: v.style ?? 'violet',
+    p_link_preview_id: v.linkPreviewId ?? null,
+    p_post_id: v.postId ?? null,
+  });
+  if (error) throw error;
+  return data as string;
 }

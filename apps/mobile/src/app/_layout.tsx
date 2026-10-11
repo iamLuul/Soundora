@@ -63,6 +63,8 @@ function Navigator({ signedIn, onboarded }: { signedIn: boolean; onboarded: bool
         <Stack.Screen name="u/[username]" options={{ title: '' }} />
         <Stack.Screen name="post/[id]" options={{ title: '' }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="vibes/new" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="vibes/[author]" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="settings/index" options={{ title: '' }} />
         <Stack.Screen name="settings/profile" options={{ title: '' }} />
         <Stack.Screen name="settings/username" options={{ title: '' }} />

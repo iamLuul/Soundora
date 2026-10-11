@@ -115,7 +115,13 @@
     "confirmation_mismatch": "O @ digitado não confere.",
     "reauth_required": "Por segurança, saia, entre de novo na conta e volte aqui em até 30 minutos.",
     "server_outdated": "O banco de dados do servidor está desatualizado (faltam as migrations). Local: npx supabase db reset. Na nuvem: npx supabase db push.",
-    "push_unavailable": "Notificações no celular não estão disponíveis neste aparelho."
+    "push_unavailable": "Notificações no celular não estão disponíveis neste aparelho.",
+    "invalid_media": "Não encontramos o arquivo enviado. Tente de novo.",
+    "unsupported_video": "Use um vídeo MP4 ou MOV.",
+    "invalid_video": "Esse vídeo está corrompido ou num formato que não aceitamos.",
+    "video_too_long": "O vídeo pode ter até 30 segundos.",
+    "video_too_large": "O vídeo pode ter até 30 MB.",
+    "video_dimensions": "A resolução do vídeo não é aceita."
   },
   "tabs": {
     "feed": "Para você",
@@ -279,5 +285,44 @@
     "mineTitle": "Suas músicas",
     "empty": "Nenhuma música ainda.",
     "search": "Buscar nas suas músicas"
+  },
+  "vibes": {
+    "background": "Cor de fundo",
+    "camera": "Câmera",
+    "cameraDenied": "Sem acesso à câmera. Libere nas configurações do celular.",
+    "captionPlaceholder": "Escreva algo (opcional)",
+    "delete": "Apagar vibe",
+    "expiresHint": "Some em 24 horas.",
+    "library": "Galeria",
+    "loadMusic": "Gerar card",
+    "music": "Música",
+    "musicHint": "Cole o link de uma música para criar o card.",
+    "new": "Nova vibe",
+    "next": "Próxima",
+    "noViewers": "Ninguém viu ainda.",
+    "of": "Vibes de @{{username}}",
+    "openPost": "Abrir o post de @{{username}}",
+    "options": "Opções da vibe",
+    "previous": "Anterior",
+    "publish": "Publicar vibe",
+    "seeMine": "Ver minhas vibes",
+    "shareToVibes": "Compartilhar no Vibes",
+    "text": "Texto",
+    "textHint": "Escreva sua mensagem abaixo.",
+    "textPlaceholder": "O que você está ouvindo?",
+    "viewProfile": "Ver perfil",
+    "viewersTitle": "Quem viu",
+    "views_one": "{{count}} visualização",
+    "views_other": "{{count}} visualizações",
+    "you": "Você",
+    "style": {
+      "violet": "Roxo",
+      "blue": "Azul",
+      "pink": "Rosa",
+      "green": "Verde",
+      "orange": "Laranja",
+      "dark": "Escuro"
+    },
+    "views_zero": "Nenhuma visualização"
   }
 }

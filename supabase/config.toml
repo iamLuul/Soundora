@@ -99,3 +99,7 @@ verify_jwt = true
 # Excluir a conta: exige login (e a função confere de novo, com login recente).
 [functions.delete-account]
 verify_jwt = true
+
+# Foto e vídeo das Vibes: exige login (e a função confere o usuário de novo).
+[functions.vibe-media]
+verify_jwt = true

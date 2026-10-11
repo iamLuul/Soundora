@@ -57,6 +57,17 @@ O nome do arquivo é gerado no servidor. O perfil guarda só o caminho (`avatars
 
 Os buckets `avatars` e `banners` são públicos para leitura: a imagem abre pela URL. Mas não têm policy de listagem nem de escrita, e cada bucket limita o tamanho (1 MB e 2 MB) e os tipos de imagem.
 
+### Vibes (foto e vídeo)
+
+A mídia das Vibes passa pela Edge Function `vibe-media`, com as mesmas etapas: login antes de ler o arquivo, 60 envios por dia, tamanho com corte no meio da leitura e conferência dos bytes.
+
+- **Foto:** o app converte no aparelho (imagem inteira, até 1080 × 1920, JPEG sem metadados). O servidor aceita só JPEG de até 3 MB e 1080 × 1920 pixels.
+- **Vídeo:** MP4 ou MOV de até 30 MB e 30 segundos. A função lê a estrutura do arquivo, sem decodificar: tipo real pela assinatura (`ftyp`), duração (`mvhd`), uma trilha de vídeo com tamanho até 4096 px, e as caixas cobrindo o arquivo exatamente (nada colado no fim, como um ZIP).
+- **Bucket privado `vibes`:** ninguém lista, ninguém grava pelo app. Só abre com URL assinada de 1 hora, e só se a vibe estiver ativa (24 h) e sem bloqueio entre quem vê e o autor (policy do Storage com `vibe_media_visible`).
+- **Criar a vibe** (`vibe_create`) confere que o arquivo está na pasta da própria pessoa, existe no bucket e não foi usado em outra vibe. Post compartilhado de alguém com bloqueio é recusado.
+- **Faxina:** a cada envio, a função apaga os arquivos da pessoa que venceram, foram apagados ou nunca viraram vibe (com 1 h de folga).
+- Quem viu a vibe só aparece para o autor.
+
 Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo ganha a sua própria validação nesse mesmo modelo.
 
 ## Limite de requisições
@@ -82,6 +93,8 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | Bloqueios | 50 por dia | Banco |
 | Swipes no Descobrir | 600 por hora | Banco |
 | Editar perfil | 30 por hora | Banco |
+| Vibes | 30 por dia | Banco (trigger) |
+| Envio de foto/vídeo de vibe | 60 por dia | Edge Function `vibe-media` |
 | Push recebidos | 30 por hora por pessoa (o resto fica só na lista do app) | Banco (`tg_push_notification`) |
 | Cadastrar aparelho para push | 30 por hora; até 10 aparelhos por conta | Banco |
 
@@ -111,6 +124,7 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
    npx supabase functions deploy auth-username --no-verify-jwt
    npx supabase functions deploy profile-image
    npx supabase functions deploy delete-account
+   npx supabase functions deploy vibe-media
    ```
 
 ## Excluir conta

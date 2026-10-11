@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 import { colors, fonts, radius, space, text } from '../theme';
 
-export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' };
+export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' } | { type: 'vibe' };
 
 /**
  * Menu "…" de um post: denunciar, bloquear o autor ou apagar o próprio post.
@@ -41,6 +41,7 @@ export function PostActions({
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           {step === 'menu' ? (
             <>
+              <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} />
               {isMine ? (
                 <Option label={t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
               ) : (

@@ -47,6 +47,24 @@ export function PostList({
     const item = menuFor;
     setMenuFor(null);
     if (!item) return;
+    if (action.type === 'vibe') {
+      // Compartilhar o post no Vibes: a tela de criar recebe o que precisa para a prévia.
+      router.push({
+        pathname: '/vibes/new',
+        params: {
+          postId: item.id,
+          postUser: item.author_username,
+          postAvatar: item.author_avatar_url ?? '',
+          postBody: item.body,
+          postUrl: item.preview_url,
+          postPlatform: item.preview_platform,
+          postTitle: item.preview_title,
+          postArtist: item.preview_artist ?? '',
+          postImage: item.preview_image_url ?? '',
+        },
+      });
+      return;
+    }
     try {
       if (action.type === 'report') {
         await report('post', item.id, action.reason);

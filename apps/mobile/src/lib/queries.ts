@@ -5,6 +5,9 @@ import {
   fetchNotifications,
   fetchProfilePosts,
   fetchUnreadNotifications,
+  fetchVibesOf,
+  fetchVibesTray,
+  vibeMediaUrl,
   setLiked,
   type NotificationFilter,
   type PostCursor,
@@ -19,7 +22,23 @@ export const keys = {
   comments: (postId: string) => ['comments', postId] as const,
   notifications: (filter: string) => ['notifications', filter] as const,
   unread: ['notifications-unread'] as const,
+  vibesTray: ['vibes', 'tray'] as const,
+  vibesOf: (authorId: string) => ['vibes', 'of', authorId] as const,
 };
+
+/** Quem tem vibe ativa (eu + quem eu sigo). */
+export function useVibesTray(enabled = true) {
+  return useQuery({ queryKey: keys.vibesTray, queryFn: fetchVibesTray, enabled, refetchInterval: 60_000, staleTime: 15_000 });
+}
+
+export function useVibesOf(authorId: string) {
+  return useQuery({ queryKey: keys.vibesOf(authorId), queryFn: () => fetchVibesOf(authorId), staleTime: 0 });
+}
+
+/** URL assinada da mídia (vale 1 h; renova antes). */
+export function useVibeMedia(path: string | null) {
+  return useQuery({ queryKey: ['vibe-media', path], queryFn: () => vibeMediaUrl(path!), enabled: !!path, staleTime: 50 * 60_000 });
+}
 
 /** Quantas notificações não lidas (bolinha no sino). Atualiza a cada minuto e ao voltar para o app. */
 export function useUnreadNotifications(enabled = true) {
