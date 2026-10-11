@@ -143,7 +143,15 @@ export default function PostScreen() {
             </>
           }
           ListEmptyComponent={comments.isLoading ? <ActivityIndicator color={colors.muted} /> : <Text style={styles.empty}>{t('post.noComments')}</Text>}
-          renderItem={({ item }) => <CommentItem item={item} onToggleLike={toggleCommentLike} onReply={startReply} />}
+          renderItem={({ item, index }) => (
+            <CommentItem
+              item={item}
+              onToggleLike={toggleCommentLike}
+              onReply={startReply}
+              // A próxima linha é uma resposta deste mesmo comentário: a linha vertical continua.
+              continues={!!comments.data?.[index + 1]?.parent_id}
+            />
+          )}
         />
       )}
 

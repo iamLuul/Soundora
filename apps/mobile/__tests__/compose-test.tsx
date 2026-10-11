@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- jest.mock exige require() dentro da fábrica */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import ComposeScreen from '../src/app/(tabs)/compose';
 import { CommentItem } from '../src/components/CommentItem';
 import i18n from '../src/lib/i18n';
@@ -101,5 +102,25 @@ describe('Comentário', () => {
     await fireEvent.press(screen.getByTestId('comment-reply-c1'));
     expect(like).toHaveBeenCalledWith(c);
     expect(reply).toHaveBeenCalledWith(c);
+  });
+
+  test('resposta presa ao comentário por uma linha vertical; divisória só no fim da conversa', async () => {
+    const border = (id: string) => StyleSheet.flatten(screen.getByTestId(`comment-${id}`).props.style).borderBottomWidth ?? 0;
+    const r1 = { ...c, id: 'r1', parent_id: 'c1' };
+    const r2 = { ...c, id: 'r2', parent_id: 'c1' };
+    await render(
+      <>
+        <CommentItem item={c} onToggleLike={jest.fn()} onReply={jest.fn()} continues />
+        <CommentItem item={r1} onToggleLike={jest.fn()} onReply={jest.fn()} continues />
+        <CommentItem item={r2} onToggleLike={jest.fn()} onReply={jest.fn()} />
+      </>,
+    );
+    expect(['c1', 'r1', 'r2'].map((id) => !!screen.queryByTestId(`thread-line-${id}`))).toEqual([true, true, true]);
+    expect(['c1', 'r1', 'r2'].map(border)).toEqual([0, 0, 1]);
+  });
+
+  test('comentário sem respostas: sem linha, com divisória', async () => {
+    await render(<CommentItem item={c} onToggleLike={jest.fn()} onReply={jest.fn()} />);
+    expect(screen.queryByTestId('thread-line-c1')).toBeNull();
   });
 });

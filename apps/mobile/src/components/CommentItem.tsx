@@ -6,22 +6,37 @@ import type { CommentRow } from '../lib/types';
 import { colors, fonts, space } from '../theme';
 import { Icon, RingAvatar } from './figma';
 
-/** Comentário (ou resposta, recuada) com curtir e responder. */
+/** Avatar do comentário (34) e da resposta (28). */
+const ROOT_AVATAR = 34;
+const REPLY_AVATAR = 28;
+
+/**
+ * Comentário (ou resposta, recuada) com curtir e responder. As respostas ficam presas ao
+ * comentário por uma linha vertical que desce do avatar dele; a divisória só vem depois da
+ * última resposta. `continues` = a próxima linha da lista é resposta deste mesmo comentário.
+ */
 export function CommentItem({
   item,
   onToggleLike,
   onReply,
+  continues = false,
 }: {
   item: CommentRow;
   onToggleLike: (item: CommentRow) => void;
   onReply: (item: CommentRow) => void;
+  continues?: boolean;
 }) {
   const { t } = useTranslation();
   const isReply = !!item.parent_id;
   return (
-    <View style={[styles.row, isReply && styles.reply]} testID={`comment-${item.id}`}>
+    <View style={[styles.row, isReply && styles.reply, continues ? styles.threadOpen : styles.threadEnd]} testID={`comment-${item.id}`}>
+      {/* Linha da conversa: do avatar do comentário até a última resposta. */}
+      {!isReply && continues ? <View testID={`thread-line-${item.id}`} style={[styles.line, { top: space.md + ROOT_AVATAR + 4, bottom: 0 }]} /> : null}
+      {isReply ? (
+        <View testID={`thread-line-${item.id}`} style={[styles.line, continues ? { top: 0, bottom: 0 } : { top: 0, height: space.sm + REPLY_AVATAR / 2 }]} />
+      ) : null}
       <Pressable accessibilityRole="link" accessibilityLabel={`@${item.author_username}`} onPress={() => router.push(`/u/${item.author_username}`)}>
-        <RingAvatar uri={item.author_avatar_url} name={item.author_display_name} size={isReply ? 28 : 34} />
+        <RingAvatar uri={item.author_avatar_url} name={item.author_display_name} size={isReply ? REPLY_AVATAR : ROOT_AVATAR} />
       </Pressable>
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={styles.name} numberOfLines={1}>
@@ -51,8 +66,13 @@ export function CommentItem({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: space.md, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
-  reply: { paddingLeft: 46, borderBottomWidth: 0, paddingTop: 0 },
+  row: { flexDirection: 'row', gap: space.md, paddingVertical: space.md },
+  reply: { paddingLeft: 46, paddingTop: space.sm },
+  // Fim da conversa: divisória embaixo. Conversa continua: sem divisória e mais perto da resposta.
+  threadEnd: { borderBottomWidth: 1, borderBottomColor: colors.tabBar },
+  threadOpen: { paddingBottom: space.sm },
+  // Centro do avatar do comentário (34 / 2) menos metade da largura da linha.
+  line: { position: 'absolute', left: ROOT_AVATAR / 2 - 1, width: 2, borderRadius: 1, backgroundColor: colors.surface },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
   body: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.text },
