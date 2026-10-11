@@ -21,6 +21,11 @@ file_size_limit = "2MiB"
 [studio]
 port = 54323
 
+[analytics]
+# Logs do painel local (Logflare). Desligado: não é usado no Soundora e, no Windows,
+# exige expor o Docker em tcp://localhost:2375.
+enabled = false
+
 [local_smtp]
 # Caixa de e-mail falsa para ver os códigos de login localmente: http://localhost:54324
 port = 54324
