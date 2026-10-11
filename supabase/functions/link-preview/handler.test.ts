@@ -52,7 +52,7 @@ function makeDeps(fetch: FetchLike, overrides: Partial<Deps> = {}) {
     log: () => {},
     getUserId: async (h) => (h === 'Bearer token-valido' ? 'user-1' : null),
     findPreview: async (url) => store.get(url) ?? null,
-    savePreview: async (p: LinkPreview) => {
+    savePreview: async (p: LinkPreview, genres: string[] | null) => {
       const row: PreviewRow = {
         id: crypto.randomUUID(),
         url: p.url,
@@ -63,6 +63,7 @@ function makeDeps(fetch: FetchLike, overrides: Partial<Deps> = {}) {
         artist: p.artist,
         image_url: p.imageUrl,
         fetched_at: new Date().toISOString(),
+        genres,
       };
       store.set(row.url, row);
       return row;
@@ -166,4 +167,39 @@ Deno.test('corpo grande demais: 413 sem ler tudo', async () => {
   const res = await createHandler(deps)(post({ url: TRACK, lixo: 'x'.repeat(20_000) }));
   assertEquals([res.status, await res.json()], [413, { error: 'payload_too_large' }]);
   assertEquals(calls, []);
+});
+
+Deno.test('gêneros: detectados e gravados com o cartão', async () => {
+  const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
+  const asked: string[] = [];
+  const { deps, store } = makeDeps(fetch, {
+    detectGenres: async (title, artist) => {
+      asked.push(`${artist} - ${title}`);
+      return ['pop', 'dance'];
+    },
+  });
+  const res = await createHandler(deps)(post({ url: TRACK }));
+  assertEquals((await res.json()).preview.genres, ['pop', 'dance']);
+  assertEquals(store.get(TRACK)?.genres, ['pop', 'dance']);
+  assertEquals(asked.length, 1);
+});
+
+Deno.test('gêneros: lojas fora do ar não impedem o cartão (fica para depois)', async () => {
+  const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
+  const { deps } = makeDeps(fetch, { detectGenres: () => Promise.reject(new Error('offline')) });
+  const res = await createHandler(deps)(post({ url: TRACK }));
+  assertEquals(res.status, 200);
+  assertEquals((await res.json()).preview.genres, null);
+});
+
+Deno.test('gêneros: cartão antigo do cache sem gênero é completado', async () => {
+  const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
+  const saved: [string, string[]][] = [];
+  const { deps, store } = makeDeps(fetch, { detectGenres: async () => ['rock'], saveGenres: async (id, g) => void saved.push([id, g]) });
+  const handler = createHandler(deps);
+  await handler(post({ url: TRACK }));
+  store.get(TRACK)!.genres = null;
+  const json = await (await handler(post({ url: TRACK }))).json();
+  assertEquals([json.cached, json.preview.genres], [true, ['rock']]);
+  assertEquals(saved.length, 1);
 });

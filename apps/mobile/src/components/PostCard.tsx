@@ -2,10 +2,12 @@ import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { relativeTime } from '../lib/i18n';
+import { genreLabel, useGenres } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
 import { colors, fonts, space } from '../theme';
 import { Icon, RingAvatar } from './figma';
 import { MusicCard } from './MusicCard';
+import { PostMedia } from './PostMedia';
 
 export interface PostCardProps {
   item: FeedItem;
@@ -13,16 +15,31 @@ export interface PostCardProps {
   onMore?: (item: FeedItem) => void;
   onOpenComments?: (item: FeedItem) => void;
   onOpenLink?: (url: string) => void;
+  /** Tocar no post (texto/área livre) abre ele em tela cheia. */
+  onOpen?: (item: FeedItem) => void;
+  /** Post aberto: texto maior e sem a linha de baixo. */
+  expanded?: boolean;
 }
 
 /** Post no layout do Figma (Home page/For You): autor, texto, cartão da música e ações. */
-export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink }: PostCardProps) {
-  const { t } = useTranslation();
-  const share = () =>
-    Share.share({ message: `${item.preview_title}${item.preview_artist ? ` · ${item.preview_artist}` : ''}\n${item.preview_url}` }).catch(() => undefined);
+export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink, onOpen, expanded = false }: PostCardProps) {
+  const { t, i18n } = useTranslation();
+  const genres = useGenres();
+  const share = () => {
+    const music = item.preview_url ? `${item.preview_title}${item.preview_artist ? ` · ${item.preview_artist}` : ''}\n${item.preview_url}` : '';
+    const message = [item.body, music].filter(Boolean).join('\n\n') || `@${item.author_username}`;
+    Share.share({ message }).catch(() => undefined);
+  };
 
   return (
-    <View style={styles.post} testID={`post-${item.id}`}>
+    <Pressable
+      testID={`post-${item.id}`}
+      onPress={onOpen ? () => onOpen(item) : undefined}
+      disabled={!onOpen}
+      accessibilityRole={onOpen ? 'button' : undefined}
+      accessibilityHint={onOpen ? t('post.openHint') : undefined}
+      style={[styles.post, expanded && styles.expanded]}
+    >
       <View style={styles.header}>
         <Link href={`/u/${item.author_username}`} asChild>
           <Pressable style={styles.author} accessibilityRole="link">
@@ -46,18 +63,36 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
         ) : null}
       </View>
 
-      {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
+      {item.body ? (
+        <Text style={[styles.body, expanded && styles.bodyBig]} numberOfLines={expanded ? undefined : 8}>
+          {item.body}
+        </Text>
+      ) : null}
 
-      <MusicCard
-        onOpen={onOpenLink}
-        data={{
-          url: item.preview_url,
-          platform: item.preview_platform,
-          title: item.preview_title,
-          artist: item.preview_artist,
-          imageUrl: item.preview_image_url,
-        }}
-      />
+      <PostMedia media={item.media ?? []} />
+
+      {item.preview_url && item.preview_platform && item.preview_title ? (
+        <MusicCard
+          onOpen={onOpenLink}
+          data={{
+            url: item.preview_url,
+            platform: item.preview_platform,
+            title: item.preview_title,
+            artist: item.preview_artist,
+            imageUrl: item.preview_image_url,
+          }}
+        />
+      ) : null}
+
+      {item.genres?.length ? (
+        <View style={styles.genres}>
+          {item.genres.map((g) => (
+            <View key={g} style={styles.genre}>
+              <Text style={styles.genreText}>{genreLabel(genres.data, g, i18n.language) ?? g}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.actions}>
         <Pressable
@@ -80,7 +115,7 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
         </Pressable>
         <Text style={styles.time}>{relativeTime(item.created_at)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -92,7 +127,12 @@ const styles = StyleSheet.create({
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
   more: { gap: 2, paddingHorizontal: space.sm, paddingVertical: 2 },
   dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.text },
+  expanded: { borderBottomWidth: 0 },
   body: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.text },
+  bodyBig: { fontSize: 16, lineHeight: 23 },
+  genres: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  genre: { borderRadius: 10, borderWidth: 1, borderColor: colors.handle, paddingHorizontal: space.sm, paddingVertical: 2 },
+  genreText: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMuted },
   actions: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   count: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },

@@ -80,17 +80,71 @@ export async function previewLink(url: string): Promise<LinkPreviewRow> {
   return data.preview;
 }
 
-export async function createPost(input: { previewId: string; body: string; genre: string | null }): Promise<string> {
+/** Limites do post: texto, até 4 fotos ou 1 vídeo, até 3 gêneros (iguais aos do banco). */
+export const POST_LIMITS = { photos: 4, genres: 3 } as const;
+
+export interface NewPostMedia {
+  path: string;
+  kind: 'photo' | 'video';
+  width: number;
+  height: number;
+  duration_ms?: number | null;
+}
+
+/** Publica: texto, música (opcional), gêneros e mídia já enviada (uploadMedia). */
+export async function createPost(input: { body: string; previewId?: string | null; genres?: string[]; media?: NewPostMedia[] }): Promise<string> {
   const parsed = postTextSchema.safeParse(input.body);
   if (!parsed.success) throw new AppError(parsed.error.issues[0]?.message ?? 'generic');
-  const authorId = await currentUserId();
-  const { data, error } = await supabase
-    .from('posts')
-    .insert({ author_id: authorId, link_preview_id: input.previewId, body: parsed.data, genre: input.genre })
-    .select('id')
-    .single();
+  const { data, error } = await supabase.rpc('post_create', {
+    p_body: parsed.data,
+    p_link_preview_id: input.previewId ?? null,
+    p_genres: input.genres ?? [],
+    p_media: input.media ?? [],
+  });
   if (error) throw error;
-  return data.id;
+  return data as string;
+}
+
+/** Um post aberto (tela cheia com comentários). null se não existe ou há bloqueio. */
+export async function fetchPost(id: string): Promise<FeedItem | null> {
+  const { data, error } = await supabase.rpc('post_detail', { p_post: id });
+  if (error) throw error;
+  return ((data ?? []) as FeedItem[])[0] ?? null;
+}
+
+/** Posts que a pessoa curtiu (página seguinte: depois do último post recebido). */
+export async function fetchLikedPosts(userId: string, afterPostId: string | null): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('liked_posts', { p_user: userId, p_after_post: afterPostId, p_limit: 20 });
+  if (error) throw error;
+  return (data ?? []) as FeedItem[];
+}
+
+export interface PersonRow {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  i_follow: boolean;
+  is_me: boolean;
+}
+
+export const PEOPLE_PAGE = 30;
+
+export async function fetchPeople(username: string, list: 'followers' | 'following', page: number): Promise<PersonRow[]> {
+  const { data, error } = await supabase.rpc('profile_people', { p_username: username, p_list: list, p_limit: PEOPLE_PAGE, p_offset: page * PEOPLE_PAGE });
+  if (error) throw error;
+  return (data ?? []) as PersonRow[];
+}
+
+/** URLs temporárias (1 h) da mídia dos posts, de uma vez só. */
+export async function postMediaUrls(paths: string[]): Promise<Record<string, string>> {
+  if (!paths.length) return {};
+  const { data, error } = await supabase.storage.from('post-media').createSignedUrls(paths, 3600);
+  if (error) throw error;
+  const out: Record<string, string> = {};
+  for (const row of data ?? []) if (row.path && row.signedUrl) out[row.path] = row.signedUrl;
+  return out;
 }
 
 export async function deletePost(postId: string): Promise<void> {
@@ -438,7 +492,7 @@ export type VibeKind = 'photo' | 'video' | 'text' | 'music' | 'post';
 export const VIBE_STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'] as const;
 export type VibeStyle = (typeof VIBE_STYLES)[number];
 
-/** Limites do vídeo, iguais aos da Edge Function vibe-media. */
+/** Limites do vídeo (vibes e posts), iguais aos da Edge Function media-upload. */
 export const VIBE_VIDEO_MAX = { seconds: 30, bytes: 30 * 1024 * 1024 };
 
 export interface VibeTrayItem {
@@ -516,18 +570,27 @@ export async function vibeMediaUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
-/** Envia a foto (já convertida) ou o vídeo para a Edge Function, que confere e grava. */
-export async function uploadVibeMedia(type: 'photo' | 'video', bytes: Uint8Array): Promise<{ path: string; durationMs?: number }> {
+export interface UploadedMedia {
+  path: string;
+  width: number;
+  height: number;
+  durationMs?: number;
+}
+
+/** Envia a foto (já convertida) ou o vídeo para a Edge Function media-upload, que confere e grava. */
+export async function uploadMedia(target: 'vibe' | 'post', type: 'photo' | 'video', bytes: Uint8Array): Promise<UploadedMedia> {
   // ArrayBuffer (não Uint8Array): com Content-Type próprio, o supabase-js transformaria em JSON.
   const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  const { data, error } = await supabase.functions.invoke<{ path: string; durationMs?: number }>(`vibe-media?type=${type}`, {
+  const { data, error } = await supabase.functions.invoke<UploadedMedia>(`media-upload?for=${target}&type=${type}`, {
     body,
     headers: { 'Content-Type': type === 'photo' ? 'image/jpeg' : 'video/mp4' },
   });
-  if (error) throw await functionError('vibe-media', error, 'generic');
+  if (error) throw await functionError('media-upload', error, 'generic');
   if (!data?.path) throw new AppError('generic');
   return data;
 }
+
+export const uploadVibeMedia = (type: 'photo' | 'video', bytes: Uint8Array) => uploadMedia('vibe', type, bytes);
 
 export interface NewVibe {
   kind: VibeKind;

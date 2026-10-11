@@ -1,6 +1,7 @@
 import '../lib/i18n';
 import { Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +12,15 @@ import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// No celular, "voltar para o app" conta como foco: as consultas (ex.: notificações) se atualizam.
+// (Na Web o React Query já usa o foco da aba.)
+if (Platform.OS !== 'web') {
+  focusManager.setEventListener((handleFocus) => {
+    const sub = AppState.addEventListener('change', (state) => handleFocus(state === 'active'));
+    return () => sub.remove();
+  });
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -61,8 +71,10 @@ function Navigator({ signedIn, onboarded }: { signedIn: boolean; onboarded: bool
       <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="u/[username]" options={{ title: '' }} />
-        <Stack.Screen name="post/[id]" options={{ title: '' }} />
+        <Stack.Screen name="post/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="people/[username]" options={{ headerShown: false }} />
+        <Stack.Screen name="liked/[username]" options={{ headerShown: false }} />
         <Stack.Screen name="vibes/new" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="vibes/[author]" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="settings/index" options={{ title: '' }} />

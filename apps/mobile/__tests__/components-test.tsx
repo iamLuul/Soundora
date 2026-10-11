@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { MusicCard } from '../src/components/MusicCard';
@@ -9,6 +10,11 @@ jest.mock('expo-router', () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   router: { push: jest.fn() },
 }));
+
+function wrapper({ children }: { children: ReactNode }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, enabled: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+}
 
 const post: FeedItem = {
   id: 'p1',
@@ -29,6 +35,9 @@ const post: FeedItem = {
   preview_artist: 'Daft Punk',
   preview_image_url: null,
   score: 1,
+  genres: ['rock'],
+  media: [],
+  post_type: 'music',
 };
 
 beforeEach(async () => {
@@ -41,7 +50,7 @@ describe('<MusicCard />', () => {
     await render(
       <MusicCard
         onOpen={onOpen}
-        data={{ url: post.preview_url, platform: 'deezer', title: post.preview_title, artist: 'Daft Punk', imageUrl: null }}
+        data={{ url: post.preview_url!, platform: 'deezer', title: post.preview_title!, artist: 'Daft Punk', imageUrl: null }}
       />,
     );
     expect(screen.getByText('Harder, Better, Faster, Stronger')).toBeTruthy();
@@ -59,7 +68,7 @@ describe('<MusicCard />', () => {
 
 describe('<PostCard />', () => {
   test('mostra autor, texto e contadores', async () => {
-    await render(<PostCard item={post} onToggleLike={jest.fn()} onOpenLink={jest.fn()} />);
+    await render(<PostCard item={post} onToggleLike={jest.fn()} onOpenLink={jest.fn()} />, { wrapper });
     expect(screen.getByText('Luul')).toBeTruthy();
     expect(screen.getByText('essa me lembra a estrada')).toBeTruthy();
     expect(screen.getByText('4')).toBeTruthy();
@@ -68,15 +77,26 @@ describe('<PostCard />', () => {
 
   test('curtir chama a ação com o post', async () => {
     const onToggleLike = jest.fn();
-    await render(<PostCard item={post} onToggleLike={onToggleLike} onOpenLink={jest.fn()} />);
+    await render(<PostCard item={post} onToggleLike={onToggleLike} onOpenLink={jest.fn()} />, { wrapper });
     await fireEvent.press(screen.getByRole('button', { name: 'Curtir' }));
     expect(onToggleLike).toHaveBeenCalledWith(post);
   });
 
   test('menu "…" abre as ações do post', async () => {
     const onMore = jest.fn();
-    await render(<PostCard item={post} onToggleLike={jest.fn()} onMore={onMore} onOpenLink={jest.fn()} />);
+    await render(<PostCard item={post} onToggleLike={jest.fn()} onMore={onMore} onOpenLink={jest.fn()} />, { wrapper });
     await fireEvent.press(screen.getByRole('button', { name: 'Opções do post' }));
     expect(onMore).toHaveBeenCalledWith(post);
+  });
+});
+
+describe('<PostCard /> sem música', () => {
+  test('post só de texto: sem cartão de música; tocar abre o post', async () => {
+    const onOpen = jest.fn();
+    const textPost: FeedItem = { ...post, preview_url: null, preview_platform: null, preview_kind: null, preview_title: null, preview_artist: null, post_type: 'text', genres: [] };
+    await render(<PostCard item={textPost} onToggleLike={jest.fn()} onOpen={onOpen} />, { wrapper });
+    expect(screen.queryByRole('link', { name: /Ouvir no/ })).toBeNull();
+    await fireEvent.press(screen.getByTestId('post-p1'));
+    expect(onOpen).toHaveBeenCalledWith(textPost);
   });
 });

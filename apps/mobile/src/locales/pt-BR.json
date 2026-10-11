@@ -121,7 +121,9 @@
     "invalid_video": "Esse vídeo está corrompido ou num formato que não aceitamos.",
     "video_too_long": "O vídeo pode ter até 30 segundos.",
     "video_too_large": "O vídeo pode ter até 30 MB.",
-    "video_dimensions": "A resolução do vídeo não é aceita."
+    "video_dimensions": "A resolução do vídeo não é aceita.",
+    "post_empty": "Escreva algo, adicione uma mídia ou uma música.",
+    "invalid_genre": "Gênero inválido."
   },
   "tabs": {
     "feed": "Para você",
@@ -150,7 +152,7 @@
     "postOptions": "Opções do post"
   },
   "compose": {
-    "title": "Compartilhar música",
+    "title": "Novo post",
     "linkLabel": "Link da música",
     "linkPlaceholder": "Cole o link do Spotify, Apple Music, Deezer, YouTube…",
     "paste": "Colar",
@@ -158,12 +160,35 @@
     "textLabel": "O que essa música significa para você?",
     "genreLabel": "Gênero (opcional)",
     "publish": "Publicar",
-    "published": "Publicado!"
+    "published": "Publicado!",
+    "textPlaceholder": "O que você está ouvindo? Escreva algo, adicione fotos, um vídeo ou uma música.",
+    "genres": "Gêneros",
+    "genresCount": "({{count}}/{{max}})",
+    "removeGenre": "Tirar {{genre}}",
+    "detectedHint": "✦ Detectado na música. Toque para tirar.",
+    "genreSearch": "Digite um gênero (ex.: samba, rock, lo-fi)",
+    "genreNotFound": "Nenhum gênero com esse nome.",
+    "uploading": "Enviando {{current}} de {{total}}…",
+    "uploadingOne": "Enviando…",
+    "publishing": "Publicando…",
+    "removeMedia": "Tirar esta mídia",
+    "removeMusic": "Tirar a música",
+    "addMedia": "Foto/vídeo",
+    "addMusic": "Música",
+    "limits": "Até 500 caracteres, 4 fotos ou 1 vídeo de 30 s (30 MB)."
   },
   "post": {
     "commentPlaceholder": "Escreva um comentário…",
     "send": "Enviar",
-    "noComments": "Nenhum comentário ainda."
+    "noComments": "Nenhum comentário ainda.",
+    "title": "Post",
+    "gone": "Esse post não existe mais ou não está disponível.",
+    "comments_one": "{{count}} comentário",
+    "comments_other": "{{count}} comentários",
+    "comments_zero": "Comentários",
+    "replyPlaceholder": "Responder @{{username}}…",
+    "openHint": "Abre o post com os comentários",
+    "openPhoto": "Ver foto"
   },
   "profile": {
     "followers": "Seguidores",
@@ -324,5 +349,13 @@
       "dark": "Escuro"
     },
     "views_zero": "Nenhuma visualização"
+  },
+  "people": {
+    "noFollowers": "Ninguém segue esse perfil ainda.",
+    "noFollowing": "Esse perfil ainda não segue ninguém."
+  },
+  "liked": {
+    "title": "Curtidos por @{{username}}",
+    "empty": "Nenhum post curtido ainda."
   }
 }

@@ -2,8 +2,8 @@
 // abas do topo com o sino e cabeçalho com a seta de voltar.
 import { Ionicons } from '@expo/vector-icons';
 import type { Platform as StreamingPlatform } from '@soundora/core';
-import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useId, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -45,8 +45,28 @@ const PLATFORM_FALLBACK: Partial<Record<StreamingPlatform, { icon: keyof typeof 
 };
 
 /** Logo da plataforma de streaming (Spotify, Apple Music, Deezer e Amazon vêm do Figma). */
+/**
+ * Deixa os ids internos do SVG (gradientes, máscaras) únicos por instância. Na Web, dois SVGs
+ * com o mesmo id de gradiente se confundem: se o primeiro estiver numa tela escondida, o
+ * segundo aparece sem a cor (o logo do Apple Music ficava só com a nota branca).
+ */
+export function uniqueSvgIds(xml: string, suffix: string): string {
+  const ids = [...xml.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]!);
+  let out = xml;
+  for (const id of ids) {
+    const safe = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out
+      .replace(new RegExp(`\\bid="${safe}"`, 'g'), `id="${id}-${suffix}"`)
+      .replace(new RegExp(`url\\(#${safe}\\)`, 'g'), `url(#${id}-${suffix})`)
+      .replace(new RegExp(`href="#${safe}"`, 'g'), `href="#${id}-${suffix}"`);
+  }
+  return out;
+}
+
 export function PlatformLogo({ platform, size = 20 }: { platform: StreamingPlatform; size?: number }) {
-  const xml = platformSvgs[platform];
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const raw = platformSvgs[platform];
+  const xml = useMemo(() => (raw ? uniqueSvgIds(raw, uid) : null), [raw, uid]);
   if (xml) return <SvgXml xml={xml} width={size} height={size} />;
   const f = PLATFORM_FALLBACK[platform] ?? { icon: 'musical-notes' as const, bg: colors.primary };
   return (
@@ -120,8 +140,7 @@ export function TopTabs<T extends string>({
           hitSlop={12}
           style={styles.bell}
         >
-          <Icon name="bell" size={20} />
-          <UnreadDot />
+          <Bell />
         </Pressable>
       ) : null}
     </View>
@@ -178,14 +197,26 @@ const styles = StyleSheet.create({
   backTitle: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
 });
 
-/** Bolinha com o número de notificações não lidas, em cima do sino. */
-function UnreadDot() {
-  const { data: count = 0 } = useUnreadNotifications();
-  if (count <= 0) return null;
+/**
+ * Sino: vazado quando não há nada novo; preenchido de branco e com o número de
+ * notificações não lidas quando há. Atualiza ao voltar para a tela e a cada 30 s.
+ */
+function Bell() {
+  const { data: count = 0, refetch } = useUnreadNotifications();
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
   return (
-    <View testID="unread-badge" style={styles.badge} accessibilityLabel={String(count)}>
-      <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
-    </View>
+    <>
+      <Icon name={count > 0 ? 'bellFilled' : 'bell'} size={20} />
+      {count > 0 ? (
+        <View testID="unread-badge" style={styles.badge} accessibilityLabel={String(count)}>
+          <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
+        </View>
+      ) : null}
+    </>
   );
 }
 

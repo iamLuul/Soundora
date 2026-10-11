@@ -25,6 +25,8 @@ export interface LinkPreviewRow {
   artist: string | null;
   image_url: string | null;
   fetched_at: string;
+  /** Gêneros detectados nas lojas (null = ainda não procurou). */
+  genres: string[] | null;
 }
 
 /** Linha devolvida por feed_for_you e profile_posts. */
@@ -40,13 +42,27 @@ export interface FeedItem {
   author_username: string;
   author_display_name: string;
   author_avatar_url: string | null;
-  preview_url: string;
-  preview_platform: Platform;
-  preview_kind: LinkKind;
-  preview_title: string;
+  /** Cartão da música (null em post só de texto ou mídia). */
+  preview_url: string | null;
+  preview_platform: Platform | null;
+  preview_kind: LinkKind | null;
+  preview_title: string | null;
   preview_artist: string | null;
   preview_image_url: string | null;
   score: number;
+  /** Até 3 gêneros (slugs de public.genres). */
+  genres: string[];
+  /** Fotos (até 4) ou um vídeo, na ordem. Caminhos no bucket privado "post-media". */
+  media: PostMedia[];
+  post_type: 'music' | 'text' | 'media';
+}
+
+export interface PostMedia {
+  path: string;
+  kind: 'photo' | 'video';
+  width: number;
+  height: number;
+  duration_ms: number | null;
 }
 
 export interface ProfileSummary {

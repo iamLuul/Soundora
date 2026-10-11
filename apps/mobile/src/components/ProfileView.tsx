@@ -149,11 +149,6 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
       >
         {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityIgnoresInvertColors /> : <BannerPlaceholder />}
         {uploading === 'banner' ? <ActivityIndicator color={colors.text} style={StyleSheet.absoluteFill} /> : null}
-        {p.is_me ? (
-          <View style={styles.bannerEdit} pointerEvents="none">
-            <Ionicons name="camera" size={14} color={colors.text} />
-          </View>
-        ) : null}
       </Pressable>
 
       <Pressable
@@ -171,8 +166,18 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
       {/* box-none: a faixa que cobre o pé do banner não rouba o toque dele */}
       <View style={styles.identityRow} pointerEvents="box-none">
         <View style={styles.side} pointerEvents="box-none">
-          <StatCard label={t('profile.followers')} value={n(p.followers)} />
-          <StatCard label={t('profile.following')} value={n(p.following)} />
+          <StatCard
+            testID="stat-followers"
+            label={t('profile.followers')}
+            value={n(p.followers)}
+            onPress={() => router.push({ pathname: '/people/[username]', params: { username: p.username, list: 'followers' } })}
+          />
+          <StatCard
+            testID="stat-following"
+            label={t('profile.following')}
+            value={n(p.following)}
+            onPress={() => router.push({ pathname: '/people/[username]', params: { username: p.username, list: 'following' } })}
+          />
         </View>
 
         <View style={styles.center}>
@@ -213,7 +218,12 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
 
         <View style={styles.side} pointerEvents="box-none">
           <StatCard label={t('profile.posts')} value={n(p.posts)} />
-          <StatCard label={t('profile.likes')} value={n(p.likes)} />
+          <StatCard
+            testID="stat-likes"
+            label={t('profile.likes')}
+            value={n(p.likes)}
+            onPress={() => router.push({ pathname: '/liked/[username]', params: { username: p.username, id: p.id } })}
+          />
         </View>
       </View>
 
@@ -228,14 +238,23 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+/** Cartão de número do perfil. Com onPress, abre a lista (seguidores, seguindo, curtidas). */
+function StatCard({ label, value, onPress, testID }: { label: string; value: string; onPress?: () => void; testID?: string }) {
   return (
-    <View style={styles.statCard} accessible accessibilityLabel={`${label}: ${value}`}>
+    <Pressable
+      testID={testID}
+      disabled={!onPress}
+      onPress={onPress}
+      style={({ pressed }) => [styles.statCard, pressed && { opacity: 0.75 }]}
+      accessible
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label}: ${value}`}
+    >
       <Text style={styles.statLabel} numberOfLines={1}>
         {label}
       </Text>
       <Text style={styles.statValue}>{value}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -281,17 +300,6 @@ const styles = StyleSheet.create({
   // Sangra as margens da lista para o banner ir de ponta a ponta.
   header: { marginHorizontal: -space.lg, marginBottom: space.lg, gap: space.lg },
   banner: { width: '100%', backgroundColor: colors.surface, overflow: 'hidden' },
-  bannerEdit: {
-    position: 'absolute',
-    right: space.md,
-    bottom: space.sm,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   menuButton: {
     position: 'absolute',
     right: 23,

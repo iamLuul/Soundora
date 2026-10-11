@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -79,7 +80,19 @@ Notifications.setNotificationHandler({
 
 /** Tocar num push abre a tela indicada (só caminhos internos do app). */
 export function usePushNavigation(enabled: boolean): void {
+  const qc = useQueryClient();
   const last = Notifications.useLastNotificationResponse();
+
+  // Chegou um push com o app aberto: o sino e a lista se atualizam na hora.
+  useEffect(() => {
+    if (!enabled) return;
+    const sub = Notifications.addNotificationReceivedListener(() => {
+      void qc.invalidateQueries({ queryKey: ['notifications-unread'] });
+      void qc.invalidateQueries({ queryKey: ['notifications'] });
+    });
+    return () => sub.remove();
+  }, [enabled, qc]);
+
   useEffect(() => {
     if (!enabled || !last) return;
     const url = last.notification.request.content.data?.url;

@@ -1,40 +1,71 @@
-import { POST_TEXT_MAX, extractFirstUrl, parseStreamingUrl } from '@soundora/core';
+import { Ionicons } from '@expo/vector-icons';
+import { MAX_POST_GENRES, POST_TEXT_MAX, extractFirstUrl, parseStreamingUrl } from '@soundora/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GenrePicker } from '../../components/GenrePicker';
 import { MusicCard } from '../../components/MusicCard';
-import { Button, Chip, ErrorText, Screen, TextField } from '../../components/ui';
-import { createPost, getMyGenres, previewLink } from '../../lib/api';
-import { formatError } from '../../lib/errors';
-import { genreLabel, keys, useGenres } from '../../lib/queries';
+import { Button, ErrorText } from '../../components/ui';
+import { createPost, getMyGenres, POST_LIMITS, previewLink, uploadMedia, VIBE_VIDEO_MAX, type NewPostMedia } from '../../lib/api';
+import { AppError, formatError } from '../../lib/errors';
+import { convertPostPhoto } from '../../lib/image-convert';
+import { keys } from '../../lib/queries';
 import type { LinkPreviewRow } from '../../lib/types';
-import { space, text } from '../../theme';
+import { colors, fonts, space } from '../../theme';
 
+interface Picked {
+  type: 'photo' | 'video';
+  uri: string;
+  width: number;
+  height: number;
+  durationMs: number | null;
+  fileSize: number | null;
+}
+
+/**
+ * Novo post: texto (até 500 caracteres), até 4 fotos ou 1 vídeo (30 s / 30 MB), card de
+ * música e até 3 gêneros de toda a lista — os da música vêm detectados e já marcados.
+ * Precisa de pelo menos um: texto, mídia ou música.
+ */
 export default function ComposeScreen() {
-  const { t, i18n } = useTranslation();
-  const genres = useGenres();
+  const { t } = useTranslation();
   const qc = useQueryClient();
-  const [link, setLink] = useState('');
-  const [preview, setPreview] = useState<LinkPreviewRow | null>(null);
+  const insets = useSafeAreaInsets();
   const [body, setBody] = useState('');
-  const [genre, setGenre] = useState<string | null>(null);
+  const [media, setMedia] = useState<Picked[]>([]);
+  const [link, setLink] = useState('');
+  const [showLink, setShowLink] = useState(false);
+  const [preview, setPreview] = useState<LinkPreviewRow | null>(null);
+  const [genres, setGenres] = useState<string[]>([]);
+  const [detected, setDetected] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+  const [publishing, setPublishing] = useState<null | string>(null);
   const myGenres = useQuery({ queryKey: ['my-genres'], queryFn: getMyGenres });
+
+  const hasVideo = media.some((m) => m.type === 'video');
+  const canAddMedia = !hasVideo && media.length < POST_LIMITS.photos;
+  const canPublish = (!!body.trim() || media.length > 0 || !!preview) && body.length <= POST_TEXT_MAX;
 
   const loadPreview = async (value = link) => {
     setError(null);
-    setPreview(null);
     const url = extractFirstUrl(value);
     // Confere no app antes de chamar o servidor: resposta instantânea para links errados.
     if (!url || !parseStreamingUrl(url)) return setError(t('errors.unsupported'));
     setLoadingPreview(true);
     try {
-      setPreview(await previewLink(url));
+      const p = await previewLink(url);
+      setPreview(p);
+      // Gêneros da música (detectados nas lojas): entram marcados; a pessoa pode tirar.
+      const found = (p.genres ?? []).slice(0, MAX_POST_GENRES);
+      setDetected(found);
+      setGenres((current) => [...found, ...current.filter((g) => !found.includes(g))].slice(0, MAX_POST_GENRES));
     } catch (err) {
       setError(formatError(t, err));
     } finally {
@@ -48,84 +79,204 @@ export default function ComposeScreen() {
     if (value) await loadPreview(value);
   };
 
-  const publish = async () => {
-    if (!preview) return;
-    setPublishing(true);
+  const removeMusic = () => {
+    setPreview(null);
+    setLink('');
+    setGenres((g) => g.filter((x) => !detected.includes(x)));
+    setDetected([]);
+  };
+
+  const pick = async (source: 'library' | 'camera') => {
     setError(null);
     try {
-      await createPost({ previewId: preview.id, body, genre });
-      setLink('');
-      setPreview(null);
+      const options: ImagePicker.ImagePickerOptions = {
+        // Já tem foto: só mais fotos. Sem nada: foto ou vídeo.
+        mediaTypes: media.length ? ['images'] : ['images', 'videos'],
+        allowsMultipleSelection: source === 'library',
+        selectionLimit: POST_LIMITS.photos - media.length,
+        videoMaxDuration: VIBE_VIDEO_MAX.seconds,
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+        quality: 1,
+      };
+      if (source === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) return setError(t('vibes.cameraDenied'));
+      }
+      const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+      if (result.canceled || !result.assets?.length) return;
+      const picked: Picked[] = result.assets.map((a) => ({
+        type: a.type === 'video' ? 'video' : 'photo',
+        uri: a.uri,
+        width: a.width ?? 0,
+        height: a.height ?? 0,
+        durationMs: a.duration ?? null,
+        fileSize: a.fileSize ?? null,
+      }));
+      const video = picked.find((p) => p.type === 'video');
+      // Um vídeo sozinho, ou até 4 fotos.
+      setMedia(video ? [video] : [...media, ...picked].slice(0, POST_LIMITS.photos));
+    } catch (err) {
+      setError(formatError(t, err));
+    }
+  };
+
+  const publish = async () => {
+    setError(null);
+    try {
+      const uploaded: NewPostMedia[] = [];
+      for (const [i, m] of media.entries()) {
+        setPublishing(media.length > 1 ? t('compose.uploading', { current: i + 1, total: media.length }) : t('compose.uploadingOne'));
+        let bytes: Uint8Array;
+        if (m.type === 'photo') {
+          bytes = await convertPostPhoto(m.uri, m.width, m.height);
+        } else {
+          // O servidor confere de novo; aqui só evita enviar arquivo grande à toa.
+          if (m.durationMs && m.durationMs > VIBE_VIDEO_MAX.seconds * 1000 + 500) throw new AppError('video_too_long');
+          if (m.fileSize && m.fileSize > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
+          bytes = new Uint8Array(await (await fetch(m.uri)).arrayBuffer());
+          if (bytes.byteLength > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
+        }
+        const up = await uploadMedia('post', m.type, bytes);
+        uploaded.push({ path: up.path, kind: m.type, width: up.width, height: up.height, duration_ms: up.durationMs ?? null });
+      }
+      setPublishing(t('compose.publishing'));
+      const id = await createPost({ body, previewId: preview?.id ?? null, genres, media: uploaded });
       setBody('');
-      setGenre(null);
-      await qc.invalidateQueries({ queryKey: keys.feed });
-      router.navigate('/');
+      setMedia([]);
+      removeMusic();
+      setGenres([]);
+      setShowLink(false);
+      await Promise.all([qc.invalidateQueries({ queryKey: keys.feed }), qc.invalidateQueries({ queryKey: ['profile-posts'] })]);
+      router.push(`/post/${id}`);
     } catch (err) {
       setError(formatError(t, err));
     } finally {
-      setPublishing(false);
+      setPublishing(null);
     }
   };
 
   return (
-    <Screen scroll style={styles.container}>
-      <Text style={text.title}>{t('compose.title')}</Text>
-
-      <View style={styles.linkRow}>
-        <View style={{ flex: 1 }}>
-          <TextField
-            testID="link-input"
-            label={t('compose.linkLabel')}
-            placeholder={t('compose.linkPlaceholder')}
-            value={link}
-            onChangeText={setLink}
-            autoCapitalize="none"
-            autoCorrect={false}
-            inputMode="url"
-            onSubmitEditing={() => loadPreview()}
-          />
-        </View>
-        <View style={{ justifyContent: 'flex-end' }}>
-          <Button title={t('compose.paste')} variant="ghost" onPress={paste} />
-        </View>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={styles.top}>
+        <Text style={styles.title}>{t('compose.title')}</Text>
+        <Button testID="publish" title={publishing ?? t('compose.publish')} size="sm" onPress={publish} loading={!!publishing} disabled={!canPublish || !!publishing} style={{ alignSelf: 'center' }} />
       </View>
 
-      {!preview ? (
-        <Button testID="load-preview" title={t('compose.preview')} onPress={() => loadPreview()} loading={loadingPreview} disabled={!link.trim()} />
-      ) : (
-        <>
-          <MusicCard data={{ url: preview.url, platform: preview.platform, title: preview.title, artist: preview.artist, imageUrl: preview.image_url }} />
-          <TextField
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View>
+          <TextInput
             testID="post-body"
-            label={t('compose.textLabel')}
             value={body}
             onChangeText={setBody}
+            placeholder={t('compose.textPlaceholder')}
+            placeholderTextColor={colors.placeholder}
             multiline
             maxLength={POST_TEXT_MAX}
-            style={{ minHeight: 96, textAlignVertical: 'top', paddingTop: space.md }}
-            hint={`${body.length}/${POST_TEXT_MAX}`}
+            style={styles.body}
+            accessibilityLabel={t('compose.textLabel')}
           />
-          {myGenres.data?.length ? (
-            <View style={{ gap: space.sm }}>
-              <Text style={text.label}>{t('compose.genreLabel')}</Text>
-              <View style={styles.chips}>
-                {myGenres.data.map((g) => (
-                  <Chip key={g} label={genreLabel(genres.data, g, i18n.language) ?? g} selected={genre === g} onPress={() => setGenre(genre === g ? null : g)} />
-                ))}
-              </View>
-            </View>
-          ) : null}
-          <Button testID="publish" title={t('compose.publish')} onPress={publish} loading={publishing} />
-        </>
-      )}
+          <Text style={[styles.counter, body.length > POST_TEXT_MAX - 50 && { color: colors.warning }]}>
+            {body.length}/{POST_TEXT_MAX}
+          </Text>
+        </View>
 
-      <ErrorText>{error}</ErrorText>
-    </Screen>
+        {media.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
+            {media.map((m, i) => (
+              <View key={m.uri} style={styles.thumb}>
+                {m.type === 'photo' ? (
+                  <Image source={{ uri: m.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                ) : (
+                  <View style={styles.videoThumb}>
+                    <Ionicons name="videocam" size={28} color={colors.text} />
+                    {m.durationMs ? <Text style={styles.duration}>{Math.round(m.durationMs / 1000)}s</Text> : null}
+                  </View>
+                )}
+                <Pressable
+                  testID={`remove-media-${i}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('compose.removeMedia')}
+                  onPress={() => setMedia(media.filter((_, j) => j !== i))}
+                  style={styles.remove}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={14} color={colors.text} />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        ) : null}
+
+        {preview ? (
+          <View>
+            <MusicCard data={{ url: preview.url, platform: preview.platform, title: preview.title, artist: preview.artist, imageUrl: preview.image_url }} />
+            <Pressable testID="remove-music" accessibilityRole="button" accessibilityLabel={t('compose.removeMusic')} onPress={removeMusic} style={styles.removeMusic} hitSlop={8}>
+              <Ionicons name="close" size={14} color={colors.text} />
+            </Pressable>
+          </View>
+        ) : showLink ? (
+          <View style={styles.linkBox}>
+            <TextInput
+              testID="link-input"
+              value={link}
+              onChangeText={setLink}
+              placeholder={t('compose.linkPlaceholder')}
+              placeholderTextColor={colors.placeholder}
+              autoCapitalize="none"
+              autoCorrect={false}
+              inputMode="url"
+              onSubmitEditing={() => loadPreview()}
+              style={styles.linkInput}
+            />
+            <View style={styles.linkButtons}>
+              <Button title={t('compose.paste')} variant="ghost" size="sm" onPress={paste} style={{ alignSelf: 'auto' }} />
+              <Button testID="load-preview" title={t('compose.preview')} size="sm" onPress={() => loadPreview()} loading={loadingPreview} disabled={!link.trim()} style={{ alignSelf: 'auto' }} />
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.tools}>
+          <Tool testID="add-media" icon="images-outline" label={t('compose.addMedia')} onPress={() => pick('library')} disabled={!canAddMedia} />
+          {Platform.OS !== 'web' ? <Tool testID="add-camera" icon="camera-outline" label={t('vibes.camera')} onPress={() => pick('camera')} disabled={!canAddMedia} /> : null}
+          <Tool testID="add-music" icon="musical-notes-outline" label={t('compose.addMusic')} onPress={() => setShowLink(true)} disabled={!!preview || showLink} />
+        </View>
+        <Text style={styles.limits}>{t('compose.limits')}</Text>
+
+        <GenrePicker value={genres} onChange={setGenres} detected={detected} suggestions={myGenres.data ?? []} max={MAX_POST_GENRES} />
+
+        <ErrorText>{error}</ErrorText>
+      </ScrollView>
+    </View>
+  );
+}
+
+function Tool({ icon, label, onPress, disabled, testID }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; disabled?: boolean; testID: string }) {
+  return (
+    <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} onPress={onPress} disabled={disabled} style={[styles.tool, disabled && { opacity: 0.4 }]}>
+      <Ionicons name={icon} size={20} color={colors.primary} />
+      <Text style={styles.toolText}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { maxWidth: 640, width: '100%', alignSelf: 'center' },
-  linkRow: { flexDirection: 'row', gap: space.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  screen: { flex: 1, backgroundColor: colors.background },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
+  title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
+  content: { padding: space.lg, gap: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center', paddingBottom: 120 },
+  body: { minHeight: 110, color: colors.text, fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, textAlignVertical: 'top', outlineWidth: 0 },
+  counter: { alignSelf: 'flex-end', fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
+  thumbs: { gap: space.sm },
+  thumb: { width: 96, height: 96, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.card },
+  videoThumb: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  duration: { fontFamily: fonts.semibold, fontSize: 11, color: colors.text },
+  remove: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  removeMusic: { position: 'absolute', top: -8, right: -8, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  linkBox: { gap: space.sm, borderWidth: 1, borderColor: colors.handle, borderRadius: 10, padding: space.md },
+  linkInput: { minHeight: 40, color: colors.text, fontFamily: fonts.regular, fontSize: 14, outlineWidth: 0 },
+  linkButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm },
+  tools: { flexDirection: 'row', gap: space.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.tabBar, paddingVertical: space.md },
+  tool: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  toolText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text },
+  limits: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, marginTop: -space.sm },
 });

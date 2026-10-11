@@ -28,6 +28,8 @@ export interface PreviewRow {
   artist: string | null;
   image_url: string | null;
   fetched_at: string;
+  /** Gêneros do Soundora detectados nas lojas (null = ainda não procurou). */
+  genres: string[] | null;
 }
 
 /** O que o handler precisa do mundo externo. Em produção vem do Supabase; nos testes, de fakes. */
@@ -35,7 +37,11 @@ export interface Deps {
   /** Devolve o id da pessoa logada a partir do header Authorization, ou null. */
   getUserId(authHeader: string): Promise<string | null>;
   findPreview(url: string): Promise<PreviewRow | null>;
-  savePreview(preview: LinkPreview): Promise<PreviewRow>;
+  savePreview(preview: LinkPreview, genres: string[] | null): Promise<PreviewRow>;
+  /** Gêneros da música pelos metadados das lojas (Apple/Deezer). Opcional: sem ele, não detecta. */
+  detectGenres?(title: string, artist: string | null): Promise<string[]>;
+  /** Grava os gêneros num cartão que já existia (veio do cache sem eles). */
+  saveGenres?(id: string, genres: string[]): Promise<void>;
   /** true = dentro do limite de pedidos da pessoa. */
   rateLimit?(userId: string): Promise<boolean>;
   /** fetch usado para ler as plataformas de música. */
@@ -59,6 +65,17 @@ function describe(err: unknown): string {
 
 export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
+
+  /** Gêneros detectados, ou null se a busca falhou de vez. */
+  const detect = async (title: string, artist: string | null): Promise<string[] | null> => {
+    if (!deps.detectGenres) return null;
+    try {
+      return await deps.detectGenres(title, artist);
+    } catch (err) {
+      log('link-preview: gêneros indisponíveis', err);
+      return null;
+    }
+  };
 
   return async (req: Request): Promise<Response> => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -97,12 +114,21 @@ export function createHandler(deps: Deps) {
       if (!parsed.isShortLink) {
         const cached = await deps.findPreview(parsed.url);
         if (cached && Date.now() - new Date(cached.fetched_at).getTime() < CACHE_DAYS * 86_400_000) {
+          if (cached.genres === null && deps.detectGenres) {
+            const genres = await detect(cached.title, cached.artist);
+            if (genres) {
+              await deps.saveGenres?.(cached.id, genres);
+              return json({ preview: { ...cached, genres }, cached: true });
+            }
+          }
           return json({ preview: cached, cached: true });
         }
       }
 
       const preview = await buildLinkPreview(input, { fetch: deps.fetch, timeoutMs: 8000 });
-      const saved = await deps.savePreview(preview);
+      // Gênero é extra: se as lojas não responderem, o cartão sai sem ele (null = tenta de novo depois).
+      const genres = preview.kind === 'artist' || preview.kind === 'playlist' ? [] : await detect(preview.title, preview.artist);
+      const saved = await deps.savePreview(preview, genres);
       return json({ preview: saved, cached: false });
     } catch (err) {
       log('link-preview: erro', parsed.platform, parsed.url, err);

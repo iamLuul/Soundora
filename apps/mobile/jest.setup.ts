@@ -21,3 +21,9 @@ jest.mock('expo-secure-store', () => {
     deleteItemAsync: async (k: string) => void vault.delete(k),
   };
 });
+
+// expo-video usa um módulo nativo: no Jest, um player de mentira e uma view vazia.
+jest.mock('expo-video', () => ({
+  useVideoPlayer: () => ({ play: jest.fn(), pause: jest.fn(), addListener: () => ({ remove: jest.fn() }), playing: false, currentTime: 0, duration: 0 }),
+  VideoView: () => null,
+}));

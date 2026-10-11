@@ -100,6 +100,6 @@ verify_jwt = true
 [functions.delete-account]
 verify_jwt = true
 
-# Foto e vídeo das Vibes: exige login (e a função confere o usuário de novo).
-[functions.vibe-media]
+# Foto e vídeo das Vibes e dos posts: exige login (e a função confere o usuário de novo).
+[functions.media-upload]
 verify_jwt = true

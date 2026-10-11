@@ -66,11 +66,13 @@ describe('banner', () => {
 });
 
 describe('profile_summary', () => {
-  it('traz banner e o total de curtidas recebidas', async () => {
+  it('traz banner e quantos posts a pessoa curtiu', async () => {
     const p = await createPreview(db, 'https://open.spotify.com/track/perfil');
     const [post] = await db.as<{ id: string }>(hugo, `insert into public.posts (author_id, body, link_preview_id) values ($1, 'oi', $2) returning id`, [hugo, p]);
     await db.as(gabi, `insert into public.likes (user_id, post_id) values ($1, $2)`, [gabi, post!.id]);
     const [s] = await db.as(gabi, `select banner_url, likes, posts, is_me from public.profile_summary('hugo')`);
-    expect(s).toEqual({ banner_url: `banners/${hugo}/banner-1760000000000.jpg`, likes: 1, posts: 1, is_me: false });
+    expect(s).toEqual({ banner_url: `banners/${hugo}/banner-1760000000000.jpg`, likes: 0, posts: 1, is_me: false });
+    const [g] = await db.as(hugo, `select likes from public.profile_summary('gabi')`);
+    expect(g).toEqual({ likes: 1 });
   });
 });

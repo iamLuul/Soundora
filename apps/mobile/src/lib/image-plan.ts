@@ -52,17 +52,28 @@ export function planProfileImage(kind: ProfileImageKind, sourceWidth: number, so
 /** Foto de vibe: a imagem inteira, sem recorte, cabendo em 1080 × 1920 (até 3 MB no servidor). */
 export const VIBE_PHOTO_MAX = { width: 1080, height: 1920, maxBytes: 3 * 1024 * 1024 };
 
+/** Foto de post: a imagem inteira, cabendo em 1440 × 1440 (mesmo total de pixels da vibe). */
+export const POST_PHOTO_MAX = { width: 1440, height: 1440, maxBytes: 3 * 1024 * 1024 };
+
 export function planVibePhoto(sourceWidth: number, sourceHeight: number): ImagePlan {
+  return planFit(sourceWidth, sourceHeight, VIBE_PHOTO_MAX);
+}
+
+export function planPostPhoto(sourceWidth: number, sourceHeight: number): ImagePlan {
+  return planFit(sourceWidth, sourceHeight, POST_PHOTO_MAX);
+}
+
+function planFit(sourceWidth: number, sourceHeight: number, max: { width: number; height: number }): ImagePlan {
   const w = Math.max(1, Math.floor(sourceWidth));
   const h = Math.max(1, Math.floor(sourceHeight));
   // Só reduz (nunca amplia); imagens minúsculas sobem até 32 px, o mínimo do servidor.
-  const scale = Math.min(1, VIBE_PHOTO_MAX.width / w, VIBE_PHOTO_MAX.height / h);
+  const scale = Math.min(1, max.width / w, max.height / h);
   let width = Math.round(w * scale);
   let height = Math.round(h * scale);
   if (width < 32 || height < 32) {
     const up = 32 / Math.min(width, height);
-    width = Math.min(VIBE_PHOTO_MAX.width, Math.round(width * up));
-    height = Math.min(VIBE_PHOTO_MAX.height, Math.round(height * up));
+    width = Math.min(max.width, Math.round(width * up));
+    height = Math.min(max.height, Math.round(height * up));
   }
   return { crop: { originX: 0, originY: 0, width: w, height: h }, width, height };
 }

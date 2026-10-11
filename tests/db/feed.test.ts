@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connect, createPreview, createUser, type Db } from './helpers.ts';
 
+/** O "agora" do feed neste teste: 60 dias atrás. */
+const BASE_DAYS = 60;
+const AT = `now() - interval '${BASE_DAYS} days'`;
+
 let db: Db;
 let me: string;
 let friend: string;
@@ -10,7 +14,9 @@ let blocked: string;
 async function post(author: string, opts: { hoursAgo?: number; genre?: string; title?: string } = {}) {
   const preview = await createPreview(db, `https://open.spotify.com/track/${crypto.randomUUID().replace(/-/g, '').slice(0, 22)}`, opts.title);
   const [row] = await db.sql<{ id: string }>(
-    `insert into public.posts (author_id, link_preview_id, genre, created_at) values ($1, $2, $3, now() - make_interval(hours => $4)) returning id`,
+    // Datas num passado só deste teste (BASE): posts recentes de outros arquivos de teste
+    // não entram na janela de 14 dias consultada com p_now = BASE.
+    `insert into public.posts (author_id, link_preview_id, genre, created_at) values ($1, $2, $3, now() - interval '${BASE_DAYS} days' - make_interval(hours => $4)) returning id`,
     [author, preview, opts.genre ?? null, opts.hoursAgo ?? 1],
   );
   return row!.id;
@@ -35,7 +41,7 @@ describe('feed_for_you', () => {
     const blockedPost = await post(blocked, { hoursAgo: 1, title: 'bloqueado' });
     const oldPost = await post(friend, { hoursAgo: 24 * 15, title: 'velho' });
 
-    const rows = await db.as<{ id: string; preview_title: string; author_username: string }>(me, `select * from public.feed_for_you(50, 0)`);
+    const rows = await db.as<{ id: string; preview_title: string; author_username: string }>(me, `select * from public.feed_for_you(50, 0, ${AT})`);
     const ids = rows.map((r) => r.id);
 
     expect(ids.indexOf(friendPost)).toBeLessThan(ids.indexOf(genrePost));
@@ -48,13 +54,13 @@ describe('feed_for_you', () => {
   it('marca o que eu curti', async () => {
     const p = await post(friend, { hoursAgo: 1 });
     await db.as(me, `insert into public.likes (user_id, post_id) values ($1, $2)`, [me, p]);
-    const rows = await db.as<{ id: string; liked_by_me: boolean }>(me, `select id, liked_by_me from public.feed_for_you(50, 0)`);
+    const rows = await db.as<{ id: string; liked_by_me: boolean }>(me, `select id, liked_by_me from public.feed_for_you(50, 0, ${AT})`);
     expect(rows.find((r) => r.id === p)?.liked_by_me).toBe(true);
   });
 
   it('pagina sem repetir itens', async () => {
-    const page1 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 0, now())`);
-    const page2 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 2, now())`);
+    const page1 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 0, ${AT})`);
+    const page2 = await db.as<{ id: string }>(me, `select id from public.feed_for_you(2, 2, ${AT})`);
     expect(page1).toHaveLength(2);
     expect(page2.some((r) => page1.some((p) => p.id === r.id))).toBe(false);
   });

@@ -102,6 +102,7 @@ export function PostList({
             onToggleLike={(p) => toggleLike.mutate(p)}
             onMore={setMenuFor}
             onOpenComments={(p) => router.push(`/post/${p.id}`)}
+            onOpen={(p) => router.push(`/post/${p.id}`)}
           />
         )}
         ListEmptyComponent={<Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>}

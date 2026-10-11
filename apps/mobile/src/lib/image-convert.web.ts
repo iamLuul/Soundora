@@ -1,6 +1,6 @@
 import type { ProfileImageKind } from './api';
 import { AppError } from './errors';
-import { JPEG_QUALITIES, PROFILE_IMAGE_OUTPUT, VIBE_PHOTO_MAX, planProfileImage, planVibePhoto, type ImagePlan } from './image-plan';
+import { JPEG_QUALITIES, POST_PHOTO_MAX, PROFILE_IMAGE_OUTPUT, VIBE_PHOTO_MAX, planPostPhoto, planProfileImage, planVibePhoto, type ImagePlan } from './image-plan';
 
 /**
  * Web: converte direto num canvas do tamanho final (o expo-image-manipulator da Web quebra
@@ -14,6 +14,11 @@ export function convertProfileImage(kind: ProfileImageKind, uri: string, _width?
 /** Foto de vibe: imagem inteira, até 1080 × 1920, JPEG sem metadados. */
 export function convertVibePhoto(uri: string, _width?: number, _height?: number): Promise<Uint8Array> {
   return convertImage(uri, planVibePhoto, VIBE_PHOTO_MAX.maxBytes);
+}
+
+/** Foto de post: imagem inteira, até 1440 × 1440, JPEG sem metadados. */
+export function convertPostPhoto(uri: string, _width?: number, _height?: number): Promise<Uint8Array> {
+  return convertImage(uri, planPostPhoto, POST_PHOTO_MAX.maxBytes);
 }
 
 async function convertImage(uri: string, planFor: (w: number, h: number) => ImagePlan, maxBytes: number): Promise<Uint8Array> {

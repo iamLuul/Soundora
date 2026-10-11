@@ -42,6 +42,8 @@ const KNOWN = new Set([
   'video_too_long',
   'video_too_large',
   'video_dimensions',
+  'post_empty',
+  'invalid_genre',
 ]);
 
 export class AppError extends Error {

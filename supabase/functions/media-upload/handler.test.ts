@@ -1,4 +1,4 @@
-// Testes da Edge Function vibe-media no Deno, com o Supabase simulado.
+// Testes da Edge Function media-upload no Deno, com o Supabase simulado.
 // npm run test:functions
 import { fixtures } from '../profile-image/fixtures.ts';
 import { createHandler, PHOTO_LIMITS, type Deps } from './handler.ts';
@@ -17,14 +17,14 @@ function assert(cond: unknown, msg = 'falhou'): asserts cond {
 const ID = '11111111-1111-4111-8111-111111111111';
 
 function deps(overrides: Partial<Deps> = {}) {
-  const uploads: { path: string; type: string; size: number }[] = [];
+  const uploads: { target: string; path: string; type: string; size: number }[] = [];
   const removed: string[][] = [];
   const d: Deps = {
     getUserId: async (h) => (h === 'Bearer valido' ? 'user-1' : null),
     rateLimit: async () => true,
-    upload: async (path, bytes, type) => void uploads.push({ path, type, size: bytes.byteLength }),
-    garbage: async () => ['user-1/velho.jpg'],
-    remove: async (paths) => void removed.push(paths),
+    upload: async (target, path, bytes, type) => void uploads.push({ target, path, type, size: bytes.byteLength }),
+    garbage: async (target) => [`user-1/velho-${target}.jpg`],
+    remove: async (_target, paths) => void removed.push(paths),
     newId: () => ID,
     log: () => {},
     ...overrides,
@@ -32,8 +32,8 @@ function deps(overrides: Partial<Deps> = {}) {
   return { d, uploads, removed };
 }
 
-const post = (type: string, body: BodyInit | null, headers: Record<string, string> = {}) =>
-  new Request(`http://x/vibe-media?type=${type}`, { method: 'POST', body, headers: { Authorization: 'Bearer valido', ...headers } });
+const post = (type: string, body: BodyInit | null, headers: Record<string, string> = {}, target = 'vibe') =>
+  new Request(`http://x/media-upload?for=${target}&type=${type}`, { method: 'POST', body, headers: { Authorization: 'Bearer valido', ...headers } });
 
 /** Copia um vídeo e troca a duração do mvhd (versão 0). */
 function withDuration(src: Uint8Array, seconds: number): Uint8Array {
@@ -68,8 +68,8 @@ Deno.test('foto JPEG: grava no bucket com nome gerado e faz a faxina', async () 
   const res = await createHandler(d)(post('photo', fixtures.jpeg));
   assertEquals(res.status, 200);
   assertEquals(await res.json(), { path: `user-1/${ID}.jpg`, width: 64, height: 64 });
-  assertEquals(uploads, [{ path: `user-1/${ID}.jpg`, type: 'image/jpeg', size: fixtures.jpeg.byteLength }]);
-  assertEquals(removed, [['user-1/velho.jpg']]);
+  assertEquals(uploads, [{ target: 'vibe', path: `user-1/${ID}.jpg`, type: 'image/jpeg', size: fixtures.jpeg.byteLength }]);
+  assertEquals(removed, [['user-1/velho-vibe.jpg']]);
 });
 
 Deno.test('vídeo: grava como MP4 e devolve a duração', async () => {
@@ -85,8 +85,9 @@ Deno.test('vídeo: grava como MP4 e devolve a duração', async () => {
 Deno.test('recusas: sem login, tipo errado, PNG como foto, vídeo como foto, limite e tamanho', async () => {
   const { d, uploads } = deps();
   const handler = createHandler(d);
-  assertEquals((await handler(new Request('http://x/vibe-media?type=photo', { method: 'POST', body: fixtures.jpeg }))).status, 401);
+  assertEquals((await handler(new Request('http://x/media-upload?type=photo', { method: 'POST', body: fixtures.jpeg }))).status, 401);
   assertEquals((await handler(post('gif', fixtures.jpeg))).status, 400);
+  assertEquals((await handler(post('photo', fixtures.jpeg, {}, 'outro'))).status, 400);
   assertEquals((await (await handler(post('photo', fixtures.png))).json()).error, 'unsupported_image');
   assertEquals((await (await handler(post('photo', videos.mp4))).json()).error, 'unsupported_image');
   assertEquals((await (await handler(post('video', fixtures.jpeg))).json()).error, 'unsupported_video');
@@ -100,4 +101,12 @@ Deno.test('recusas: sem login, tipo errado, PNG como foto, vídeo como foto, lim
 Deno.test('faxina com erro não derruba o envio', async () => {
   const { d } = deps({ garbage: async () => { throw new Error('storage fora'); } });
   assertEquals((await createHandler(d)(post('photo', fixtures.jpeg))).status, 200);
+});
+
+Deno.test('post: grava no bucket dos posts e limpa os arquivos de post', async () => {
+  const { d, uploads, removed } = deps();
+  const res = await createHandler(d)(post('photo', fixtures.jpeg, {}, 'post'));
+  assertEquals(res.status, 200);
+  assertEquals(uploads[0]!.target, 'post');
+  assertEquals(removed, [['user-1/velho-post.jpg']]);
 });

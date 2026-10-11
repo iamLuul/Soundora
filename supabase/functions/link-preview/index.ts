@@ -8,6 +8,7 @@
 // Deploy: npx supabase functions deploy link-preview
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { FetchLike } from '../_shared/links/preview.ts';
+import { detectGenres } from '../_shared/links/genres.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
 import { createHandler, PREVIEW_RATE, type PreviewRow } from './handler.ts';
 
@@ -43,7 +44,12 @@ Deno.serve(
       if (error) throw error;
       return data as PreviewRow | null;
     },
-    async savePreview(preview) {
+    detectGenres: (title, artist) => detectGenres(title, artist, { fetch: fetch as unknown as FetchLike, timeoutMs: 4000 }),
+    async saveGenres(id, genres) {
+      const { error } = await admin.from('link_previews').update({ genres }).eq('id', id);
+      if (error) throw error;
+    },
+    async savePreview(preview, genres) {
       const { data, error } = await admin
         .from('link_previews')
         .upsert(
@@ -55,6 +61,7 @@ Deno.serve(
             title: preview.title,
             artist: preview.artist,
             image_url: preview.imageUrl?.startsWith('https://') ? preview.imageUrl : null,
+            genres,
             fetched_at: new Date().toISOString(),
           },
           { onConflict: 'url' },

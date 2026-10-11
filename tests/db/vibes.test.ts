@@ -24,7 +24,7 @@ interface VibeRow {
   media_path: string | null;
 }
 
-/** Simula o arquivo que a Edge Function vibe-media gravou no bucket. */
+/** Simula o arquivo que a Edge Function media-upload gravou no bucket. */
 async function stored(owner: string, ext: 'jpg' | 'mp4', hoursAgo = 0) {
   const name = `${owner}/${crypto.randomUUID()}.${ext}`;
   await db.sql(`insert into storage.objects (bucket_id, name, created_at) values ('vibes', $1, now() - make_interval(hours => $2))`, [name, hoursAgo]);

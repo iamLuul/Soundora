@@ -2,7 +2,11 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteD
 import {
   FEED_PAGE_SIZE,
   fetchFeed,
+  fetchLikedPosts,
   fetchNotifications,
+  fetchPeople,
+  fetchPost,
+  PEOPLE_PAGE,
   fetchProfilePosts,
   fetchUnreadNotifications,
   fetchVibesOf,
@@ -20,6 +24,9 @@ export const keys = {
   profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
   profile: (username: string) => ['profile', username] as const,
   comments: (postId: string) => ['comments', postId] as const,
+  post: (postId: string) => ['post', postId] as const,
+  likedPosts: (userId: string) => ['liked-posts', userId] as const,
+  people: (username: string, list: string) => ['people', username, list] as const,
   notifications: (filter: string) => ['notifications', filter] as const,
   unread: ['notifications-unread'] as const,
   vibesTray: ['vibes', 'tray'] as const,
@@ -46,9 +53,9 @@ export function useUnreadNotifications(enabled = true) {
     queryKey: keys.unread,
     queryFn: fetchUnreadNotifications,
     enabled,
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
-    staleTime: 15_000,
+    staleTime: 10_000,
   });
 }
 
@@ -129,12 +136,16 @@ export function useToggleLike() {
     onMutate: async (item) => {
       await qc.cancelQueries({ queryKey: keys.feed });
       await qc.cancelQueries({ queryKey: ['profile-posts'] });
-      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'profile-posts'].includes(String(q.queryKey[0])) });
+      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])) });
       for (const [key, data] of lists) qc.setQueryData(key, patchPostInCache(data, item.id, toggleLikePatch));
-      return { lists };
+      // O post aberto em tela cheia.
+      const single = qc.getQueryData<FeedItem | null>(keys.post(item.id));
+      if (single) qc.setQueryData(keys.post(item.id), toggleLikePatch(single));
+      return { lists, single };
     },
-    onError: (_err, _item, ctx) => {
+    onError: (_err, item, ctx) => {
       for (const [key, data] of ctx?.lists ?? []) qc.setQueryData(key, data);
+      if (ctx?.single) qc.setQueryData(keys.post(item.id), ctx.single);
     },
   });
 }
@@ -163,4 +174,30 @@ export function genreLabel(genres: GenreRow[] | undefined, slug: string | null, 
   const g = genres?.find((x) => x.slug === slug);
   if (!g) return slug.replace(/_/g, ' ');
   return locale === 'pt-BR' ? g.name_pt : g.name_en;
+}
+
+/** Um post aberto em tela cheia. */
+export function usePost(id: string) {
+  return useQuery({ queryKey: keys.post(id), queryFn: () => fetchPost(id) });
+}
+
+/** Posts que a pessoa curtiu (rolagem infinita). */
+export function useLikedPosts(userId: string | undefined) {
+  return useInfiniteQuery({
+    queryKey: keys.likedPosts(userId ?? ''),
+    enabled: !!userId,
+    queryFn: async ({ pageParam }: { pageParam: string | null }) => fetchLikedPosts(userId!, pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => (last.length < 20 ? undefined : last[last.length - 1]!.id),
+  });
+}
+
+/** Seguidores ou seguindo (rolagem infinita). */
+export function usePeople(username: string, list: 'followers' | 'following') {
+  return useInfiniteQuery({
+    queryKey: keys.people(username, list),
+    queryFn: ({ pageParam }: { pageParam: number }) => fetchPeople(username, list, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, all) => (last.length < PEOPLE_PAGE ? undefined : all.length),
+  });
 }

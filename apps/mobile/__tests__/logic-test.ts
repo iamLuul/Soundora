@@ -24,6 +24,9 @@ export const samplePost: FeedItem = {
   preview_artist: 'Queen',
   preview_image_url: null,
   score: 1,
+  genres: ['rock'],
+  media: [],
+  post_type: 'music',
 };
 
 describe('erros', () => {
@@ -75,5 +78,14 @@ describe('feed sem repetidos', () => {
 describe('data de nascimento', () => {
   test('monta AAAA-MM-DD com zeros', () => {
     expect(toIsoDate('5', '3', '2001')).toBe('2001-03-05');
+  });
+});
+
+describe('SVG com ids únicos', () => {
+  test('troca o id do gradiente e as referências a ele', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { uniqueSvgIds } = require('../src/components/figma') as typeof import('../src/components/figma');
+    const xml = '<svg><defs><linearGradient id="g1"/></defs><rect fill="url(#g1)"/><use href="#g1"/></svg>';
+    expect(uniqueSvgIds(xml, 'a7')).toBe('<svg><defs><linearGradient id="g1-a7"/></defs><rect fill="url(#g1-a7)"/><use href="#g1-a7"/></svg>');
   });
 });

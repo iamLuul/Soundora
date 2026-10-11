@@ -1,7 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { ProfileImageKind } from './api';
 import { AppError } from './errors';
-import { JPEG_QUALITIES, PROFILE_IMAGE_OUTPUT, VIBE_PHOTO_MAX, planProfileImage, planVibePhoto, type ImagePlan } from './image-plan';
+import { JPEG_QUALITIES, POST_PHOTO_MAX, PROFILE_IMAGE_OUTPUT, VIBE_PHOTO_MAX, planPostPhoto, planProfileImage, planVibePhoto, type ImagePlan } from './image-plan';
 
 /**
  * Android e iOS: converte qualquer imagem da galeria (HEIC, PNG, WebP, foto de 48 MP...) num
@@ -15,6 +15,11 @@ export function convertProfileImage(kind: ProfileImageKind, uri: string, width: 
 /** Foto de vibe: imagem inteira, até 1080 × 1920, JPEG sem metadados. */
 export function convertVibePhoto(uri: string, width: number, height: number): Promise<Uint8Array> {
   return convertImage(uri, width, height, planVibePhoto, VIBE_PHOTO_MAX.maxBytes);
+}
+
+/** Foto de post: imagem inteira, até 1440 × 1440, JPEG sem metadados. */
+export function convertPostPhoto(uri: string, width: number, height: number): Promise<Uint8Array> {
+  return convertImage(uri, width, height, planPostPhoto, POST_PHOTO_MAX.maxBytes);
 }
 
 async function convertImage(uri: string, width: number, height: number, planFor: (w: number, h: number) => ImagePlan, maxBytes: number): Promise<Uint8Array> {

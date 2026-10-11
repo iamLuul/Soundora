@@ -121,7 +121,9 @@
     "invalid_video": "This video is corrupted or in a format we don't accept.",
     "video_too_long": "Videos can be up to 30 seconds.",
     "video_too_large": "Videos can be up to 30 MB.",
-    "video_dimensions": "This video's resolution isn't supported."
+    "video_dimensions": "This video's resolution isn't supported.",
+    "post_empty": "Write something, add media or a song.",
+    "invalid_genre": "Invalid genre."
   },
   "tabs": {
     "feed": "For you",
@@ -150,7 +152,7 @@
     "postOptions": "Post options"
   },
   "compose": {
-    "title": "Share music",
+    "title": "New post",
     "linkLabel": "Music link",
     "linkPlaceholder": "Paste a Spotify, Apple Music, Deezer, YouTube… link",
     "paste": "Paste",
@@ -158,12 +160,35 @@
     "textLabel": "What does this song mean to you?",
     "genreLabel": "Genre (optional)",
     "publish": "Publish",
-    "published": "Published!"
+    "published": "Published!",
+    "textPlaceholder": "What are you listening to? Write something, add photos, a video or a song.",
+    "genres": "Genres",
+    "genresCount": "({{count}}/{{max}})",
+    "removeGenre": "Remove {{genre}}",
+    "detectedHint": "✦ Detected from the song. Tap to remove.",
+    "genreSearch": "Type a genre (e.g. samba, rock, lo-fi)",
+    "genreNotFound": "No genre with that name.",
+    "uploading": "Uploading {{current}} of {{total}}…",
+    "uploadingOne": "Uploading…",
+    "publishing": "Posting…",
+    "removeMedia": "Remove this media",
+    "removeMusic": "Remove the song",
+    "addMedia": "Photo/video",
+    "addMusic": "Song",
+    "limits": "Up to 500 characters, 4 photos or one 30 s video (30 MB)."
   },
   "post": {
     "commentPlaceholder": "Write a comment…",
     "send": "Send",
-    "noComments": "No comments yet."
+    "noComments": "No comments yet.",
+    "title": "Post",
+    "gone": "This post no longer exists or isn't available.",
+    "comments_one": "{{count}} comment",
+    "comments_other": "{{count}} comments",
+    "comments_zero": "Comments",
+    "replyPlaceholder": "Reply to @{{username}}…",
+    "openHint": "Opens the post with its comments",
+    "openPhoto": "View photo"
   },
   "profile": {
     "followers": "Followers",
@@ -324,5 +349,13 @@
       "dark": "Dark"
     },
     "views_zero": "No views yet"
+  },
+  "people": {
+    "noFollowers": "No one follows this profile yet.",
+    "noFollowing": "This profile doesn't follow anyone yet."
+  },
+  "liked": {
+    "title": "Liked by @{{username}}",
+    "empty": "No liked posts yet."
   }
 }
