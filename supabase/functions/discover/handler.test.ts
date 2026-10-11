@@ -96,7 +96,7 @@ Deno.test('sem login: 401; ação ou gênero inválido: 400', async () => {
   const { handler } = setup();
   assertEquals((await handler(post({ action: 'deck' }, ''))).status, 401);
   assertEquals((await handler(post({ action: 'outra' }))).status, 400);
-  assertEquals((await handler(post({ action: 'deck', genre: 'napster' }))).status, 400);
+  assertEquals((await handler(post({ action: 'deck', genre: 'Não Vale!' }))).status, 400);
 });
 
 Deno.test('pilha: sugestões achadas na Deezer, com o motivo; a que não existe fica de fora e é lembrada', async () => {

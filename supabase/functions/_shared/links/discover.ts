@@ -60,7 +60,7 @@ export interface TrackRef {
 }
 
 /** Por que a música apareceu: parecida com uma curtida, de um gênero, ou em alta. */
-export type Reason = { kind: 'similar'; because: TrackRef } | { kind: 'genre'; genre: GenreSlug } | { kind: 'popular' };
+export type Reason = { kind: 'similar'; because: TrackRef } | { kind: 'genre'; genre: string } | { kind: 'popular' };
 
 export interface Candidate extends TrackRef {
   key: string;
@@ -119,10 +119,15 @@ export async function fetchSimilarTracks(apiKey: string, ref: TrackRef, limit: n
   return refs(data?.similartracks?.track, limit);
 }
 
+/** Tag do Last.fm de um gênero: as dos 37 de destaque estão na tabela; as do catálogo grande são o próprio nome. */
+export function lastfmTag(genre: string): string {
+  return LASTFM_GENRE_TAGS[genre as GenreSlug] ?? genre.replace(/_/g, ' ');
+}
+
 /** As mais ouvidas de um gênero (Last.fm tag.getTopTracks). `page` varia a seleção. */
-export async function fetchGenreTracks(apiKey: string, genre: GenreSlug, page: number, limit: number, opts: Opts): Promise<TrackRef[]> {
+export async function fetchGenreTracks(apiKey: string, genre: string, page: number, limit: number, opts: Opts): Promise<TrackRef[]> {
   if (!KEY_RE.test(apiKey)) throw new LastfmKeyError();
-  const tag = encodeURIComponent(LASTFM_GENRE_TAGS[genre]);
+  const tag = encodeURIComponent(lastfmTag(genre));
   const url = `${LASTFM}?method=tag.gettoptracks&api_key=${apiKey}&format=json&tag=${tag}&limit=${limit}&page=${Math.max(1, Math.min(page, 10))}`;
   const data = (await getJson(opts.fetch, url, opts.timeoutMs ?? 5000)) as { error?: unknown; tracks?: { track?: unknown } } | null;
   if (data?.error === 10 || data?.error === 26) throw new LastfmKeyError();
@@ -223,8 +228,8 @@ export function mixCandidates(sources: { similar: Candidate[]; genre: Candidate[
 }
 
 export interface Seeds {
-  /** Gêneros do perfil. */
-  genres: GenreSlug[];
+  /** Gêneros do perfil (slugs do catálogo). */
+  genres: string[];
   /** Curtidas no Descobrir (as mais recentes primeiro). */
   liked: TrackRef[];
   /** Chaves (artista|título) de tudo o que a pessoa já viu no Descobrir. */
@@ -238,7 +243,7 @@ export interface Seeds {
 export async function recommend(
   apiKey: string,
   seeds: Seeds,
-  opts: Opts & { size: number; onlyGenre?: GenreSlug | null; random?: () => number },
+  opts: Opts & { size: number; onlyGenre?: string | null; random?: () => number },
 ): Promise<Candidate[]> {
   const random = opts.random ?? Math.random;
   const page = () => 1 + Math.floor(random() * 3);

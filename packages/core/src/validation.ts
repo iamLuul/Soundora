@@ -61,7 +61,12 @@ export const GENRES = [
 export type Genre = (typeof GENRES)[number];
 
 export const MIN_GENRES = 3;
-export const genresSchema = z.array(z.enum(GENRES)).min(MIN_GENRES, 'genres_too_few').max(10, 'genres_too_many');
+/** Slug de gênero (o catálogo tem milhares; a existência é conferida no banco). */
+export const GENRE_SLUG_RE = /^[a-z0-9_]{1,80}$/;
+export const genresSchema = z
+  .array(z.string().regex(GENRE_SLUG_RE, 'genre_invalid'))
+  .min(MIN_GENRES, 'genres_too_few')
+  .max(10, 'genres_too_many');
 
 export const birthdateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'birthdate_invalid');
 

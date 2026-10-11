@@ -9,7 +9,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { chartKey, fetchPlatformLinks, LastfmKeyError } from '../_shared/links/charts.ts';
 import { deezerTrackById, findDeezerTrack, recommend } from '../_shared/links/discover.ts';
-import { GENRE_SLUGS, isAllowedAudioUrl, type GenreSlug } from '../_shared/links/genres.ts';
+import { isAllowedAudioUrl } from '../_shared/links/genres.ts';
 import type { FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
 import { createHandler, RATE, type TrackRow } from './handler.ts';
@@ -20,7 +20,6 @@ const http = fetch as unknown as FetchLike;
 const opts = { fetch: http, timeoutMs: 5000 };
 
 const TRACK_COLUMNS = 'id, url, platform, provider_id, title, artist, album, image_url, artist_image_url, audio_url, genres, store_checked_at';
-const isGenre = (v: unknown): v is GenreSlug => typeof v === 'string' && (GENRE_SLUGS as readonly string[]).includes(v);
 
 Deno.serve(
   createHandler({
@@ -52,7 +51,7 @@ Deno.serve(
       type Swipe = { liked: boolean; link_previews: { id: string; title: string; artist: string | null } | null };
       const rows = (swipes.data as unknown as Swipe[]).filter((s) => s.link_previews);
       return {
-        genres: genres.data.map((g) => g.genre).filter(isGenre),
+        genres: genres.data.map((g) => g.genre as string),
         liked: rows
           .filter((s) => s.liked && s.link_previews!.artist)
           .slice(0, 20)

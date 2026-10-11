@@ -17,6 +17,7 @@ import {
   type NotificationFilter,
   type PostCursor,
 } from './api';
+import { useDebouncedValue } from './hooks';
 import { supabase } from './supabase';
 import type { FeedItem } from './types';
 
@@ -164,23 +165,50 @@ export interface GenreRow {
   name_en: string;
 }
 
-/** Lista de gêneros (tabela genres), usada no onboarding, no Em alta e nos cartões. */
+/**
+ * Gêneros em destaque (os que aparecem sem pesquisar, com nome em português). O catálogo
+ * completo tem milhares: esses o app não baixa, pesquisa com useGenreSearch.
+ */
 export function useGenres() {
   return useQuery({
     queryKey: ['genres'],
     staleTime: Infinity,
     queryFn: async () => {
-      const { data, error } = await supabase.from('genres').select('slug, name_pt, name_en').order('name_pt');
+      const { data, error } = await supabase.from('genres').select('slug, name_pt, name_en').eq('featured', true).order('name_pt');
       if (error) throw error;
       return data as GenreRow[];
     },
   });
 }
 
+/** Pesquisa no catálogo inteiro de gêneros (no servidor), com uma pausa enquanto digita. */
+export function useGenreSearch(query: string, limit = 20) {
+  const q = useDebouncedValue(query.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), 250);
+  return useQuery({
+    queryKey: ['genre-search', q, limit],
+    enabled: q.length >= 1,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_genres', { p_query: q, p_limit: limit });
+      if (error) throw error;
+      return data as GenreRow[];
+    },
+  });
+}
+
+/** Nome do gênero para mostrar: o da tabela (destaques) ou o próprio slug arrumado ("dance_pop" → "Dance Pop"). */
+export function prettyGenre(slug: string): string {
+  return slug
+    .split('_')
+    .filter(Boolean)
+    .map((w) => w[0]!.toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 export function genreLabel(genres: GenreRow[] | undefined, slug: string | null, locale: string): string | null {
   if (!slug) return null;
   const g = genres?.find((x) => x.slug === slug);
-  if (!g) return slug.replace(/_/g, ' ');
+  if (!g) return prettyGenre(slug);
   return locale === 'pt-BR' ? g.name_pt : g.name_en;
 }
 

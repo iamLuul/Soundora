@@ -138,7 +138,7 @@ describe('genreLabel', () => {
     expect(genreLabel(genres, 'funk_br', 'en')).toBe('Brazilian funk');
   });
   test('cai para o slug legível quando não conhece o gênero', () => {
-    expect(genreLabel(genres, 'lo_fi', 'pt-BR')).toBe('lo fi');
+    expect(genreLabel(genres, 'lo_fi', 'pt-BR')).toBe('Lo Fi');
     expect(genreLabel(genres, null, 'pt-BR')).toBeNull();
   });
 });

@@ -6,7 +6,6 @@
 import { readJsonLimited } from '../_shared/body.ts';
 import { isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl } from '../_shared/links/charts.ts';
 import type { Candidate, DeezerTrack, Seeds, TrackRef } from '../_shared/links/discover.ts';
-import { GENRE_SLUGS, type GenreSlug } from '../_shared/links/genres.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
@@ -48,13 +47,13 @@ export interface Deps {
   /** Gêneros, curtidas e o que a pessoa já viu (por chave e por cartão). */
   seeds(userId: string): Promise<Seeds & { seenPreviewIds: string[] }>;
   /** Sugestões do Last.fm (LastfmKeyError = chave ausente ou recusada). */
-  recommend(seeds: Seeds, size: number, onlyGenre: GenreSlug | null): Promise<Candidate[]>;
+  recommend(seeds: Seeds, size: number, onlyGenre: string | null): Promise<Candidate[]>;
   /** Buscas já feitas: chave → cartão (null = procurada e não achada). Chave ausente = nunca procurada. */
   lookup(keys: string[]): Promise<Map<string, TrackRow | null>>;
   findTrack(ref: TrackRef): Promise<DeezerTrack | null | 'quota'>;
   trackById(id: string): Promise<DeezerTrack | null>;
   /** Guarda o que a Deezer achou (ou que não achou) e devolve o cartão. */
-  saveTrack(key: string, track: DeezerTrack | null, genre: GenreSlug | null): Promise<TrackRow | null>;
+  saveTrack(key: string, track: DeezerTrack | null, genre: string | null): Promise<TrackRow | null>;
   /** Nova prévia da Deezer num cartão que já existia. */
   saveAudio(previewId: string, audioUrl: string | null): Promise<void>;
   getTrack(previewId: string): Promise<TrackRow | null>;
@@ -72,7 +71,8 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
-const isGenre = (v: unknown): v is GenreSlug => typeof v === 'string' && (GENRE_SLUGS as readonly string[]).includes(v);
+/** Slug de gênero do catálogo (milhares; os que não existem só não dão sugestão). */
+const isGenre = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9_]{1,80}$/.test(v);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -80,7 +80,7 @@ export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
   const now = deps.now ?? (() => new Date());
 
-  async function deck(userId: string, genre: GenreSlug | null): Promise<Response> {
+  async function deck(userId: string, genre: string | null): Promise<Response> {
     const seeds = await deps.seeds(userId);
     let candidates: Candidate[];
     try {

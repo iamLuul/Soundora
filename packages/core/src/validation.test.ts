@@ -20,7 +20,9 @@ describe('genresSchema', () => {
   it('exige ao menos 3 gêneros conhecidos', () => {
     expect(genresSchema.safeParse(['indie', 'rock']).success).toBe(false);
     expect(genresSchema.safeParse(['indie', 'rock', 'lo_fi']).success).toBe(true);
-    expect(genresSchema.safeParse(['indie', 'rock', 'inventado']).success).toBe(false);
+    // Qualquer gênero do catálogo (milhares) passa no formato; o banco confere se existe.
+    expect(genresSchema.safeParse(['indie', 'rock', 'dance_pop']).success).toBe(true);
+    expect(genresSchema.safeParse(['indie', 'rock', 'Não Vale!']).success).toBe(false);
   });
 });
 

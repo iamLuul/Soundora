@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { genreLabel, useGenres, type GenreRow } from '../lib/queries';
+import { genreLabel, prettyGenre, useGenres, useGenreSearch, type GenreRow } from '../lib/queries';
 import { colors, fonts, space } from '../theme';
 
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -14,7 +14,8 @@ export function searchGenres(all: GenreRow[], query: string, exclude: string[]):
 }
 
 /**
- * Escolher até `max` gêneros de toda a lista do app, digitando para filtrar. Os gêneros
+ * Escolher até `max` gêneros do catálogo inteiro (milhares), digitando para pesquisar no
+ * servidor. Sem digitar, aparecem as sugestões (ex.: os gêneros em destaque). Os gêneros
  * detectados na música chegam já marcados (com o selo "detectado") e podem ser desmarcados.
  */
 export function GenrePicker({
@@ -24,6 +25,7 @@ export function GenrePicker({
   suggestions = [],
   max = 3,
   title,
+  quickLimit = 10,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
@@ -32,8 +34,10 @@ export function GenrePicker({
   /** Mostrados sem digitar (ex.: os gêneros do perfil). */
   suggestions?: string[];
   max?: number;
-  /** Título no lugar de "Gêneros" (ex.: no editar perfil). */
-  title?: string;
+  /** Título no lugar de "Gêneros" (ex.: no editar perfil); null esconde. */
+  title?: string | null;
+  /** Quantas sugestões mostrar sem digitar. */
+  quickLimit?: number;
 }) {
   const { t, i18n } = useTranslation();
   const genres = useGenres();
@@ -41,25 +45,39 @@ export function GenrePicker({
   const all = useMemo(() => genres.data ?? [], [genres.data]);
   const full = value.length >= max;
 
-  const results = useMemo(() => {
-    if (query.trim()) return searchGenres(all, query, value).slice(0, 10);
-    const quick = [...detected, ...suggestions].filter((s, i, arr) => arr.indexOf(s) === i && !value.includes(s));
-    return quick.map((slug) => all.find((g) => g.slug === slug)).filter((g): g is GenreRow => !!g).slice(0, 10);
-  }, [all, query, value, detected, suggestions]);
+  const remote = useGenreSearch(query);
+  // Nomes dos gêneros escolhidos que vieram da pesquisa (fora dos destaques).
+  const [known, setKnown] = useState<Record<string, GenreRow>>({});
 
-  const add = (slug: string) => {
-    if (full || value.includes(slug)) return;
-    onChange([...value, slug]);
+  const results = useMemo(() => {
+    if (query.trim()) {
+      // Destaques que batem na hora; o catálogo do servidor completa assim que responde.
+      const found = [...searchGenres(all, query, value), ...(remote.data ?? []).filter((g) => !value.includes(g.slug))];
+      return found.filter((g, i) => found.findIndex((x) => x.slug === g.slug) === i).slice(0, 12);
+    }
+    const quick = [...detected, ...suggestions].filter((s, i, arr) => arr.indexOf(s) === i && !value.includes(s));
+    return quick.map((slug) => all.find((g) => g.slug === slug) ?? known[slug] ?? { slug, name_pt: prettyGenre(slug), name_en: prettyGenre(slug) }).slice(0, quickLimit);
+  }, [all, query, value, detected, suggestions, remote.data, known, quickLimit]);
+
+  const add = (g: GenreRow) => {
+    if (full || value.includes(g.slug)) return;
+    setKnown((k) => ({ ...k, [g.slug]: g }));
+    onChange([...value, g.slug]);
     setQuery('');
   };
   const remove = (slug: string) => onChange(value.filter((s) => s !== slug));
-  const label = (slug: string) => genreLabel(all, slug, i18n.language) ?? slug;
+  const label = (slug: string) => {
+    const k = known[slug];
+    return k ? (i18n.language === 'pt-BR' ? k.name_pt : k.name_en) : (genreLabel(all, slug, i18n.language) ?? slug);
+  };
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>
-        {title ?? t('compose.genres')} <Text style={styles.counter}>{t('compose.genresCount', { count: value.length, max })}</Text>
-      </Text>
+      {title !== null ? (
+        <Text style={styles.title}>
+          {title ?? t('compose.genres')} <Text style={styles.counter}>{t('compose.genresCount', { count: value.length, max })}</Text>
+        </Text>
+      ) : null}
 
       {value.length ? (
         <View style={styles.row}>
@@ -99,13 +117,13 @@ export function GenrePicker({
           {results.length ? (
             <View style={styles.row}>
               {results.map((g) => (
-                <Pressable key={g.slug} testID={`genre-option-${g.slug}`} accessibilityRole="button" onPress={() => add(g.slug)} style={styles.option}>
+                <Pressable key={g.slug} testID={`genre-option-${g.slug}`} accessibilityRole="button" onPress={() => add(g)} style={styles.option}>
                   <Ionicons name="add" size={13} color={colors.textMuted} />
                   <Text style={styles.optionText}>{label(g.slug)}</Text>
                 </Pressable>
               ))}
             </View>
-          ) : query.trim() ? (
+          ) : query.trim() && !remote.isFetching ? (
             <Text style={styles.hint}>{t('compose.genreNotFound')}</Text>
           ) : null}
         </>

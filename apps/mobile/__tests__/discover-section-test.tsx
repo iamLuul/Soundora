@@ -10,16 +10,18 @@ jest.mock('react-native-worklets', () => require('react-native-worklets/lib/modu
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('../src/lib/supabase', () => ({
   supabase: {
+    rpc: jest.fn(async () => ({ data: [], error: null })),
     from: () => ({
-      select: () => ({
-        order: async () => ({
+      select: () => {
+        const q = { eq: () => q, order: async () => ({
           data: [
             { slug: 'rock', name_pt: 'Rock', name_en: 'Rock' },
             { slug: 'funk_br', name_pt: 'Funk', name_en: 'Brazilian funk' },
           ],
           error: null,
-        }),
-      }),
+        }) };
+        return q;
+      },
     }),
   },
 }));

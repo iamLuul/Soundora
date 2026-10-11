@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { fetchDiscoverCards, fetchLikedSongs, fetchRecommendations, swipeDiscover, trackLink } from '../lib/api';
 import { formatError } from '../lib/errors';
-import { genreLabel, keys, useGenres } from '../lib/queries';
+import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
 import type { DiscoverCard, LikedSong } from '../lib/types';
 import { colors, fonts, space, text } from '../theme';
 import { DiscoverDeck } from './DiscoverDeck';
@@ -129,7 +129,14 @@ export function DiscoverSection() {
 
   const openSong = (s: { link_preview_id: string; title: string; artist: string | null }) => open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });
 
-  const matches = useMemo(() => (query.trim() ? searchGenres(genres.data ?? [], query, genre ? [genre] : []).slice(0, 8) : []), [genres.data, query, genre]);
+  // Gêneros: os de destaque batem na hora; o catálogo inteiro vem do servidor.
+  const remoteGenres = useGenreSearch(query, 12);
+  const matches = useMemo(() => {
+    if (!query.trim()) return [];
+    const found = [...searchGenres(genres.data ?? [], query, []), ...(remoteGenres.data ?? [])];
+    return found.filter((g, i) => found.findIndex((x) => x.slug === g.slug) === i).slice(0, 12);
+  }, [genres.data, query, remoteGenres.data]);
+
   const stackHeight = Math.max(320, Math.min(460, height * 0.52));
 
   return (

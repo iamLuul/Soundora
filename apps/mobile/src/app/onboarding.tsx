@@ -5,8 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PasswordField } from '../components/auth/PasswordField';
 import { BackHeader } from '../components/figma';
+import { GenrePicker } from '../components/GenrePicker';
 import { StreamingPicker } from '../components/StreamingPicker';
-import { Button, Chip, ErrorText, Screen, TextField } from '../components/ui';
+import { Button, ErrorText, Screen, TextField } from '../components/ui';
 import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
 import { accountGone, useAuth } from '../lib/auth';
@@ -123,9 +124,6 @@ export default function Onboarding() {
     }
   };
 
-  const toggleGenre = (slug: string) =>
-    setGenres((g) => (g.includes(slug) ? g.filter((x) => x !== slug) : g.length >= 10 ? g : [...g, slug]));
-
   return (
     <Screen scroll style={styles.container}>
       {index > 0 ? <BackHeader onBack={() => setIndex((i) => i - 1)} /> : <View style={styles.headerSpace} />}
@@ -194,11 +192,15 @@ export default function Onboarding() {
         <>
           <Text style={styles.title}>{t('onboarding.genresTitle')}</Text>
           <Text style={styles.hint}>{t('onboarding.genresHint', { min: MIN_GENRES })}</Text>
-          <View style={styles.chips}>
-            {(genreList.data ?? []).map((g) => (
-              <Chip key={g.slug} label={i18n.language === 'pt-BR' ? g.name_pt : g.name_en} selected={genres.includes(g.slug)} onPress={() => toggleGenre(g.slug)} />
-            ))}
-          </View>
+          {/* Milhares de gêneros: pesquisa no catálogo; os de destaque já aparecem para tocar. */}
+          <GenrePicker
+            title={null}
+            value={genres}
+            onChange={setGenres}
+            max={10}
+            suggestions={(genreList.data ?? []).map((g) => g.slug)}
+            quickLimit={100}
+          />
         </>
       )}
 

@@ -14,13 +14,18 @@ jest.mock('expo-image-manipulator', () => ({ ImageManipulator: {}, SaveFormat: {
 jest.mock('../src/lib/supabase', () => ({
   supabaseUrl: 'http://localhost:54321',
   supabase: {
+    rpc: jest.fn(async (_fn: string, args: { p_query: string }) => ({
+      data: args.p_query.startsWith('vapor') ? [{ slug: 'vaporwave', name_pt: 'Vaporwave', name_en: 'Vaporwave', featured: false }] : [],
+      error: null,
+    })),
     from: () => ({
-      select: () => ({
-        order: async () => ({
+      select: () => {
+        const q = { eq: () => q, order: async () => ({
           data: ['indie', 'pop', 'rock', 'jazz'].map((slug) => ({ slug, name_pt: slug.toUpperCase(), name_en: slug })),
           error: null,
-        }),
-      }),
+        }) };
+        return q;
+      },
     }),
   },
 }));
@@ -57,5 +62,16 @@ describe('Editar perfil › gêneros', () => {
     await fireEvent.press(screen.getByTestId('genre-option-jazz'));
     await fireEvent.press(screen.getByTestId('save-profile'));
     await waitFor(() => expect(mockSetGenres).toHaveBeenCalledWith(['indie', 'pop', 'jazz']));
+  });
+
+  test('pesquisa no catálogo inteiro e adiciona um gênero que não está em destaque', async () => {
+    await wrap();
+    await waitFor(() => expect(screen.getByTestId('genre-selected-rock')).toBeTruthy());
+    await fireEvent.changeText(screen.getByTestId('genre-search'), 'vapor');
+    await waitFor(() => expect(screen.getByTestId('genre-option-vaporwave')).toBeTruthy(), { timeout: 2000 });
+    await fireEvent.press(screen.getByTestId('genre-option-vaporwave'));
+    expect(screen.getByTestId('genre-selected-vaporwave')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('save-profile'));
+    await waitFor(() => expect(mockSetGenres).toHaveBeenCalledWith(['indie', 'pop', 'rock', 'vaporwave']));
   });
 });
