@@ -340,7 +340,7 @@
     "seeMine": "Ver minhas vibes",
     "shareToVibes": "Compartilhar no Vibes",
     "text": "Texto",
-    "textHint": "Escreva sua mensagem abaixo.",
+    "textHint": "Toque em qualquer lugar para escrever.",
     "textPlaceholder": "O que você está ouvindo?",
     "viewProfile": "Ver perfil",
     "viewersTitle": "Quem viu",
@@ -355,7 +355,10 @@
       "orange": "Laranja",
       "dark": "Escuro"
     },
-    "views_zero": "Nenhuma visualização"
+    "views_zero": "Nenhuma visualização",
+    "tapToWrite": "Toque na vibe para escrever onde quiser.",
+    "dragHint": "Arraste o texto para mudar o lugar; toque nele para editar.",
+    "done": "Pronto"
   },
   "people": {
     "noFollowers": "Ninguém segue esse perfil ainda.",

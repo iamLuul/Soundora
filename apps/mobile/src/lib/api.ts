@@ -531,6 +531,8 @@ export interface Vibe {
   post_body: string | null;
   post_author_username: string | null;
   post_author_avatar_url: string | null;
+  text_x: number | null;
+  text_y: number | null;
 }
 
 export interface VibeViewer {
@@ -605,6 +607,8 @@ export interface NewVibe {
   style?: VibeStyle;
   linkPreviewId?: string;
   postId?: string;
+  /** Centro do texto em fração da tela (sem isso, o lugar padrão do tipo). */
+  textPos?: { x: number; y: number } | null;
 }
 
 export async function createVibe(v: NewVibe): Promise<string> {
@@ -616,6 +620,8 @@ export async function createVibe(v: NewVibe): Promise<string> {
     p_style: v.style ?? 'violet',
     p_link_preview_id: v.linkPreviewId ?? null,
     p_post_id: v.postId ?? null,
+    p_text_x: v.text?.trim() && v.textPos ? v.textPos.x : null,
+    p_text_y: v.text?.trim() && v.textPos ? v.textPos.y : null,
   });
   if (error) throw error;
   return data as string;

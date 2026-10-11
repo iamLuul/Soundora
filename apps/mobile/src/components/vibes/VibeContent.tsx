@@ -8,6 +8,7 @@ import type { VibeKind, VibeStyle } from '../../lib/api';
 import { colors, fonts, space } from '../../theme';
 import { PlatformLogo, RingAvatar } from '../figma';
 import { VIBE_BACKGROUND } from './colors';
+import { VibeTextOverlay, type TextPos } from './VibeText';
 import { VibeVideo } from './VibeVideo';
 
 export interface VibeMusic {
@@ -31,6 +32,8 @@ export interface VibeContentProps {
   /** Foto/vídeo: arquivo local (ao criar) ou URL assinada (ao ver). null = ainda carregando. */
   mediaUri?: string | null;
   text?: string | null;
+  /** Onde o texto fica (null = lugar padrão do tipo). */
+  textPos?: TextPos | null;
   style: VibeStyle;
   music?: VibeMusic | null;
   post?: VibeSharedPost | null;
@@ -41,7 +44,7 @@ export interface VibeContentProps {
 }
 
 /** O conteúdo de uma vibe em 9:16. Igual na criação e na visualização. */
-export function VibeContent({ kind, mediaUri, text, style, music, post, paused = false, preview = false, onVideoEnd }: VibeContentProps) {
+export function VibeContent({ kind, mediaUri, text, textPos = null, style, music, post, paused = false, preview = false, onVideoEnd }: VibeContentProps) {
   const { t } = useTranslation();
 
   if (kind === 'photo' || kind === 'video') {
@@ -54,23 +57,17 @@ export function VibeContent({ kind, mediaUri, text, style, music, post, paused =
         ) : (
           <VibeVideo uri={mediaUri} paused={paused} loop={preview} onEnd={onVideoEnd} />
         )}
-        {text ? (
-          <View style={styles.captionWrap} pointerEvents="none">
-            <Text style={styles.caption}>{text}</Text>
-          </View>
-        ) : null}
+        {text ? <VibeTextOverlay text={text} kind={kind} pos={textPos} /> : null}
       </View>
     );
   }
 
   return (
     <View style={[styles.fill, styles.padded, { backgroundColor: VIBE_BACKGROUND[style] }]}>
-      {kind === 'text' ? <Text style={styles.bigText}>{text}</Text> : null}
 
       {kind === 'music' && music ? (
         <>
           <MusicBlock music={music} disabled={preview} />
-          {text ? <Text style={styles.note}>{text}</Text> : null}
         </>
       ) : null}
 
@@ -94,9 +91,10 @@ export function VibeContent({ kind, mediaUri, text, style, music, post, paused =
             ) : null}
             {post.music ? <MiniMusic music={post.music} /> : null}
           </Pressable>
-          {text ? <Text style={styles.note}>{text}</Text> : null}
         </>
       ) : null}
+
+      {text ? <VibeTextOverlay text={text} kind={kind} pos={textPos} /> : null}
     </View>
   );
 }
@@ -151,20 +149,6 @@ const styles = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
   padded: { padding: space.xl, alignItems: 'center', justifyContent: 'center', gap: space.lg },
   center: { flex: 1 },
-  captionWrap: { position: 'absolute', left: space.lg, right: space.lg, bottom: 96, alignItems: 'center' },
-  caption: {
-    fontFamily: fonts.semibold,
-    fontSize: 17,
-    color: colors.text,
-    textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  bigText: { fontFamily: fonts.bold, fontSize: 28, lineHeight: 36, color: colors.text, textAlign: 'center' },
-  note: { fontFamily: fonts.semibold, fontSize: 16, color: colors.text, textAlign: 'center' },
   musicBlock: { alignItems: 'center', gap: space.sm, width: '100%' },
   bigCover: { width: 220, height: 220, borderRadius: 12 },
   musicTitle: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, textAlign: 'center', marginTop: space.sm },

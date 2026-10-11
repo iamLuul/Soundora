@@ -2,14 +2,15 @@ import { extractFirstUrl, parseStreamingUrl } from '@soundora/core';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, ErrorText } from '../../components/ui';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
 import { VibeContent, type VibeMusic } from '../../components/vibes/VibeContent';
+import { defaultTextPos, EditableVibeText, type TextPos } from '../../components/vibes/VibeText';
 import {
   createVibe,
   previewLink,
@@ -70,6 +71,10 @@ export default function NewVibeScreen() {
   const [kind, setKind] = useState<VibeKind>(sharedPost ? 'post' : 'text');
   const [media, setMedia] = useState<Media | null>(null);
   const [text, setText] = useState('');
+  // Texto na tela: onde fica (fração da tela) e se está sendo digitado.
+  const [textPos, setTextPos] = useState<TextPos | null>(null);
+  const [editing, setEditing] = useState(false);
+  const canvasRef = useRef<View>(null);
   const [style, setStyle] = useState<VibeStyle>('violet');
   const [link, setLink] = useState('');
   const [music, setMusic] = useState<(VibeMusic & { id: string }) | null>(null);
@@ -149,13 +154,13 @@ export default function NewVibeScreen() {
           if (bytes.byteLength > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
         }
         const uploaded = await uploadVibeMedia(media.type, bytes);
-        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, text });
+        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, text, textPos });
       } else if (kind === 'music' && music) {
-        await createVibe({ kind: 'music', linkPreviewId: music.id, text, style });
+        await createVibe({ kind: 'music', linkPreviewId: music.id, text, style, textPos });
       } else if (kind === 'post' && sharedPost) {
-        await createVibe({ kind: 'post', postId: sharedPost.id, text, style });
+        await createVibe({ kind: 'post', postId: sharedPost.id, text, style, textPos });
       } else {
-        await createVibe({ kind: 'text', text, style });
+        await createVibe({ kind: 'text', text, style, textPos });
       }
       await qc.invalidateQueries({ queryKey: ['vibes'] });
       if (router.canGoBack()) router.back();
@@ -174,6 +179,13 @@ export default function NewVibeScreen() {
   };
 
   const showStyles = kind === 'text' || kind === 'music' || kind === 'post';
+  // Dá para escrever na tela quando já existe o fundo da vibe (texto, mídia, música ou post).
+  const canWrite = kind === 'text' || kind === 'post' || (kind === 'music' && !!music) || ((kind === 'photo' || kind === 'video') && !!media);
+
+  function finishEditing() {
+    setEditing(false);
+    Keyboard.dismiss();
+  }
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -197,12 +209,52 @@ export default function NewVibeScreen() {
             <View style={[styles.placeholder, { backgroundColor: '#000' }]}>
               <Ionicons name="images" size={48} color={colors.text} />
             </View>
-          ) : kind === 'text' && !text.trim() ? (
-            <View style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}>
-              <Text style={styles.placeholderText}>{t('vibes.textHint')}</Text>
-            </View>
           ) : (
-            <VibeContent kind={kind} mediaUri={media?.uri} text={text} style={style} music={music} post={sharedPost} preview />
+            <>
+              {kind === 'text' && !text.trim() && !editing ? (
+                <View style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}>
+                  <Ionicons name="text" size={40} color={colors.text} />
+                  <Text style={styles.placeholderText}>{t('vibes.textHint')}</Text>
+                </View>
+              ) : (
+                <VibeContent kind={kind} mediaUri={media?.uri} text={null} style={style} music={music} post={sharedPost} preview />
+              )}
+              {/* Tocar na tela escreve ali (ou leva o texto para lá); arrastar o texto também move. */}
+              <Pressable
+                testID="vibe-canvas"
+                accessibilityRole="button"
+                accessibilityLabel={t('vibes.tapToWrite')}
+                style={StyleSheet.absoluteFill}
+                ref={canvasRef}
+                onPress={(e) => {
+                  if (editing) return finishEditing();
+                  const { locationX, locationY, pageX, pageY } = e.nativeEvent;
+                  const apply = (x: number, y: number) => {
+                    setTextPos({ x: Math.min(1, Math.max(0, x / cardWidth)), y: Math.min(1, Math.max(0, y / cardHeight)) });
+                    if (!text.trim()) setEditing(true);
+                  };
+                  // Celular: posição do toque dentro da vibe. Web: nem sempre vem; calcula pela página.
+                  if (Number.isFinite(locationX) && Number.isFinite(locationY) && (locationX || locationY)) apply(locationX, locationY);
+                  else canvasRef.current?.measureInWindow((left, top) => apply(pageX - left, pageY - top));
+                }}
+              />
+              <EditableVibeText
+                kind={kind}
+                text={text}
+                pos={textPos ?? defaultTextPos(kind)}
+                editing={editing}
+                placeholder={kind === 'text' ? t('vibes.textPlaceholder') : t('vibes.captionPlaceholder')}
+                onChangeText={setText}
+                onChangePos={setTextPos}
+                onStartEdit={() => setEditing(true)}
+                onEndEdit={finishEditing}
+              />
+              {editing ? (
+                <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={finishEditing} style={styles.done} hitSlop={8}>
+                  <Text style={styles.doneText}>{t('vibes.done')}</Text>
+                </Pressable>
+              ) : null}
+            </>
           )}
         </View>
 
@@ -223,16 +275,7 @@ export default function NewVibeScreen() {
           </View>
         ) : null}
 
-        <TextInput
-          testID="vibe-text"
-          value={text}
-          onChangeText={setText}
-          placeholder={kind === 'text' ? t('vibes.textPlaceholder') : t('vibes.captionPlaceholder')}
-          placeholderTextColor={colors.placeholder}
-          maxLength={300}
-          multiline
-          style={[styles.input, { width: cardWidth }]}
-        />
+        {canWrite && !editing ? <Text style={styles.hint}>{text.trim() ? t('vibes.dragHint') : t('vibes.tapToWrite')}</Text> : null}
 
         {showStyles ? (
           <View style={styles.dots} accessibilityRole="radiogroup" accessibilityLabel={t('vibes.background')}>
@@ -306,5 +349,7 @@ const styles = StyleSheet.create({
   mode: { alignItems: 'center', gap: 4 },
   modeIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   modeLabel: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },
+  done: { position: 'absolute', top: space.md, right: space.md, backgroundColor: colors.text, borderRadius: 16, paddingHorizontal: space.md, paddingVertical: 6 },
+  doneText: { fontFamily: fonts.bold, fontSize: 13, color: colors.background },
   hint: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
 });

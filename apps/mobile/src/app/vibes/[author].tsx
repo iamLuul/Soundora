@@ -187,6 +187,7 @@ export default function VibeViewerScreen() {
             kind={current.kind}
             mediaUri={media.data ?? null}
             text={current.text}
+            textPos={current.text_x != null && current.text_y != null ? { x: current.text_x, y: current.text_y } : null}
             style={current.style}
             paused={paused}
             onVideoEnd={goNext}

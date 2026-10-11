@@ -179,3 +179,17 @@ describe('limpeza da mídia', () => {
     await expect(db.as(caio, `select * from public.vibe_media_garbage($1)`, [caio])).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('posição do texto', () => {
+  it('guarda onde a pessoa colocou o texto; fora da tela é recusado; sem texto não guarda posição', async () => {
+    const [{ id }] = await db.as<{ id: string }>(ana, `select public.vibe_create(p_kind => 'text', p_text => 'aqui', p_text_x => 0.2, p_text_y => 0.15) as id`);
+    const row = (await vibesOf(caio, ana)).find((v) => v.id === id) as unknown as { text_x: number; text_y: number };
+    expect([row.text_x, row.text_y].map((n) => Math.round(n * 100) / 100)).toEqual([0.2, 0.15]);
+    await expect(db.as(ana, `select public.vibe_create(p_kind => 'text', p_text => 'x', p_text_x => 1.5, p_text_y => 0.5)`)).rejects.toThrow(/check constraint/);
+    await expect(db.as(ana, `select public.vibe_create(p_kind => 'text', p_text => 'x', p_text_x => 0.5)`)).rejects.toThrow(/vibes_text_position/);
+    const music = await createPreview(db, 'https://open.spotify.com/track/vibepos00000000000001');
+    const [{ id: m }] = await db.as<{ id: string }>(ana, `select public.vibe_create(p_kind => 'music', p_link_preview_id => $1, p_text_x => 0.3, p_text_y => 0.3) as id`, [music]);
+    const mrow = (await vibesOf(caio, ana)).find((v) => v.id === m) as unknown as { text_x: number | null };
+    expect(mrow.text_x).toBeNull();
+  });
+});

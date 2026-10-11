@@ -49,10 +49,16 @@ describe('Nova vibe', () => {
   test('texto com cor de fundo', async () => {
     await wrap(<NewVibeScreen />);
     expect(screen.getByTestId('vibe-publish').props.accessibilityState.disabled).toBe(true);
+    // Não existe mais a caixa de texto embaixo: toca na vibe para escrever ali.
+    expect(screen.queryByTestId('vibe-text')).toBeNull();
+    const card = screen.getByTestId('vibe-canvas');
+    await fireEvent.press(card, { nativeEvent: { locationX: 40, locationY: 60 } });
     await fireEvent.changeText(screen.getByTestId('vibe-text'), 'bom dia');
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    expect(screen.getByText('bom dia')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('vibe-style-pink'));
     await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'text', text: 'bom dia', style: 'pink' }));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'text', text: 'bom dia', style: 'pink', textPos: { x: expect.any(Number), y: expect.any(Number) } }));
   });
 
   test('compartilhar um post: abre já com o post e publica como vibe de post', async () => {
@@ -61,7 +67,7 @@ describe('Nova vibe', () => {
     expect(screen.getByText('@bia')).toBeTruthy();
     expect(screen.queryByTestId('vibe-mode-text')).toBeNull();
     await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'post', postId: 'p1', text: '', style: 'violet' }));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'post', postId: 'p1', text: '', style: 'violet', textPos: null }));
   });
 });
 

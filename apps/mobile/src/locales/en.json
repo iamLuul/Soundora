@@ -340,7 +340,7 @@
     "seeMine": "See my vibes",
     "shareToVibes": "Share to Vibes",
     "text": "Text",
-    "textHint": "Write your message below.",
+    "textHint": "Tap anywhere to write.",
     "textPlaceholder": "What are you listening to?",
     "viewProfile": "View profile",
     "viewersTitle": "Seen by",
@@ -355,7 +355,10 @@
       "orange": "Orange",
       "dark": "Dark"
     },
-    "views_zero": "No views yet"
+    "views_zero": "No views yet",
+    "tapToWrite": "Tap the vibe to write anywhere.",
+    "dragHint": "Drag the text to move it; tap it to edit.",
+    "done": "Done"
   },
   "people": {
     "noFollowers": "No one follows this profile yet.",
