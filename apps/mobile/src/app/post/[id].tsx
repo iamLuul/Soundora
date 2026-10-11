@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../../components/figma';
 import { PostActions, type PostAction } from '../../components/PostActions';
 import { PostCard } from '../../components/PostCard';
-import { ErrorText } from '../../components/ui';
+import { ErrorText, keyboardBehavior, useKeyboardVisible } from '../../components/ui';
 import { addComment, blockUser, deletePost, fetchComments, report, setCommentLiked } from '../../lib/api';
 import type { CommentRow } from '../../lib/types';
 import { CommentItem, RepliesToggle } from '../../components/CommentItem';
@@ -27,6 +27,7 @@ export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const keyboardOpen = useKeyboardVisible();
   const qc = useQueryClient();
   const { session } = useAuth();
   const post = usePost(id);
@@ -132,7 +133,7 @@ export default function PostScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={[styles.screen, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.screen, { paddingTop: insets.top }]} behavior={keyboardBehavior}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <BackHeader />
@@ -168,7 +169,7 @@ export default function PostScreen() {
       )}
 
       {post.data ? (
-        <View style={[styles.composer, { paddingBottom: insets.bottom + space.sm }]}>
+        <View style={[styles.composer, { paddingBottom: (keyboardOpen ? 0 : insets.bottom) + space.sm }]}>
           <ErrorText>{error}</ErrorText>
           {replyTo ? (
             <View style={styles.replying}>

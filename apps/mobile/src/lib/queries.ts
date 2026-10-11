@@ -3,7 +3,8 @@ import {
   getStreamingPlatform,
   FEED_PAGE_SIZE,
   fetchFeed,
-  fetchLikedPosts,
+  fetchProfileLikedSongs,
+  LIKED_SONGS_PAGE,
   fetchNotifications,
   fetchPeople,
   fetchPost,
@@ -27,7 +28,7 @@ export const keys = {
   profile: (username: string) => ['profile', username] as const,
   comments: (postId: string) => ['comments', postId] as const,
   post: (postId: string) => ['post', postId] as const,
-  likedPosts: (userId: string) => ['liked-posts', userId] as const,
+  likedSongs: (userId: string) => ['liked-songs', userId] as const,
   people: (username: string, list: string) => ['people', username, list] as const,
   notifications: (filter: string) => ['notifications', filter] as const,
   unread: ['notifications-unread'] as const,
@@ -218,13 +219,14 @@ export function usePost(id: string) {
 }
 
 /** Posts que a pessoa curtiu (rolagem infinita). */
-export function useLikedPosts(userId: string | undefined) {
+/** Músicas curtidas no Descobrir de uma pessoa (perfil › Curtidas), rolagem infinita. */
+export function useProfileLikedSongs(userId: string | undefined) {
   return useInfiniteQuery({
-    queryKey: keys.likedPosts(userId ?? ''),
+    queryKey: keys.likedSongs(userId ?? ''),
     enabled: !!userId,
-    queryFn: async ({ pageParam }: { pageParam: string | null }) => fetchLikedPosts(userId!, pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => (last.length < 20 ? undefined : last[last.length - 1]!.id),
+    queryFn: async ({ pageParam }: { pageParam: { liked_at: string; link_preview_id: string } | null }) => fetchProfileLikedSongs(userId!, pageParam),
+    initialPageParam: null as { liked_at: string; link_preview_id: string } | null,
+    getNextPageParam: (last) => (last.length < LIKED_SONGS_PAGE ? undefined : { liked_at: last[last.length - 1]!.liked_at, link_preview_id: last[last.length - 1]!.link_preview_id }),
   });
 }
 

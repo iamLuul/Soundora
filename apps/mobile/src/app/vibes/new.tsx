@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, ErrorText } from '../../components/ui';
+import { Button, ErrorText, keyboardBehavior } from '../../components/ui';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
 import { VibeContent, type VibeMusic } from '../../components/vibes/VibeContent';
 import { defaultTextPos, EditableVibeText, type TextPos } from '../../components/vibes/VibeText';
@@ -227,7 +227,7 @@ export default function NewVibeScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior={keyboardBehavior}>
       <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + space.sm, paddingBottom: insets.bottom + space.lg }]} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>

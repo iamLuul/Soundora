@@ -132,10 +132,17 @@ export async function fetchPost(id: string): Promise<FeedItem | null> {
 }
 
 /** Posts que a pessoa curtiu (página seguinte: depois do último post recebido). */
-export async function fetchLikedPosts(userId: string, afterPostId: string | null): Promise<FeedItem[]> {
-  const { data, error } = await supabase.rpc('liked_posts', { p_user: userId, p_after_post: afterPostId, p_limit: 20 });
+/** Músicas que a pessoa curtiu no Descobrir (perfil › Curtidas), em páginas. */
+export const LIKED_SONGS_PAGE = 30;
+export async function fetchProfileLikedSongs(userId: string, before: { liked_at: string; link_preview_id: string } | null): Promise<LikedSong[]> {
+  const { data, error } = await supabase.rpc('profile_liked_songs', {
+    p_user: userId,
+    p_before: before?.liked_at ?? null,
+    p_before_id: before?.link_preview_id ?? null,
+    p_limit: LIKED_SONGS_PAGE,
+  });
   if (error) throw error;
-  return (data ?? []) as FeedItem[];
+  return (data ?? []) as LikedSong[];
 }
 
 export interface PersonRow {

@@ -400,8 +400,9 @@
     "noFollowing": "Esse perfil ainda não segue ninguém."
   },
   "liked": {
-    "title": "Curtidos por @{{username}}",
-    "empty": "Nenhum post curtido ainda."
+    "title": "Músicas curtidas por @{{username}}",
+    "empty": "Nenhuma música curtida ainda.",
+    "emptyMine": "Curta músicas no Descobrir (arraste para a direita) e elas aparecem aqui."
   },
   "streaming": {
     "title": "Onde você escuta música?",

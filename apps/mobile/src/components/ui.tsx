@@ -1,7 +1,10 @@
-import { Image } from 'expo-image';
-import type { ReactNode } from 'react';
+import { Image } from "expo-image";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,36 +14,93 @@ import {
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { avatarUrl } from '../lib/avatar';
-import { colors, fonts, radius, space, text } from '../theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { avatarUrl } from "../lib/avatar";
+import { colors, fonts, radius, space, text } from "../theme";
 
-export function Screen({ children, scroll = false, style }: { children: ReactNode; scroll?: boolean; style?: StyleProp<ViewStyle> }) {
+/**
+ * Teclado: a tela encolhe o tamanho dele, para o campo de texto ficar logo acima.
+ * No Android (tela de ponta a ponta) a janela não encolhe sozinha, então é 'padding' nos dois.
+ */
+export const keyboardBehavior = Platform.OS === "web" ? undefined : "padding";
+
+/** Envolve a tela para subir o conteúdo quando o teclado abre. */
+export function KeyboardView({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      {scroll ? (
-        <ScrollView contentContainerStyle={[styles.content, style]} keyboardShouldPersistTaps="handled">
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[styles.content, { flex: 1 }, style]}>{children}</View>
-      )}
+    <KeyboardAvoidingView
+      style={[{ flex: 1 }, style]}
+      behavior={keyboardBehavior}
+    >
+      {children}
+    </KeyboardAvoidingView>
+  );
+}
+
+/** Teclado aberto? (para tirar o espaço da barra de gestos embaixo enquanto ele está aberto). */
+export function useKeyboardVisible(): boolean {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return visible;
+}
+
+export function Screen({
+  children,
+  scroll = false,
+  style,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
+      <KeyboardView>
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={[styles.content, style]}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[styles.content, { flex: 1 }, style]}>{children}</View>
+        )}
+      </KeyboardView>
     </SafeAreaView>
   );
 }
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export function Button({
   title,
   onPress,
-  variant = 'primary',
+  variant = "primary",
   disabled,
   loading,
   icon,
   testID,
-  size = 'md',
+  size = "md",
   style,
 }: {
   title: string;
@@ -51,7 +111,7 @@ export function Button({
   icon?: ReactNode;
   testID?: string;
   /** md: 48 px (Figma "Sign in"); sm: 32 px (Figma "Next"). */
-  size?: 'md' | 'sm';
+  size?: "md" | "sm";
   style?: StyleProp<ViewStyle>;
 }) {
   const inactive = disabled || loading;
@@ -62,14 +122,31 @@ export function Button({
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={onPress}
       disabled={inactive}
-      style={({ pressed }) => [styles.button, size === 'sm' && styles.buttonSm, styles[variant], inactive && styles.disabled, pressed && styles.pressed, style]}
+      style={({ pressed }) => [
+        styles.button,
+        size === "sm" && styles.buttonSm,
+        styles[variant],
+        inactive && styles.disabled,
+        pressed && styles.pressed,
+        style,
+      ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' ? colors.background : colors.text} />
+        <ActivityIndicator
+          color={variant === "secondary" ? colors.background : colors.text}
+        />
       ) : (
         <View style={styles.buttonRow}>
           {icon}
-          <Text style={[styles.buttonText, size === 'sm' && { fontSize: 12 }, variant === 'secondary' && styles.buttonTextLight]}>{title}</Text>
+          <Text
+            style={[
+              styles.buttonText,
+              size === "sm" && { fontSize: 12 },
+              variant === "secondary" && styles.buttonTextLight,
+            ]}
+          >
+            {title}
+          </Text>
         </View>
       )}
     </Pressable>
@@ -82,7 +159,12 @@ export function TextField({
   error,
   success,
   ...props
-}: TextInputProps & { label: string; hint?: string; error?: string | null; success?: string | null }) {
+}: TextInputProps & {
+  label: string;
+  hint?: string;
+  error?: string | null;
+  success?: string | null;
+}) {
   return (
     <View style={{ gap: space.xs }}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -90,14 +172,25 @@ export function TextField({
         placeholderTextColor={colors.placeholder}
         accessibilityLabel={label}
         {...props}
-        style={[styles.input, !!error && { borderColor: colors.danger }, !!success && { borderColor: colors.success }, props.style]}
+        style={[
+          styles.input,
+          !!error && { borderColor: colors.danger },
+          !!success && { borderColor: colors.success },
+          props.style,
+        ]}
       />
       {error ? (
-        <Text accessibilityLiveRegion="polite" style={[text.small, { color: colors.danger }]}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[text.small, { color: colors.danger }]}
+        >
           {error}
         </Text>
       ) : success ? (
-        <Text accessibilityLiveRegion="polite" style={[text.small, { color: colors.success }]}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[text.small, { color: colors.success }]}
+        >
           {success}
         </Text>
       ) : hint ? (
@@ -107,7 +200,15 @@ export function TextField({
   );
 }
 
-export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+export function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -121,14 +222,39 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
 }
 
 /** `path` é o caminho guardado no perfil (avatars/{id}/...); a URL é montada em lib/avatar. */
-export function Avatar({ uri: path, name, size = 40 }: { uri: string | null; name: string; size?: number }) {
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
+export function Avatar({
+  uri: path,
+  name,
+  size = 40,
+}: {
+  uri: string | null;
+  name: string;
+  size?: number;
+}) {
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
   const uri = avatarUrl(path);
   return uri ? (
-    <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityIgnoresInvertColors />
+    <Image
+      source={{ uri }}
+      style={{ width: size, height: size, borderRadius: size / 2 }}
+      accessibilityIgnoresInvertColors
+    />
   ) : (
-    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontFamily: fonts.bold, color: colors.text, fontSize: size * 0.4 }}>{initial}</Text>
+    <View
+      style={[
+        styles.avatarFallback,
+        { width: size, height: size, borderRadius: size / 2 },
+      ]}
+    >
+      <Text
+        style={{
+          fontFamily: fonts.bold,
+          color: colors.text,
+          fontSize: size * 0.4,
+        }}
+      >
+        {initial}
+      </Text>
     </View>
   );
 }
@@ -155,7 +281,11 @@ export function SegmentedControl<T extends string>({
             onPress={() => onChange(o.value)}
             style={[styles.segment, selected && styles.segmentSelected]}
           >
-            <Text style={[styles.segmentText, selected && { color: colors.text }]}>{o.label}</Text>
+            <Text
+              style={[styles.segmentText, selected && { color: colors.text }]}
+            >
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -166,7 +296,10 @@ export function SegmentedControl<T extends string>({
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null;
   return (
-    <Text accessibilityRole="alert" style={[text.small, { color: colors.danger }]}>
+    <Text
+      accessibilityRole="alert"
+      style={[text.small, { color: colors.danger }]}
+    >
       {children}
     </Text>
   );
@@ -175,14 +308,33 @@ export function ErrorText({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: space.lg, gap: space.lg },
-  button: { minHeight: 48, borderRadius: 10, paddingHorizontal: space.lg, alignItems: 'center', justifyContent: 'center' },
-  buttonSm: { minHeight: 32, paddingHorizontal: 28, alignSelf: 'flex-end' },
-  buttonTextLight: { color: colors.background, fontFamily: fonts.regular, fontSize: 12 },
-  fieldLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.text, marginLeft: 14 },
-  buttonRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  button: {
+    minHeight: 48,
+    borderRadius: 10,
+    paddingHorizontal: space.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonSm: { minHeight: 32, paddingHorizontal: 28, alignSelf: "flex-end" },
+  buttonTextLight: {
+    color: colors.background,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+  },
+  fieldLabel: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.text,
+    marginLeft: 14,
+  },
+  buttonRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   primary: { backgroundColor: colors.primary },
   secondary: { backgroundColor: colors.text },
-  ghost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
+  ghost: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   danger: { backgroundColor: colors.danger },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
@@ -197,14 +349,42 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.regular,
     fontSize: 14,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     outlineWidth: 0, // Web: sem o contorno branco do navegador; a borda colorida mostra o estado
   },
-  chip: { paddingVertical: space.sm, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  segmented: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.pill, padding: 4, gap: 4 },
-  segment: { flex: 1, paddingVertical: space.sm, borderRadius: radius.pill, alignItems: 'center' },
+  chip: {
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    padding: 4,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
+    alignItems: "center",
+  },
   segmentSelected: { backgroundColor: colors.primary },
-  segmentText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.textMuted },
-  avatarFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  segmentText: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  avatarFallback: {
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

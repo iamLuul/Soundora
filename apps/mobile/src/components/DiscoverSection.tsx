@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -10,6 +9,7 @@ import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
 import type { DiscoverCard, LikedSong } from '../lib/types';
 import { colors, fonts, space, text } from '../theme';
 import { DiscoverDeck } from './DiscoverDeck';
+import { LikedSongRow } from './LikedSongRow';
 import { SearchField } from './figma';
 import { searchGenres } from './GenrePicker';
 import { useStreamingOpener } from './StreamingOpener';
@@ -118,13 +118,23 @@ export function DiscoverSection() {
       ]);
     }
     swipeDiscover(card, isLike)
-      .then(() => (isLike ? qc.invalidateQueries({ queryKey: keys.feed }) : undefined))
+      .then(() => {
+        if (!isLike) return;
+        void qc.invalidateQueries({ queryKey: keys.feed });
+        void qc.invalidateQueries({ queryKey: ['profile'] });
+        void qc.invalidateQueries({ queryKey: ['liked-songs'] });
+      })
       .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
   };
 
   const unlike = (song: LikedSong) => {
     qc.setQueryData<LikedSong[]>(['discover-liked'], (list) => list?.filter((s) => s.link_preview_id !== song.link_preview_id));
-    swipeDiscover({ link_preview_id: song.link_preview_id, post_id: null }, false).catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
+    swipeDiscover({ link_preview_id: song.link_preview_id, post_id: null }, false)
+      .then(() => {
+        void qc.invalidateQueries({ queryKey: ['profile'] });
+        void qc.invalidateQueries({ queryKey: ['liked-songs'] });
+      })
+      .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
   };
 
   const openSong = (s: { link_preview_id: string; title: string; artist: string | null }) => open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });
@@ -210,51 +220,12 @@ export function DiscoverSection() {
       ) : !liked.data?.length ? (
         <Text style={[text.small, { color: colors.textMuted }]}>{t('discover.likedEmpty')}</Text>
       ) : (
-        liked.data.map((s) => (
-          <View key={s.link_preview_id} style={styles.likedRow}>
-            <Pressable
-              testID={`liked-${s.link_preview_id}`}
-              accessibilityRole="link"
-              accessibilityLabel={t('trending.rowLabel', { position: '', title: s.title, artist: s.artist ?? '' })}
-              onPress={() => openSong(s)}
-              style={({ pressed }) => [styles.likedMain, pressed && { opacity: 0.8 }]}
-            >
-              {s.image_url ? (
-                <Image source={{ uri: s.image_url }} style={styles.likedCover} contentFit="cover" />
-              ) : (
-                <View style={[styles.likedCover, styles.coverFallback]}>
-                  <Ionicons name="musical-note" size={20} color={colors.muted} />
-                </View>
-              )}
-              <View style={{ flex: 1, gap: 1 }}>
-                <Text style={styles.likedTitle} numberOfLines={1}>
-                  {s.title}
-                </Text>
-                {s.artist ? (
-                  <Text style={styles.likedArtist} numberOfLines={1}>
-                    {s.artist}
-                  </Text>
-                ) : null}
-                {s.album ? (
-                  <Text style={styles.likedAlbum} numberOfLines={1}>
-                    {s.album}
-                  </Text>
-                ) : null}
-              </View>
-            </Pressable>
-            <Pressable testID={`unlike-${s.link_preview_id}`} accessibilityRole="button" accessibilityLabel={t('discover.unlike')} onPress={() => unlike(s)} hitSlop={10}>
-              <Ionicons name="star" size={26} color={STAR} />
-            </Pressable>
-          </View>
-        ))
+        liked.data.map((s) => <LikedSongRow key={s.link_preview_id} song={s} onOpen={openSong} onUnlike={unlike} />)
       )}
       {chooser}
     </ScrollView>
   );
 }
-
-/** Figma: estrela verde-clara das músicas curtidas. */
-const STAR = '#B7FF95';
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: space.md },
@@ -273,11 +244,4 @@ const styles = StyleSheet.create({
   matchText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text },
   likedHeader: { borderTopWidth: 1, borderTopColor: colors.tabBar, paddingTop: space.md },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  likedRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  likedMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md },
-  likedCover: { width: 56, height: 56, borderRadius: 4 },
-  coverFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  likedTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  likedArtist: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
-  likedAlbum: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMuted },
 });

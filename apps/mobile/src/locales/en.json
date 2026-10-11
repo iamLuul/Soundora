@@ -400,8 +400,9 @@
     "noFollowing": "This profile doesn't follow anyone yet."
   },
   "liked": {
-    "title": "Liked by @{{username}}",
-    "empty": "No liked posts yet."
+    "title": "Songs liked by @{{username}}",
+    "empty": "No liked songs yet.",
+    "emptyMine": "Like songs in Discover (swipe right) and they'll show up here."
   },
   "streaming": {
     "title": "Where do you listen to music?",
