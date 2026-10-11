@@ -217,7 +217,7 @@ export default function VibeViewerScreen() {
           />
 
           {/* Prévia de 30 s da loja, de fundo (a key recomeça a música a cada vibe). */}
-          {audioUrl ? <VibeAudio key={current.id} url={audioUrl} paused={paused} muted={muted} /> : null}
+          {audioUrl ? <VibeAudio key={`audio-${current.id}`} url={audioUrl} paused={paused} muted={muted} /> : null}
 
           {/* Faixas de toque: esquerda volta, direita avança. O meio fica livre para os botões da vibe. */}
           <Pressable testID="vibe-prev" accessibilityRole="button" accessibilityLabel={t('vibes.previous')} style={[styles.zone, { left: 0 }]} onPress={goPrev} {...hold} />
