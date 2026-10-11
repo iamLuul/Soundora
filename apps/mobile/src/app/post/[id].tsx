@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,8 @@ import { PostCard } from '../../components/PostCard';
 import { ErrorText } from '../../components/ui';
 import { addComment, blockUser, deletePost, fetchComments, report, setCommentLiked } from '../../lib/api';
 import type { CommentRow } from '../../lib/types';
-import { CommentItem } from '../../components/CommentItem';
+import { CommentItem, RepliesToggle } from '../../components/CommentItem';
+import { buildCommentRows } from '../../lib/comment-thread';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
 import { keys, usePost, useToggleLike } from '../../lib/queries';
@@ -38,6 +39,16 @@ export default function PostScreen() {
   // Respondendo a um comentário: o principal (onde a resposta fica) e o @ de quem é respondido.
   const [replyTo, setReplyTo] = useState<{ rootId: string; username: string } | null>(null);
   const input = useRef<TextInput>(null);
+  // Conversas grandes que a pessoa abriu ("Ver mais").
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const rows = useMemo(() => buildCommentRows(comments.data ?? [], expanded), [comments.data, expanded]);
+  const toggleThread = (rootId: string) =>
+    setExpanded((s) => {
+      const next = new Set(s);
+      if (next.has(rootId)) next.delete(rootId);
+      else next.add(rootId);
+      return next;
+    });
 
   const startReply = (c: CommentRow) => {
     setReplyTo({ rootId: c.parent_id ?? c.id, username: c.author_username });
@@ -64,6 +75,9 @@ export default function PostScreen() {
     setError(null);
     try {
       await addComment(id, body, replyTo?.rootId ?? null);
+      // Respondeu numa conversa recolhida: abre, para a resposta aparecer.
+      const rootId = replyTo?.rootId;
+      if (rootId) setExpanded((s) => new Set(s).add(rootId));
       setBody('');
       setReplyTo(null);
       await Promise.all([
@@ -133,8 +147,8 @@ export default function PostScreen() {
         <Text style={styles.gone}>{post.isError ? formatError(t, post.error) : t('post.gone')}</Text>
       ) : (
         <FlatList
-          data={comments.data ?? []}
-          keyExtractor={(c) => c.id}
+          data={rows}
+          keyExtractor={(r) => r.key}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xl }}
           ListHeaderComponent={
             <>
@@ -143,15 +157,13 @@ export default function PostScreen() {
             </>
           }
           ListEmptyComponent={comments.isLoading ? <ActivityIndicator color={colors.muted} /> : <Text style={styles.empty}>{t('post.noComments')}</Text>}
-          renderItem={({ item, index }) => (
-            <CommentItem
-              item={item}
-              onToggleLike={toggleCommentLike}
-              onReply={startReply}
-              // A próxima linha é uma resposta deste mesmo comentário: a linha vertical continua.
-              continues={!!comments.data?.[index + 1]?.parent_id}
-            />
-          )}
+          renderItem={({ item: row }) =>
+            row.kind === 'toggle' ? (
+              <RepliesToggle rootId={row.rootId} hidden={row.hidden} expanded={row.expanded} onPress={() => toggleThread(row.rootId)} />
+            ) : (
+              <CommentItem item={row.item} onToggleLike={toggleCommentLike} onReply={startReply} continues={row.continues} />
+            )
+          }
         />
       )}
 

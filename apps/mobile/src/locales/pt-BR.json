@@ -195,7 +195,10 @@
     "openHint": "Abre o post com os comentários",
     "openPhoto": "Ver foto",
     "reply": "Responder",
-    "replyingTo": "Respondendo @{{username}}"
+    "replyingTo": "Respondendo @{{username}}",
+    "showMoreReplies_one": "Ver mais {{count}} resposta",
+    "showMoreReplies_other": "Ver mais {{count}} respostas",
+    "showLess": "Mostrar menos"
   },
   "profile": {
     "followers": "Seguidores",

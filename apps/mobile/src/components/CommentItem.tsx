@@ -71,6 +71,8 @@ const styles = StyleSheet.create({
   // Fim da conversa: divisória embaixo. Conversa continua: sem divisória e mais perto da resposta.
   threadEnd: { borderBottomWidth: 1, borderBottomColor: colors.tabBar },
   threadOpen: { paddingBottom: space.sm },
+  toggleRow: { paddingLeft: 46, paddingTop: space.sm, paddingBottom: space.md },
+  toggle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.primary },
   // Centro do avatar do comentário (34 / 2) menos metade da largura da linha.
   line: { position: 'absolute', left: ROOT_AVATAR / 2 - 1, width: 2, borderRadius: 1, backgroundColor: colors.surface },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
@@ -81,3 +83,16 @@ const styles = StyleSheet.create({
   like: { alignItems: 'center', gap: 2, paddingTop: 2, minWidth: 24 },
   count: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMuted },
 });
+
+/** "Ver mais N respostas" / "Mostrar menos" no fim de uma conversa grande. */
+export function RepliesToggle({ rootId, hidden, expanded, onPress }: { rootId: string; hidden: number; expanded: boolean; onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View style={[styles.toggleRow, styles.threadEnd]}>
+      <View style={[styles.line, { top: 0, height: space.sm + 9 }]} />
+      <Pressable testID={`replies-toggle-${rootId}`} accessibilityRole="button" accessibilityState={{ expanded }} onPress={onPress} hitSlop={8}>
+        <Text style={styles.toggle}>{expanded ? t('post.showLess') : t('post.showMoreReplies', { count: hidden })}</Text>
+      </Pressable>
+    </View>
+  );
+}
