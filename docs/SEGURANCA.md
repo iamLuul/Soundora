@@ -72,8 +72,8 @@ A mídia das Vibes e dos posts passa pela Edge Function `media-upload` (`?for=vi
 
 ### Em alta (Last.fm)
 
-- A chave do Last.fm fica só no servidor, como segredo da Edge Function `music-charts` (`LASTFM_API_KEY`). O app nunca a recebe nem fala com o Last.fm, a Deezer ou o song.link: pede o ranking e o link à função, que exige login.
-- O ranking fica em cache no banco (`music_chart_snapshots`, atualizado a cada 3 h) e os links por plataforma também (`track_platform_links`, 30 dias). As duas tabelas são fechadas para o app (RLS e `revoke all`); só a função, com a chave secreta, lê e grava.
+- A chave do Last.fm fica só no servidor, como segredo da Edge Function `music-charts` (`LASTFM_API_KEY`). O app nunca a recebe nem fala com o Last.fm, a Deezer, o iTunes ou o song.link: pede o ranking e o link à função, que exige login.
+- O ranking fica em cache no banco (`music_chart_snapshots`, atualizado a cada 3 h) e os links por plataforma também (`track_platform_links`, 30 dias, a partir do link da Deezer ou da Apple Music). As duas tabelas são fechadas para o app (RLS e `revoke all`); só a função, com a chave secreta, lê e grava.
 - A função só procura links de músicas que estão no ranking, e cada link do song.link é conferido pelo indexador: só volta se for mesmo da plataforma pedida. Se não houver link exato, o app abre a busca da música na plataforma.
 - A plataforma de streaming de cada pessoa fica em `profile_private`: só ela vê, e só troca pela função `set_streaming_platform`, que aceita apenas as plataformas da lista.
 

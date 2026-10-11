@@ -2,8 +2,10 @@
 // Ranking "Mais tocadas no mundo" (aba Trending) e links da mesma música em cada plataforma.
 //
 // - Ranking: chart.getTopTracks do Last.fm (precisa de chave, guardada só no servidor).
-// - Capa, álbum e link da Deezer: busca pública da Deezer (o Last.fm não manda mais capa).
-// - Outras plataformas: song.link (Odesli), que acha a mesma faixa no Spotify, Apple Music etc.
+// - Capa, álbum e links de origem: Deezer e Apple Music (buscas públicas); se nenhuma achar a
+//   capa, a do álbum no próprio Last.fm (track.getInfo). O chart do Last.fm não manda capa.
+// - Outras plataformas: song.link (Odesli), que acha a mesma faixa no Spotify, YouTube Music etc.
+//   a partir do link da Deezer ou da Apple Music.
 // Tudo roda no servidor (Edge Function music-charts); o app só recebe o resultado.
 import { sameTrack } from './genres.ts';
 import { parseStreamingUrl, safeImageUrl, type Platform } from './platforms.ts';
@@ -37,8 +39,20 @@ export interface ChartEntry {
   imageUrl: string | null;
   /** Link da faixa na Deezer (achado pela busca), ponto de partida para as outras plataformas. */
   deezerUrl: string | null;
+  /** Link da faixa na Apple Music (achado pela busca do iTunes). */
+  appleUrl: string | null;
   listeners: number | null;
 }
+
+/** O que as buscas acharam de uma faixa. */
+export interface TrackMeta {
+  album: string | null;
+  imageUrl: string | null;
+  deezerUrl: string | null;
+  appleUrl: string | null;
+}
+
+const EMPTY_META: TrackMeta = { album: null, imageUrl: null, deezerUrl: null, appleUrl: null };
 
 /** Subiu, caiu, manteve, entrou agora (new) ou sem comparação (null). */
 export type ChartMove = 'up' | 'down' | 'same' | 'new' | null;
@@ -50,6 +64,9 @@ export interface RankedEntry extends ChartEntry {
 
 const LASTFM = 'https://ws.audioscrobbler.com/2.0/';
 const DEEZER_SEARCH = 'https://api.deezer.com/search';
+const ITUNES_SEARCH = 'https://itunes.apple.com/search';
+/** Capa "vazia" (estrela cinza) que o Last.fm manda quando não tem a capa. */
+const LASTFM_PLACEHOLDER = '2a96cbd8b46e442fc41c2b86b821562f';
 const ODESLI = 'https://api.song.link/v1-alpha.1/links';
 const MAX_JSON_CHARS = 2_000_000;
 
@@ -99,7 +116,7 @@ export class LastfmKeyError extends Error {
 export async function fetchLastfmTopTracks(
   apiKey: string,
   opts: { fetch: FetchLike; timeoutMs?: number },
-): Promise<Omit<ChartEntry, 'album' | 'imageUrl' | 'deezerUrl'>[] | null> {
+): Promise<Omit<ChartEntry, keyof TrackMeta>[] | null> {
   if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKey)) throw new LastfmKeyError();
   const url = `${LASTFM}?method=chart.gettoptracks&api_key=${apiKey}&format=json&limit=${CHART_SIZE}`;
   const data = (await getJson(opts.fetch, url, opts.timeoutMs ?? 6000)) as { error?: unknown; tracks?: { track?: unknown[] } } | null;
@@ -108,7 +125,7 @@ export async function fetchLastfmTopTracks(
   const tracks = data?.tracks?.track;
   if (!Array.isArray(tracks)) return null;
 
-  const out: Omit<ChartEntry, 'album' | 'imageUrl' | 'deezerUrl'>[] = [];
+  const out: Omit<ChartEntry, keyof TrackMeta>[] = [];
   const seen = new Set<string>();
   for (const raw of tracks.slice(0, CHART_SIZE)) {
     const r = raw as { name?: unknown; listeners?: unknown; artist?: { name?: unknown } };
@@ -131,35 +148,131 @@ interface DeezerHit {
   album?: { title?: unknown; cover_big?: unknown; cover_medium?: unknown };
 }
 
-/** Capa, álbum e link da Deezer de uma faixa. Sem resultado igual, devolve tudo null. */
-export async function findOnDeezer(
-  ref: { title: string; artist: string },
-  opts: { fetch: FetchLike; timeoutMs?: number },
-): Promise<{ album: string | null; imageUrl: string | null; deezerUrl: string | null }> {
-  const q = encodeURIComponent(`artist:"${ref.artist.replace(/"/g, '')}" track:"${ref.title.replace(/"/g, '')}"`);
-  const data = (await getJson(opts.fetch, `${DEEZER_SEARCH}?q=${q}&limit=5`, opts.timeoutMs ?? 5000)) as { data?: DeezerHit[] } | null;
-  const hit = (data?.data ?? []).find((h) => sameTrack(ref, { title: h.title, artist: h.artist?.name }));
-  if (!hit) return { album: null, imageUrl: null, deezerUrl: null };
-  const link = typeof hit.link === 'string' ? parseStreamingUrl(hit.link) : null;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Capa, álbum e link da Deezer de uma faixa. Sem resultado igual, devolve tudo null.
+ * 'quota' = a Deezer pediu para esperar (limite de 50 pedidos a cada 5 s).
+ */
+export async function findOnDeezer(ref: { title: string; artist: string }, opts: { fetch: FetchLike; timeoutMs?: number }): Promise<TrackMeta | 'quota'> {
+  const strict = encodeURIComponent(`artist:"${ref.artist.replace(/"/g, '')}" track:"${ref.title.replace(/"/g, '')}"`);
+  const loose = encodeURIComponent(`${ref.artist} ${ref.title}`.replace(/"/g, ''));
+  for (const q of [strict, loose]) {
+    const data = (await getJson(opts.fetch, `${DEEZER_SEARCH}?q=${q}&limit=10`, opts.timeoutMs ?? 5000)) as {
+      data?: DeezerHit[];
+      error?: { code?: unknown };
+    } | null;
+    if (data?.error?.code === 4) return 'quota';
+    const hit = (Array.isArray(data?.data) ? data.data : []).find((h) => sameTrack(ref, { title: h.title, artist: h.artist?.name }));
+    if (!hit) continue;
+    const link = typeof hit.link === 'string' ? parseStreamingUrl(hit.link) : null;
+    const cover = typeof hit.album?.cover_big === 'string' ? hit.album.cover_big : typeof hit.album?.cover_medium === 'string' ? hit.album.cover_medium : null;
+    return {
+      album: str(hit.album?.title),
+      imageUrl: safeImageUrl(cover),
+      deezerUrl: link?.platform === 'deezer' && link.kind === 'track' ? link.url : null,
+      appleUrl: null,
+    };
+  }
+  return EMPTY_META;
+}
+
+interface ItunesHit {
+  wrapperType?: unknown;
+  trackName?: unknown;
+  artistName?: unknown;
+  collectionName?: unknown;
+  artworkUrl100?: unknown;
+  trackViewUrl?: unknown;
+}
+
+/** Capa, álbum e link da Apple Music de uma faixa (busca pública do iTunes). */
+export async function findOnItunes(ref: { title: string; artist: string }, opts: { fetch: FetchLike; timeoutMs?: number }): Promise<TrackMeta> {
+  const term = encodeURIComponent(`${ref.artist} ${ref.title}`);
+  const data = (await getJson(opts.fetch, `${ITUNES_SEARCH}?term=${term}&media=music&entity=song&limit=10&country=us`, opts.timeoutMs ?? 5000)) as {
+    results?: ItunesHit[];
+  } | null;
+  const hit = (Array.isArray(data?.results) ? data.results : []).find((h) => sameTrack(ref, { title: h.trackName, artist: h.artistName }));
+  if (!hit) return EMPTY_META;
+  const link = typeof hit.trackViewUrl === 'string' ? parseStreamingUrl(hit.trackViewUrl) : null;
+  const art = typeof hit.artworkUrl100 === 'string' ? hit.artworkUrl100.replace(/\/\d+x\d+(bb)?\.(jpg|png|webp)$/i, '/600x600bb.$2') : null;
   return {
-    album: str(hit.album?.title),
-    imageUrl: safeImageUrl(
-      typeof hit.album?.cover_big === 'string' ? hit.album.cover_big : typeof hit.album?.cover_medium === 'string' ? hit.album.cover_medium : null,
-    ),
-    deezerUrl: link?.platform === 'deezer' && link.kind === 'track' ? link.url : null,
+    album: str(hit.collectionName),
+    imageUrl: safeImageUrl(art),
+    deezerUrl: null,
+    appleUrl: link?.platform === 'apple_music' && link.kind === 'track' ? link.url : null,
   };
 }
 
-/** Ranking completo: Last.fm + capa/álbum/link da Deezer (de 10 em 10, para não abusar da Deezer). */
-export async function fetchWorldChart(apiKey: string, opts: { fetch: FetchLike; timeoutMs?: number }): Promise<ChartEntry[] | null> {
+/** Capa do álbum pelo próprio Last.fm (track.getInfo), quando as lojas não acharam. */
+export async function findOnLastfm(
+  apiKey: string,
+  ref: { title: string; artist: string },
+  opts: { fetch: FetchLike; timeoutMs?: number },
+): Promise<{ album: string | null; imageUrl: string | null }> {
+  if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKey)) return { album: null, imageUrl: null };
+  const url = `${LASTFM}?method=track.getinfo&api_key=${apiKey}&format=json&autocorrect=1&artist=${encodeURIComponent(ref.artist)}&track=${encodeURIComponent(ref.title)}`;
+  const data = (await getJson(opts.fetch, url, opts.timeoutMs ?? 5000)) as { track?: { album?: { title?: unknown; image?: { '#text'?: unknown }[] } } } | null;
+  const album = data?.track?.album;
+  const images = Array.isArray(album?.image) ? album.image : [];
+  const biggest = [...images].reverse().find((i) => typeof i['#text'] === 'string' && i['#text'] && !i['#text'].includes(LASTFM_PLACEHOLDER));
+  return { album: str(album?.title), imageUrl: safeImageUrl(biggest?.['#text'] as string | undefined) };
+}
+
+/** Junta o que cada fonte achou: o primeiro valor que existir vence. */
+function merge(a: TrackMeta, b: Partial<TrackMeta>): TrackMeta {
+  return {
+    album: a.album ?? b.album ?? null,
+    imageUrl: a.imageUrl ?? b.imageUrl ?? null,
+    deezerUrl: a.deezerUrl ?? b.deezerUrl ?? null,
+    appleUrl: a.appleUrl ?? b.appleUrl ?? null,
+  };
+}
+
+/**
+ * Metadados de uma faixa por todas as fontes: Deezer, depois Apple Music para o que faltar
+ * (link da Apple e capa), e por fim a capa do Last.fm.
+ */
+export async function findTrackMeta(
+  ref: { title: string; artist: string },
+  opts: { fetch: FetchLike; timeoutMs?: number; lastfmKey?: string; useItunes?: boolean; quotaWaitMs?: number },
+): Promise<TrackMeta> {
+  let deezer = await findOnDeezer(ref, opts);
+  if (deezer === 'quota') {
+    await wait(opts.quotaWaitMs ?? 5500);
+    deezer = await findOnDeezer(ref, opts);
+  }
+  let meta = deezer === 'quota' ? EMPTY_META : deezer;
+  if (opts.useItunes !== false && (!meta.imageUrl || !meta.appleUrl)) meta = merge(meta, await findOnItunes(ref, opts));
+  if (!meta.imageUrl && opts.lastfmKey) meta = merge(meta, await findOnLastfm(opts.lastfmKey, ref, opts));
+  return meta;
+}
+
+/**
+ * Ranking completo: Last.fm + capa/álbum/links. Vai de 5 em 5 com uma pausa, para ficar dentro
+ * dos limites da Deezer (50 pedidos a cada 5 s) e do iTunes (cerca de 20 por minuto).
+ */
+export async function fetchWorldChart(
+  apiKey: string,
+  opts: { fetch: FetchLike; timeoutMs?: number; pauseMs?: number; quotaWaitMs?: number; log?: (...a: unknown[]) => void },
+): Promise<ChartEntry[] | null> {
   const top = await fetchLastfmTopTracks(apiKey, opts);
   if (!top) return null;
   const out: ChartEntry[] = [];
-  for (let i = 0; i < top.length; i += 10) {
-    const batch = top.slice(i, i + 10);
-    const found = await Promise.all(batch.map((t) => findOnDeezer(t, opts)));
+  let itunesCalls = 0;
+  for (let i = 0; i < top.length; i += 5) {
+    if (i > 0) await wait(opts.pauseMs ?? 600);
+    const batch = top.slice(i, i + 5);
+    // O iTunes é usado nas primeiras posições (onde mais importa) para não passar do limite dele.
+    const useItunes = itunesCalls < 18;
+    if (useItunes) itunesCalls += batch.length;
+    const found = await Promise.all(batch.map((t) => findTrackMeta(t, { ...opts, lastfmKey: apiKey, useItunes })));
     batch.forEach((t, j) => out.push({ ...t, ...found[j]! }));
   }
+  opts.log?.(
+    `music-charts: ${out.length} músicas, ${out.filter((e) => e.imageUrl).length} com capa, ` +
+      `${out.filter((e) => e.deezerUrl || e.appleUrl).length} com link de origem (Deezer ${out.filter((e) => e.deezerUrl).length}, Apple ${out.filter((e) => e.appleUrl).length})`,
+  );
   return out;
 }
 
@@ -186,17 +299,23 @@ const ODESLI_KEYS: Record<string, Platform> = {
   soundcloud: 'soundcloud',
 };
 
+/** Link de faixa da Deezer ou da Apple Music (os que o song.link recebe como origem). */
+export function isChartSourceUrl(url: string): boolean {
+  const parsed = parseStreamingUrl(url);
+  return !!parsed && parsed.kind === 'track' && (parsed.platform === 'deezer' || parsed.platform === 'apple_music') && parsed.url === url;
+}
+
 /**
- * Links da mesma música em cada plataforma, pelo song.link, a partir do link da Deezer. Cada link é conferido: só entra se
- * for mesmo um link daquela plataforma (nada de mandar a pessoa para um site qualquer).
- * null = o song.link não respondeu agora.
+ * Links da mesma música em cada plataforma, pelo song.link, a partir do link da Deezer ou da
+ * Apple Music. Cada link é conferido: só entra se for mesmo um link daquela plataforma (nada de
+ * mandar a pessoa para um site qualquer). null = o song.link não respondeu agora.
  */
 export async function fetchPlatformLinks(
-  deezerTrackUrl: string,
+  sourceTrackUrl: string,
   opts: { fetch: FetchLike; timeoutMs?: number; country?: string },
 ): Promise<Partial<Record<Platform, string>> | null> {
-  const source = parseStreamingUrl(deezerTrackUrl);
-  if (source?.platform !== 'deezer' || source.kind !== 'track') return null;
+  const source = parseStreamingUrl(sourceTrackUrl);
+  if (!source || source.kind !== 'track' || (source.platform !== 'deezer' && source.platform !== 'apple_music')) return null;
   const country = /^[A-Z]{2}$/.test(opts.country ?? '') ? opts.country : 'US';
   const data = (await getJson(opts.fetch, `${ODESLI}?url=${encodeURIComponent(source.url)}&userCountry=${country}`, opts.timeoutMs ?? 6000)) as {
     linksByPlatform?: Record<string, { url?: unknown }>;

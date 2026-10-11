@@ -4,7 +4,7 @@
 // { action: 'chart' }                       → as 50 mais tocadas no mundo (Last.fm), com capa e se subiu/caiu
 // { action: 'link', key, platform }         → link da música na plataforma da pessoa (ou a busca nela)
 import { readJsonLimited } from '../_shared/body.ts';
-import { isStreamingChoice, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry } from '../_shared/links/charts.ts';
+import { isChartSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry, type TrackMeta } from '../_shared/links/charts.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
@@ -38,10 +38,14 @@ export interface Deps {
   saveSnapshot(takenOn: string, entries: ChartEntry[]): Promise<void>;
   /** Baixa o ranking (Last.fm + Deezer). LastfmKeyError = chave ausente ou recusada. */
   fetchChart(): Promise<ChartEntry[] | null>;
-  findLinks(deezerUrl: string): Promise<{ links: Partial<Record<Platform, string>>; checked_at: string } | null>;
-  saveLinks(deezerUrl: string, links: Partial<Record<Platform, string>>): Promise<void>;
-  /** Links da mesma faixa nas plataformas (song.link). null = não respondeu agora. */
-  fetchLinks(deezerUrl: string): Promise<Partial<Record<Platform, string>> | null>;
+  findLinks(sourceUrl: string): Promise<{ links: Partial<Record<Platform, string>>; checked_at: string } | null>;
+  saveLinks(sourceUrl: string, links: Partial<Record<Platform, string>>): Promise<void>;
+  /** Links da mesma faixa nas plataformas (song.link), a partir do link da Deezer ou da Apple. null = não respondeu agora. */
+  fetchLinks(sourceUrl: string): Promise<Partial<Record<Platform, string>> | null>;
+  /** Procura de novo capa e links de uma música (quando o ranking veio sem o link de origem). */
+  findMeta(ref: { title: string; artist: string }): Promise<TrackMeta>;
+  /** Roda depois da resposta (atualizar o ranking sem a pessoa esperar). */
+  background?(task: Promise<unknown>): void;
   now?: () => Date;
   debug?: boolean;
   log?: (...args: unknown[]) => void;
@@ -60,21 +64,44 @@ export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
   const now = deps.now ?? (() => new Date());
 
-  /** Ranking atual: do cache se for recente; senão, busca de novo (e cai no cache velho se falhar). */
-  async function currentChart(): Promise<{ snapshot: Snapshot; stale: boolean } | 'unavailable'> {
-    const latest = await deps.latestSnapshot();
-    if (latest && now().getTime() - new Date(latest.fetched_at).getTime() < CHART_TTL_MS) return { snapshot: latest, stale: false };
-    try {
-      const entries = await deps.fetchChart();
-      if (entries?.length) {
+  /** Ranking salvo antes desta versão (sem capa/links da Apple): busca de novo na hora. */
+  const oldFormat = (snap: Snapshot) => snap.entries.some((e) => !('appleUrl' in e));
+
+  let refreshing: Promise<Snapshot | null> | null = null;
+  /** Busca o ranking de novo e guarda. Um pedido por vez (os outros esperam o mesmo). */
+  function refresh(): Promise<Snapshot | null> {
+    refreshing ??= (async () => {
+      try {
+        const entries = await deps.fetchChart();
+        if (!entries?.length) return null;
         const today = now().toISOString().slice(0, 10);
         await deps.saveSnapshot(today, entries);
-        return { snapshot: { taken_on: today, fetched_at: now().toISOString(), entries }, stale: false };
+        return { taken_on: today, fetched_at: now().toISOString(), entries };
+      } catch (err) {
+        if (err instanceof LastfmKeyError) log('music-charts: chave do Last.fm ausente ou recusada (LASTFM_API_KEY)');
+        else log('music-charts: falha ao buscar o ranking', err);
+        return null;
+      } finally {
+        refreshing = null;
       }
-    } catch (err) {
-      if (err instanceof LastfmKeyError) log('music-charts: chave do Last.fm ausente ou recusada (LASTFM_API_KEY)');
-      else log('music-charts: falha ao buscar o ranking', err);
+    })();
+    return refreshing;
+  }
+
+  /**
+   * Ranking atual: do cache se for recente. Vencido, mostra o guardado e atualiza por trás
+   * (buscar capas e links de 50 músicas leva alguns segundos). Sem nenhum guardado, espera.
+   */
+  async function currentChart(): Promise<{ snapshot: Snapshot; stale: boolean } | 'unavailable'> {
+    const latest = await deps.latestSnapshot();
+    const usable = latest && !oldFormat(latest) ? latest : null;
+    if (usable && now().getTime() - new Date(usable.fetched_at).getTime() < CHART_TTL_MS) return { snapshot: usable, stale: false };
+    if (usable && deps.background) {
+      deps.background(refresh());
+      return { snapshot: usable, stale: true };
     }
+    const fresh = await refresh();
+    if (fresh) return { snapshot: fresh, stale: false };
     return latest ? { snapshot: latest, stale: true } : 'unavailable';
   }
 
@@ -104,20 +131,36 @@ export function createHandler(deps: Deps) {
     const entry = latest?.entries.find((e) => e.key === body.key);
     if (!entry) return json({ error: 'not_found' }, 404);
     const search = platformSearchUrl(platform, entry.title, entry.artist);
-    if (!entry.deezerUrl) return json({ url: search, exact: false });
-    if (platform === 'deezer') return json({ url: entry.deezerUrl, exact: true });
 
-    let links =
-      (await deps.findLinks(entry.deezerUrl).then((c) => (c && now().getTime() - new Date(c.checked_at).getTime() < LINKS_TTL_MS ? c.links : null))) ?? null;
+    // Ranking sem o link de origem: procura de novo só esta música, na hora.
+    let meta: Pick<TrackMeta, 'deezerUrl' | 'appleUrl'> = { deezerUrl: entry.deezerUrl ?? null, appleUrl: entry.appleUrl ?? null };
+    if (!meta.deezerUrl && !meta.appleUrl) {
+      try {
+        meta = await deps.findMeta(entry);
+      } catch (err) {
+        log('music-charts: busca da música falhou', err);
+      }
+    }
+    if (platform === 'deezer' && meta.deezerUrl) return json({ url: meta.deezerUrl, exact: true });
+    if (platform === 'apple_music' && meta.appleUrl) return json({ url: meta.appleUrl, exact: true });
+    const source = [meta.deezerUrl, meta.appleUrl].find((u): u is string => !!u && isChartSourceUrl(u));
+    if (!source) {
+      log(`music-charts: sem link de origem para "${entry.artist} - ${entry.title}"; abrindo a busca`);
+      return json({ url: search, exact: false });
+    }
+
+    const cached = await deps.findLinks(source);
+    let links = cached && now().getTime() - new Date(cached.checked_at).getTime() < LINKS_TTL_MS ? cached.links : null;
     if (!links) {
       try {
-        links = await deps.fetchLinks(entry.deezerUrl);
-        if (links) await deps.saveLinks(entry.deezerUrl, links);
+        links = await deps.fetchLinks(source);
+        if (links) await deps.saveLinks(source, links);
+        else log(`music-charts: song.link não respondeu para ${source}`);
       } catch (err) {
         log('music-charts: song.link indisponível', err);
       }
     }
-    const exact = links?.[platform];
+    const exact = links?.[platform] ?? (platform === 'deezer' ? meta.deezerUrl : platform === 'apple_music' ? meta.appleUrl : null);
     return json(exact ? { url: exact, exact: true } : { url: search, exact: false });
   }
 

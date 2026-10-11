@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartKey, fetchPlatformLinks, fetchWorldChart, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry } from './charts.ts';
+import { chartKey, fetchPlatformLinks, fetchWorldChart, findTrackMeta, isChartSourceUrl, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry } from './charts.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -46,7 +46,7 @@ describe('ranking mundial (Last.fm + Deezer)', () => {
       },
       calls,
     );
-    const chart = await fetchWorldChart(KEY, { fetch });
+    const chart = await fetchWorldChart(KEY, { fetch, pauseMs: 0 });
     expect(chart).toEqual([
       {
         position: 1,
@@ -57,6 +57,7 @@ describe('ranking mundial (Last.fm + Deezer)', () => {
         album: 'Espresso (Album)',
         imageUrl: 'https://e-cdns-images.dzcdn.net/images/cover/abc/500x500.jpg',
         deezerUrl: 'https://www.deezer.com/track/2801558052',
+        appleUrl: null,
       },
       {
         position: 2,
@@ -67,6 +68,7 @@ describe('ranking mundial (Last.fm + Deezer)', () => {
         album: null,
         imageUrl: null,
         deezerUrl: null,
+        appleUrl: null,
       },
     ]);
     expect(calls[0]).toContain(`api_key=${KEY}`);
@@ -84,6 +86,79 @@ describe('ranking mundial (Last.fm + Deezer)', () => {
   });
 });
 
+describe('capa e links quando a Deezer não acha', () => {
+  const ref = { title: 'Not Like Us', artist: 'Kendrick Lamar' };
+
+  it('Apple Music completa capa, álbum e link', async () => {
+    const fetch = fakeFetch({
+      'https://api.deezer.com/search': { data: [] },
+      'https://itunes.apple.com/search?term=Kendrick': {
+        results: [
+          { trackName: 'Outra', artistName: 'Outro' },
+          {
+            trackName: 'Not Like Us',
+            artistName: 'Kendrick Lamar',
+            collectionName: 'Not Like Us - Single',
+            artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/Music/aa/100x100bb.jpg',
+            trackViewUrl: 'https://music.apple.com/us/album/not-like-us/1744776162?i=1744776167&uo=4',
+          },
+        ],
+      },
+    });
+    const meta = await findTrackMeta(ref, { fetch, lastfmKey: KEY });
+    expect(meta.album).toBe('Not Like Us - Single');
+    expect(meta.imageUrl).toBe('https://is1-ssl.mzstatic.com/image/thumb/Music/aa/600x600bb.jpg');
+    expect(meta.appleUrl).toBe('https://music.apple.com/us/album/not-like-us/1744776162?i=1744776167');
+    expect(meta.deezerUrl).toBeNull();
+    expect(isChartSourceUrl(meta.appleUrl!)).toBe(true);
+  });
+
+  it('por último, a capa do álbum no Last.fm (sem a estrela cinza de "sem capa")', async () => {
+    const fetch = fakeFetch({
+      'https://ws.audioscrobbler.com/2.0/?method=track.getinfo': {
+        track: {
+          album: {
+            title: 'GNX',
+            image: [
+              { '#text': 'https://lastfm.freetls.fastly.net/i/u/34s/abc.png', size: 'small' },
+              { '#text': 'https://lastfm.freetls.fastly.net/i/u/300x300/abc.png', size: 'extralarge' },
+            ],
+          },
+        },
+      },
+    });
+    expect((await findTrackMeta(ref, { fetch, lastfmKey: KEY })).imageUrl).toBe('https://lastfm.freetls.fastly.net/i/u/300x300/abc.png');
+
+    const placeholder = fakeFetch({
+      'https://ws.audioscrobbler.com/2.0/?method=track.getinfo': {
+        track: { album: { image: [{ '#text': 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png' }] } },
+      },
+    });
+    expect((await findTrackMeta(ref, { fetch: placeholder, lastfmKey: KEY })).imageUrl).toBeNull();
+  });
+
+  it('Deezer pedindo para esperar: espera e tenta de novo', async () => {
+    let first = true;
+    const fetch: FetchLike = async (url) => {
+      let body: unknown = { data: [] };
+      if (url.startsWith('https://api.deezer.com/search')) {
+        body = first ? { error: { type: 'Exception', message: 'Quota limit exceeded', code: 4 } } : deezer('Not Like Us', 'Kendrick Lamar', 7);
+        first = false;
+      }
+      return { ok: true, status: 200, headers: { get: () => null }, text: async () => JSON.stringify(body) };
+    };
+    expect((await findTrackMeta(ref, { fetch, quotaWaitMs: 1 })).deezerUrl).toBe('https://www.deezer.com/track/7');
+  });
+
+  it('busca sem aspas quando a busca exata não acha', async () => {
+    const fetch = fakeFetch({
+      'https://api.deezer.com/search?q=artist': { data: [] },
+      'https://api.deezer.com/search?q=Kendrick': deezer('Not Like Us', 'Kendrick Lamar', 9),
+    });
+    expect((await findTrackMeta(ref, { fetch, useItunes: false })).deezerUrl).toBe('https://www.deezer.com/track/9');
+  });
+});
+
 describe('subiu, caiu, novo', () => {
   const e = (key: string, position: number): ChartEntry => ({
     key,
@@ -93,6 +168,7 @@ describe('subiu, caiu, novo', () => {
     album: null,
     imageUrl: null,
     deezerUrl: null,
+    appleUrl: null,
     listeners: null,
   });
   it('compara com o ranking anterior', () => {
@@ -131,6 +207,12 @@ describe('links nas plataformas (song.link)', () => {
     expect(links?.youtube_music).toBe('https://music.youtube.com/watch?v=eVli-tstM5E');
     expect(links?.deezer).toBe('https://www.deezer.com/track/2801558052');
     expect(links?.tidal).toBeUndefined();
+  });
+
+  it('aceita o link da Apple Music como origem', async () => {
+    const calls: string[] = [];
+    await fetchPlatformLinks('https://music.apple.com/us/album/not-like-us/1744776162?i=1744776167', { fetch: fakeFetch({}, calls) });
+    expect(calls[0]).toContain('api.song.link');
   });
 
   it('não consulta com link que não é de faixa da Deezer', async () => {

@@ -18,6 +18,7 @@ const entry = (key: string, position: number, deezerUrl: string | null = null): 
   album: null,
   imageUrl: null,
   deezerUrl,
+  appleUrl: null,
   listeners: 10,
 });
 
@@ -26,7 +27,7 @@ const NOW = new Date('2026-10-11T12:00:00Z');
 function setup(overrides: Partial<Deps> = {}, initial: Snapshot[] = []) {
   const snapshots = [...initial];
   const links = new Map<string, { links: Partial<Record<Platform, string>>; checked_at: string }>();
-  const calls = { fetchChart: 0, fetchLinks: 0 };
+  const calls = { fetchChart: 0, fetchLinks: 0, findMeta: 0, sources: [] as string[] };
   const deps: Deps = {
     debug: true,
     log: () => {},
@@ -47,9 +48,14 @@ function setup(overrides: Partial<Deps> = {}, initial: Snapshot[] = []) {
     },
     findLinks: async (u) => links.get(u) ?? null,
     saveLinks: async (u, l) => void links.set(u, { links: l, checked_at: NOW.toISOString() }),
-    fetchLinks: async () => {
+    fetchLinks: async (source) => {
       calls.fetchLinks++;
+      calls.sources.push(source);
       return { spotify: 'https://open.spotify.com/track/abc' };
+    },
+    findMeta: async () => {
+      calls.findMeta++;
+      return { album: null, imageUrl: null, deezerUrl: null, appleUrl: null };
     },
     ...overrides,
   };
@@ -117,7 +123,9 @@ Deno.test('link: exato pelo song.link (com cache), busca quando não há, e só 
     url: 'https://listen.tidal.com/search?q=A%20Artista',
     exact: false,
   });
+  // Sem link de origem: procura a música de novo; sem achar, abre a busca.
   assertEquals((await (await handler(post({ action: 'link', key: 'b', platform: 'spotify' }))).json()).url, 'https://open.spotify.com/search/B%20Artista');
+  assertEquals(calls.findMeta, 1);
 
   assertEquals((await handler(post({ action: 'link', key: 'zzz', platform: 'spotify' }))).status, 404);
   assertEquals((await handler(post({ action: 'link', key: 'a', platform: 'napster' }))).status, 400);
@@ -127,4 +135,39 @@ Deno.test('link: exato pelo song.link (com cache), busca quando não há, e só 
 Deno.test('limite de pedidos: 429', async () => {
   const { handler } = setup({ rateLimit: async () => false });
   assertEquals((await handler(post({ action: 'chart' }))).status, 429);
+});
+
+Deno.test('link pela Apple Music quando a Deezer não achou; e música sem link é procurada de novo na hora', async () => {
+  const apple = 'https://music.apple.com/us/album/x/1?i=2';
+  const today: Snapshot = {
+    taken_on: '2026-10-11',
+    fetched_at: NOW.toISOString(),
+    entries: [{ ...entry('a', 1), appleUrl: apple }, entry('b', 2)],
+  };
+  const { handler, calls } = setup(
+    { findMeta: async () => ({ album: null, imageUrl: null, deezerUrl: 'https://www.deezer.com/track/9', appleUrl: null }) },
+    [today],
+  );
+  assertEquals(await (await handler(post({ action: 'link', key: 'a', platform: 'apple_music' }))).json(), { url: apple, exact: true });
+  assertEquals((await (await handler(post({ action: 'link', key: 'a', platform: 'spotify' }))).json()).url, 'https://open.spotify.com/track/abc');
+  assertEquals(calls.sources, [apple]);
+  assertEquals((await (await handler(post({ action: 'link', key: 'b', platform: 'spotify' }))).json()).exact, true);
+  assertEquals(calls.sources, [apple, 'https://www.deezer.com/track/9']);
+});
+
+Deno.test('ranking vencido: mostra o guardado e atualiza por trás; formato antigo é buscado de novo na hora', async () => {
+  const tasks: Promise<unknown>[] = [];
+  const old: Snapshot = { taken_on: '2026-10-11', fetched_at: '2026-10-11T05:00:00Z', entries: [entry('z', 1)] };
+  const { handler, calls } = setup({ background: (t) => void tasks.push(t) }, [old]);
+  const body = await (await handler(post({ action: 'chart' }))).json();
+  assertEquals([body.stale, body.entries[0].key], [true, 'z']);
+  await Promise.all(tasks);
+  assertEquals(calls.fetchChart, 1);
+  assertEquals((await (await handler(post({ action: 'chart' }))).json()).entries[0].key, 'a');
+
+  // Salvo por uma versão anterior (sem appleUrl): não serve, busca na hora.
+  const legacy = { taken_on: '2026-10-11', fetched_at: NOW.toISOString(), entries: [{ position: 1, key: 'y', title: 'Y', artist: 'A' }] } as unknown as Snapshot;
+  const second = setup({ background: (t) => void tasks.push(t) }, [legacy]);
+  const fresh = await (await second.handler(post({ action: 'chart' }))).json();
+  assertEquals([fresh.stale, fresh.entries[0].key, second.calls.fetchChart], [false, 'a', 1]);
 });

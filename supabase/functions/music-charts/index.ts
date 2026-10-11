@@ -6,7 +6,7 @@
 // Local:  supabase/functions/.env com LASTFM_API_KEY=...  e  npx supabase functions serve
 // Nuvem:  npx supabase secrets set LASTFM_API_KEY=...      e  npx supabase functions deploy music-charts
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { fetchPlatformLinks, fetchWorldChart, LastfmKeyError, type ChartEntry } from '../_shared/links/charts.ts';
+import { fetchPlatformLinks, fetchWorldChart, findTrackMeta, LastfmKeyError, type ChartEntry } from '../_shared/links/charts.ts';
 import type { FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
 import { createHandler, RATE, type Snapshot } from './handler.ts';
@@ -16,6 +16,9 @@ const admin = createClient(supabaseUrl, apiKey('secret'), { auth: { persistSessi
 const http = fetch as unknown as FetchLike;
 
 const COLUMNS = 'taken_on, fetched_at, entries';
+
+// Do runtime das Edge Functions: mantém a tarefa rodando depois da resposta.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 Deno.serve(
   createHandler({
@@ -70,17 +73,19 @@ Deno.serve(
     fetchChart() {
       const key = Deno.env.get('LASTFM_API_KEY');
       if (!key) throw new LastfmKeyError();
-      return fetchWorldChart(key, { fetch: http, timeoutMs: 6000 });
+      return fetchWorldChart(key, { fetch: http, timeoutMs: 6000, log: console.log });
     },
-    async findLinks(deezerUrl) {
-      const { data, error } = await admin.from('track_platform_links').select('links, checked_at').eq('deezer_url', deezerUrl).maybeSingle();
+    async findLinks(sourceUrl) {
+      const { data, error } = await admin.from('track_platform_links').select('links, checked_at').eq('source_url', sourceUrl).maybeSingle();
       if (error) throw error;
       return data;
     },
-    async saveLinks(deezerUrl, links) {
-      const { error } = await admin.from('track_platform_links').upsert({ deezer_url: deezerUrl, links, checked_at: new Date().toISOString() });
+    async saveLinks(sourceUrl, links) {
+      const { error } = await admin.from('track_platform_links').upsert({ source_url: sourceUrl, links, checked_at: new Date().toISOString() });
       if (error) throw error;
     },
-    fetchLinks: (deezerUrl) => fetchPlatformLinks(deezerUrl, { fetch: http, timeoutMs: 6000 }),
+    fetchLinks: (sourceUrl) => fetchPlatformLinks(sourceUrl, { fetch: http, timeoutMs: 6000 }),
+    findMeta: (ref) => findTrackMeta(ref, { fetch: http, timeoutMs: 5000, lastfmKey: Deno.env.get('LASTFM_API_KEY') }),
+    background: typeof EdgeRuntime !== 'undefined' ? (task) => EdgeRuntime!.waitUntil(task) : undefined,
   }),
 );

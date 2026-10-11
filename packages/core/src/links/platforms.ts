@@ -283,6 +283,7 @@ const IMAGE_HOST_SUFFIXES = [
   'media-amazon.com', // Amazon
   'ssl-images-amazon.com',
   'bcbits.com', // Bandcamp
+  'lastfm.freetls.fastly.net', // capas do Last.fm (só esse host da Fastly)
 ];
 
 export function isAllowedImageHost(hostname: string): boolean {
