@@ -23,6 +23,7 @@ export function GenrePicker({
   detected = [],
   suggestions = [],
   max = 3,
+  title,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
@@ -31,6 +32,8 @@ export function GenrePicker({
   /** Mostrados sem digitar (ex.: os gêneros do perfil). */
   suggestions?: string[];
   max?: number;
+  /** Título no lugar de "Gêneros" (ex.: no editar perfil). */
+  title?: string;
 }) {
   const { t, i18n } = useTranslation();
   const genres = useGenres();
@@ -55,7 +58,7 @@ export function GenrePicker({
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>
-        {t('compose.genres')} <Text style={styles.counter}>{t('compose.genresCount', { count: value.length, max })}</Text>
+        {title ?? t('compose.genres')} <Text style={styles.counter}>{t('compose.genresCount', { count: value.length, max })}</Text>
       </Text>
 
       {value.length ? (

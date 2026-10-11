@@ -70,6 +70,13 @@ A mídia das Vibes e dos posts passa pela Edge Function `media-upload` (`?for=vi
 - **Faxina:** a cada envio, a função apaga os arquivos da pessoa que venceram, foram apagados ou nunca viraram vibe (com 1 h de folga).
 - Quem viu a vibe só aparece para o autor.
 
+### Descobrir (sugestões)
+
+- A Edge Function `discover` monta as sugestões no servidor: lê as curtidas e os gêneros da pessoa com a chave secreta, pede músicas parecidas e dos gêneros ao Last.fm e acha cada uma na Deezer. O app só recebe os cartões.
+- O cache das buscas (`track_lookups`) é fechado para o app. Os cartões vão para `link_previews`, que já é pública, com capa, álbum, foto do artista e prévia só de hosts permitidos (CDNs da Deezer e da Apple).
+- O link para a plataforma da pessoa só sai para cartões que existem, e passa pelas mesmas conferências do Em alta.
+- Limite: 12 pilhas e 30 links por minuto por pessoa.
+
 ### Em alta (Last.fm)
 
 - A chave do Last.fm fica só no servidor, como segredo da Edge Function `music-charts` (`LASTFM_API_KEY`). O app nunca a recebe nem fala com o Last.fm, a Deezer, o iTunes ou o song.link: pede o ranking e o link à função, que exige login.
@@ -137,6 +144,7 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
    npx supabase functions deploy delete-account
    npx supabase functions deploy media-upload
    npx supabase functions deploy music-charts
+   npx supabase functions deploy discover
    ```
 
 ## Excluir conta

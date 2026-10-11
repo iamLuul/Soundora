@@ -127,7 +127,8 @@
     "genres_need_music": "Genres can only be set on posts with a song.",
     "invalid_parent": "That comment no longer exists.",
     "charts_unavailable": "The chart didn't respond. Try again in a moment.",
-    "invalid_platform": "Invalid streaming platform."
+    "invalid_platform": "Invalid streaming platform.",
+    "discover_unavailable": "Suggestions didn't respond. Try again in a moment."
   },
   "tabs": {
     "feed": "For you",
@@ -243,7 +244,19 @@
     "like": "Like",
     "empty": "You've seen every song for now. Come back later!",
     "reload": "Load more",
-    "hint": "Swipe right if you like it, left to skip."
+    "hint": "Swipe right if you like it, left to skip.",
+    "searchGenres": "Search genres",
+    "onlyGenre": "Only {{genre}}",
+    "allGenres": "Back to all suggestions",
+    "loading": "Finding music for you…",
+    "likedSongs": "Liked songs",
+    "likedEmpty": "Swipe right (or tap the star) to keep the songs you like here.",
+    "unlike": "Unlike",
+    "play": "Play preview",
+    "pause": "Pause preview",
+    "because": "Because you liked {{track}}",
+    "becauseGenre": "Popular in {{genre}}",
+    "becausePopular": "Popular worldwide"
   },
   "trending": {
     "title": "Most played worldwide",
@@ -278,7 +291,9 @@
     "confirmPassword": "Repeat the new password",
     "savePassword": "Save password",
     "passwordSaved": "Password saved. Next time, sign in with email and password.",
-    "removeBanner": "Remove banner"
+    "removeBanner": "Remove banner",
+    "genres": "Genres you like",
+    "genresHint": "They guide your Discover suggestions. At least {{min}}."
   },
   "settings": {
     "title": "Settings",

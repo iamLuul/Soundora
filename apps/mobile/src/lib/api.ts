@@ -9,6 +9,7 @@ import type {
   DiscoverCard,
   FeedItem,
   LinkPreviewRow,
+  LikedSong,
   PersonCard,
   Profile,
   ProfileSummary,
@@ -42,6 +43,22 @@ export async function getMyGenres(): Promise<string[]> {
   const { data, error } = await supabase.from('user_genres').select('genre').eq('user_id', id);
   if (error) throw error;
   return data.map((r) => r.genre);
+}
+
+/** Troca os gêneros do perfil (adiciona os novos e tira os que saíram). */
+export async function setMyGenres(next: string[]): Promise<void> {
+  const id = await currentUserId();
+  const current = await getMyGenres();
+  const add = next.filter((g) => !current.includes(g));
+  const remove = current.filter((g) => !next.includes(g));
+  if (add.length) {
+    const { error } = await supabase.from('user_genres').insert(add.map((genre) => ({ user_id: id, genre })));
+    if (error) throw error;
+  }
+  if (remove.length) {
+    const { error } = await supabase.from('user_genres').delete().eq('user_id', id).in('genre', remove);
+    if (error) throw error;
+  }
 }
 
 /** true se o username está livre (o formato também é conferido no banco). */
@@ -279,6 +296,40 @@ export interface ChartTrack {
   /** Subiu, caiu, manteve, entrou agora, ou null (sem ranking anterior para comparar). */
   move: 'up' | 'down' | 'same' | 'new' | null;
   previous_position: number | null;
+}
+
+/** Sugestões do algoritmo para o Descobrir (ou só de um gênero). */
+export async function fetchRecommendations(genre: string | null): Promise<DiscoverCard[]> {
+  const { data, error } = await supabase.functions.invoke<{ cards: Omit<DiscoverCard, 'kind' | 'source' | 'note' | 'post_id' | 'recommender_username' | 'recommender_display_name' | 'recommender_avatar_url'>[] }>(
+    'discover',
+    { body: { action: 'deck', ...(genre ? { genre } : {}) } },
+  );
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  return (data?.cards ?? []).map((c) => ({
+    ...c,
+    kind: 'track',
+    source: 'for_you',
+    note: null,
+    post_id: null,
+    recommender_username: null,
+    recommender_display_name: null,
+    recommender_avatar_url: null,
+  }));
+}
+
+/** Músicas que curti no Descobrir. */
+export async function fetchLikedSongs(): Promise<LikedSong[]> {
+  const { data, error } = await supabase.rpc('discover_liked', { p_limit: 100 });
+  if (error) throw error;
+  return data as LikedSong[];
+}
+
+/** Link de uma música (cartão) na plataforma escolhida: exato, ou a busca nela. */
+export async function trackLink(previewId: string, platform: StreamingChoice): Promise<string> {
+  const { data, error } = await supabase.functions.invoke<{ url: string }>('discover', { body: { action: 'link', previewId, platform } });
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  if (!data?.url || !data.url.startsWith('https://')) throw new AppError('generic');
+  return data.url;
 }
 
 /** As mais tocadas no mundo (Last.fm), pelo servidor. */

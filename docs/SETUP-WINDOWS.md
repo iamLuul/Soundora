@@ -49,7 +49,7 @@ Em outro terminal, suba as Edge Functions: o indexador de links (precisa de inte
 npx supabase functions serve
 ```
 
-A aba **Em alta** (as mais tocadas no mundo) usa a API do Last.fm, que precisa de uma chave gratuita:
+A aba **Em alta** (as mais tocadas no mundo) e as sugestões do **Descobrir** usam a API do Last.fm, que precisa de uma chave gratuita:
 
 1. Crie a chave em https://www.last.fm/api/account/create (o que importa é a **API key**; o "shared secret" não é usado).
 2. Copie `supabase/functions/.env.example` para `supabase/functions/.env` e cole a chave em `LASTFM_API_KEY=`. Esse arquivo nunca sobe para o GitHub.
@@ -117,6 +117,7 @@ npx supabase functions deploy profile-image
 npx supabase functions deploy delete-account
 npx supabase functions deploy media-upload
 npx supabase functions deploy music-charts
+npx supabase functions deploy discover
 npx supabase secrets set LASTFM_API_KEY=<sua-chave-do-last.fm>
 ```
 

@@ -107,3 +107,7 @@ verify_jwt = true
 # Trending (mais tocadas no mundo, Last.fm): exige login (e a função confere o usuário de novo).
 [functions.music-charts]
 verify_jwt = true
+
+# Descobrir (sugestões pelo Last.fm + Deezer): exige login (e a função confere o usuário de novo).
+[functions.discover]
+verify_jwt = true

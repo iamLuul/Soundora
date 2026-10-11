@@ -62,8 +62,8 @@ describe('<DiscoverCardView />', () => {
   test('o botão abre o streaming de origem', async () => {
     const onOpen = jest.fn();
     await render(<DiscoverCardView card={card} genreName={null} onOpen={onOpen} />);
-    await fireEvent.press(screen.getByRole('link', { name: 'Ouvir no Spotify' }));
-    expect(onOpen).toHaveBeenCalledWith(card.url);
+    await fireEvent.press(screen.getAllByRole('link', { name: 'Ouvir no Spotify' })[0]!);
+    expect(onOpen).toHaveBeenCalledWith(card);
   });
 });
 

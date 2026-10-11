@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { PLATFORM_LABELS } from '@soundora/core';
+import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
@@ -11,25 +11,40 @@ import { Avatar } from './ui';
 
 /**
  * Cartão do Descobrir no layout do Figma (Search page/Discover): capa grande com margem,
- * música, artista, quem indicou (ou o selo de destaque) e o logo da plataforma.
- * Tocar na capa abre a música no streaming de origem.
+ * música, álbum, artista (com a foto), o motivo da sugestão e o logo da plataforma da pessoa.
+ * Tocar na capa ou no logo abre a música na plataforma de streaming dela.
  */
 export function DiscoverCardView({
   card,
   genreName,
   onOpen,
+  platform,
 }: {
   card: DiscoverCard;
   genreName: string | null;
-  onOpen?: (url: string) => void;
+  onOpen?: (card: DiscoverCard) => void;
+  /** Plataforma da pessoa (sem ela, a da origem do link). */
+  platform?: StreamingChoice | null;
 }) {
   const { t } = useTranslation();
-  const platform = PLATFORM_LABELS[card.platform];
-  const open = () => (onOpen ? onOpen(card.url) : Linking.openURL(card.url));
+  const target = platform ?? card.platform;
+  const label = PLATFORM_LABELS[target];
+  const open = () => (onOpen ? onOpen(card) : Linking.openURL(card.url));
+
+  const reason =
+    card.source === 'for_you'
+      ? card.reason === 'similar' && card.because
+        ? t('discover.because', { track: card.because })
+        : card.reason === 'genre' && genreName
+          ? t('discover.becauseGenre', { genre: genreName })
+          : card.reason === 'popular'
+            ? t('discover.becausePopular')
+            : null
+      : null;
 
   return (
     <View style={styles.card} testID={`discover-card-${card.link_preview_id}`}>
-      <Pressable accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform })} onPress={open} style={styles.coverWrap}>
+      <Pressable accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform: label })} onPress={open} style={styles.coverWrap}>
         {card.image_url ? (
           <Image source={{ uri: card.image_url }} style={styles.cover} contentFit="cover" accessibilityLabel={card.title} />
         ) : (
@@ -43,9 +58,19 @@ export function DiscoverCardView({
         <Text style={styles.title} numberOfLines={2}>
           {card.title}
         </Text>
+        {card.album ? (
+          <Text style={styles.album} numberOfLines={1}>
+            {card.album}
+          </Text>
+        ) : null}
         {card.artist ? (
           <Text style={styles.artist} numberOfLines={1}>
             {card.artist}
+          </Text>
+        ) : null}
+        {reason ? (
+          <Text testID="discover-reason" style={styles.reason} numberOfLines={1}>
+            {reason}
           </Text>
         ) : null}
         {card.note ? (
@@ -68,11 +93,16 @@ export function DiscoverCardView({
                   {t('discover.recommendedBy', { username: card.recommender_username })}
                 </Text>
               </>
+            ) : card.artist_image_url ? (
+              // Figma: foto do artista no canto do cartão.
+              <Image source={{ uri: card.artist_image_url }} style={styles.artistPhoto} contentFit="cover" accessibilityLabel={card.artist ?? undefined} />
             ) : null}
           </View>
           <View style={styles.right}>
-            {genreName ? <Text style={styles.genre}>{genreName}</Text> : null}
-            <PlatformLogo platform={card.platform} size={22} />
+            {genreName && card.source !== 'for_you' ? <Text style={styles.genre}>{genreName}</Text> : null}
+            <Pressable testID="discover-platform" accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform: label })} onPress={open} hitSlop={8}>
+              <PlatformLogo platform={target} size={24} />
+            </Pressable>
           </View>
         </View>
       </View>
@@ -94,15 +124,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
-  coverWrap: { flex: 1, minHeight: 160 },
+  coverWrap: { flex: 1, minHeight: 140 },
   cover: { width: '100%', height: '100%', borderRadius: 4 },
   coverFallback: { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  body: { gap: 2 },
+  body: { gap: 1 },
   title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  artist: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
+  album: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
+  artist: { fontFamily: fonts.bold, fontSize: 12, color: colors.text, marginTop: space.sm },
+  reason: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, marginTop: 2 },
   note: { fontFamily: fonts.regular, fontSize: 12, color: colors.text, marginTop: 4 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.sm, gap: space.sm },
+  footer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: space.sm, gap: space.sm },
   source: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexShrink: 1 },
+  artistPhoto: { width: 40, height: 40, borderRadius: 4 },
   recommender: { fontFamily: fonts.bold, fontSize: 12, color: colors.text, flexShrink: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   genre: { fontFamily: fonts.semibold, fontSize: 10, color: colors.muted, textTransform: 'uppercase' },

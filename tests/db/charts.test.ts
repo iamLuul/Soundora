@@ -53,8 +53,8 @@ describe('cache do ranking', () => {
     );
   });
 
-  it('só guarda link de faixa da Deezer ou da Apple Music, e só 60 dias de ranking', async () => {
-    await expect(db.sql(`insert into public.track_platform_links (source_url, links) values ('https://evil.example.com/track/1', '{}')`)).rejects.toThrow(
+  it('só guarda link https, e só 60 dias de ranking', async () => {
+    await expect(db.sql(`insert into public.track_platform_links (source_url, links) values ('ftp://evil.example.com/track/1', '{}')`)).rejects.toThrow(
       /check/,
     );
     await db.sql(

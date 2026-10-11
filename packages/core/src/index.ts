@@ -4,3 +4,4 @@ export * from './links/genres.ts';
 export * from './age.ts';
 export * from './validation.ts';
 export * from './links/charts.ts';
+export * from './links/discover.ts';

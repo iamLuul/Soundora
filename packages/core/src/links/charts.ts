@@ -304,17 +304,23 @@ export function isChartSourceUrl(url: string): boolean {
   return !!parsed && parsed.kind === 'track' && (parsed.platform === 'deezer' || parsed.platform === 'apple_music') && parsed.url === url;
 }
 
+/** Link de faixa (já normalizado) de uma plataforma que o song.link conhece. */
+export function isTrackSourceUrl(url: string): boolean {
+  const parsed = parseStreamingUrl(url);
+  return !!parsed && parsed.kind === 'track' && Object.values(ODESLI_KEYS).includes(parsed.platform) && parsed.url === url;
+}
+
 /**
- * Links da mesma música em cada plataforma, pelo song.link, a partir do link da Deezer ou da
- * Apple Music. Cada link é conferido: só entra se for mesmo um link daquela plataforma (nada de
+ * Links da mesma música em cada plataforma, pelo song.link, a partir do link de uma faixa
+ * (Deezer, Apple Music, Spotify...). Cada link é conferido: só entra se for mesmo um link daquela plataforma (nada de
  * mandar a pessoa para um site qualquer). null = o song.link não respondeu agora.
  */
 export async function fetchPlatformLinks(
   sourceTrackUrl: string,
   opts: { fetch: FetchLike; timeoutMs?: number; country?: string },
 ): Promise<Partial<Record<Platform, string>> | null> {
-  const source = parseStreamingUrl(sourceTrackUrl);
-  if (!source || source.kind !== 'track' || (source.platform !== 'deezer' && source.platform !== 'apple_music')) return null;
+  if (!isTrackSourceUrl(sourceTrackUrl)) return null;
+  const source = parseStreamingUrl(sourceTrackUrl)!;
   const country = /^[A-Z]{2}$/.test(opts.country ?? '') ? opts.country : 'US';
   const data = (await getJson(opts.fetch, `${ODESLI}?url=${encodeURIComponent(source.url)}&userCountry=${country}`, opts.timeoutMs ?? 6000)) as {
     linksByPlatform?: Record<string, { url?: unknown }>;

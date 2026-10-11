@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const files = ['platforms.ts', 'preview.ts', 'genres.ts', 'charts.ts'];
+const files = ['platforms.ts', 'preview.ts', 'genres.ts', 'charts.ts', 'discover.ts'];
 const from = join(root, 'packages/core/src/links');
 const to = join(root, 'supabase/functions/_shared/links');
 const header = '// ARQUIVO GERADO por scripts/sync-shared.mjs a partir de packages/core/src/links. Não edite aqui.\n';

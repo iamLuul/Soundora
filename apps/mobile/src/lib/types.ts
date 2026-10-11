@@ -126,12 +126,32 @@ export interface DiscoverCard {
   artist: string | null;
   image_url: string | null;
   genre: string | null;
-  source: 'featured' | 'community';
+  /** Destaque da curadoria, indicação da comunidade ou sugestão do algoritmo (for_you). */
+  source: 'featured' | 'community' | 'for_you';
   note: string | null;
   post_id: string | null;
   recommender_username: string | null;
   recommender_display_name: string | null;
   recommender_avatar_url: string | null;
+  /** Sugestões do algoritmo: álbum, foto do artista, prévia de 30 s e o motivo. */
+  album?: string | null;
+  artist_image_url?: string | null;
+  audio_url?: string | null;
+  reason?: 'similar' | 'genre' | 'popular' | null;
+  /** "Artista – Música" curtida que levou a esta sugestão. */
+  because?: string | null;
+}
+
+/** Música curtida no Descobrir. */
+export interface LikedSong {
+  link_preview_id: string;
+  url: string;
+  platform: Platform;
+  title: string;
+  artist: string | null;
+  album: string | null;
+  image_url: string | null;
+  liked_at: string;
 }
 
 /** Linha do Em alta (função trending_tracks). */

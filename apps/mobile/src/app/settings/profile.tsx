@@ -1,11 +1,14 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { MIN_GENRES } from '@soundora/core';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { GenrePicker } from '../../components/GenrePicker';
 import { Avatar, Button, ErrorText, Screen, TextField } from '../../components/ui';
-import { BIO_MAX, removeProfileImage, updateProfile, type ProfileImageKind } from '../../lib/api';
+import { BIO_MAX, getMyGenres, removeProfileImage, setMyGenres, updateProfile, type ProfileImageKind } from '../../lib/api';
+import { useGenres } from '../../lib/queries';
 import { useAuth } from '../../lib/auth';
 import { bannerUrl } from '../../lib/avatar';
 import { formatError } from '../../lib/errors';
@@ -21,6 +24,11 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [busy, setBusy] = useState<null | ProfileImageKind | 'save'>(null);
   const [error, setError] = useState<string | null>(null);
+  // Gêneros do perfil: alimentam as sugestões do Descobrir.
+  const myGenres = useQuery({ queryKey: ['my-genres'], queryFn: getMyGenres });
+  const allGenres = useGenres();
+  const [genres, setGenres] = useState<string[] | null>(null);
+  const shownGenres = genres ?? myGenres.data ?? [];
 
   if (!profile) return null;
   const banner = bannerUrl(profile.banner_url);
@@ -57,8 +65,14 @@ export default function EditProfileScreen() {
     });
 
   const save = async () => {
+    if (genres && genres.length < MIN_GENRES) return setError(t('errors.genres_too_few'));
     const ok = await run('save', async () => {
       await updateProfile({ displayName, bio });
+      if (genres) {
+        await setMyGenres(genres);
+        await qc.invalidateQueries({ queryKey: ['my-genres'] });
+        await qc.invalidateQueries({ queryKey: ['discover-deck'] });
+      }
       await refreshEverywhere();
     });
     if (ok) router.back();
@@ -99,6 +113,14 @@ export default function EditProfileScreen() {
         hint={`${bio.length}/${BIO_MAX}`}
         style={{ minHeight: 88, textAlignVertical: 'top', paddingTop: space.md }}
       />
+      <GenrePicker
+        title={t('editProfile.genres')}
+        value={shownGenres}
+        onChange={setGenres}
+        max={10}
+        suggestions={(allGenres.data ?? []).map((g) => g.slug)}
+      />
+      <Text style={styles.hint}>{t('editProfile.genresHint', { min: MIN_GENRES })}</Text>
       <ErrorText>{error}</ErrorText>
       <Button testID="save-profile" title={t('common.save')} onPress={save} loading={busy === 'save'} disabled={!!busy} />
     </Screen>
@@ -131,4 +153,5 @@ const styles = StyleSheet.create({
   avatarRing: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
   links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: space.lg, marginTop: -space.sm },
   link: { fontFamily: fonts.semibold, fontSize: 12, color: colors.muted },
+  hint: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, marginTop: -space.sm },
 });

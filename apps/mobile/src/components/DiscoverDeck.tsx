@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { PLATFORM_LABELS } from '@soundora/core';
+import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
 import * as Linking from 'expo-linking';
 import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -24,12 +24,25 @@ export function DiscoverDeck({
   genreName,
   onSwipe,
   onShuffle,
+  onOpen,
+  platform,
+  playing = false,
+  onTogglePlay,
+  height,
 }: {
   cards: DiscoverCard[];
   genreName: (slug: string | null) => string | null;
   onSwipe: (card: DiscoverCard, liked: boolean) => void;
   /** Botão da esquerda (Figma): busca outras sugestões. */
   onShuffle?: () => void;
+  /** Abrir a música na plataforma da pessoa (capa, logo, ou play sem prévia). */
+  onOpen?: (card: DiscoverCard) => void;
+  platform?: StreamingChoice | null;
+  /** A prévia de 30 s do cartão de cima está tocando. */
+  playing?: boolean;
+  onTogglePlay?: () => void;
+  /** Altura da pilha (dentro de uma tela que rola, precisa ser fixa). */
+  height?: number;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -77,19 +90,19 @@ export function DiscoverDeck({
   if (!top) return null;
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.stack}>
+    <View style={[styles.wrap, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' } : null]}>
+      <View style={[styles.stack, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', height } : null]}>
         {/* Cartões inclinados atrás, como no Figma */}
         {cards.length > 2 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '-6deg' }, { scale: 0.92 }] }]} /> : null}
         {cards.length > 1 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '5deg' }, { scale: 0.94 }] }]} /> : null}
         {next ? (
           <Animated.View key={next.link_preview_id} style={[StyleSheet.absoluteFill, nextStyle]} pointerEvents="none">
-            <DiscoverCardView card={next} genreName={genreName(next.genre)} />
+            <DiscoverCardView card={next} genreName={genreName(next.genre)} platform={platform} />
           </Animated.View>
         ) : null}
         <GestureDetector gesture={pan}>
           <Animated.View key={top.link_preview_id} style={[StyleSheet.absoluteFill, topStyle]}>
-            <DiscoverCardView card={top} genreName={genreName(top.genre)} />
+            <DiscoverCardView card={top} genreName={genreName(top.genre)} platform={platform} onOpen={onOpen} />
             <Animated.View style={[styles.stamp, styles.stampLike, likeStyle]} pointerEvents="none">
               <Text style={styles.stampText}>{t('discover.like')}</Text>
             </Animated.View>
@@ -114,14 +127,21 @@ export function DiscoverDeck({
         >
           <SvgXml xml={icons.skipButton} width={52} height={52} />
         </Pressable>
+        {/* Play: toca a prévia de 30 s; sem prévia, abre a música na plataforma. */}
         <Pressable
-          testID="discover-open"
-          accessibilityRole="link"
-          accessibilityLabel={t('feed.listenOn', { platform: PLATFORM_LABELS[top.platform] })}
-          onPress={() => Linking.openURL(top.url)}
+          testID="discover-play"
+          accessibilityRole="button"
+          accessibilityLabel={
+            top.audio_url && onTogglePlay
+              ? playing
+                ? t('discover.pause')
+                : t('discover.play')
+              : t('feed.listenOn', { platform: PLATFORM_LABELS[platform ?? top.platform] })
+          }
+          onPress={() => (top.audio_url && onTogglePlay ? onTogglePlay() : onOpen ? onOpen(top) : Linking.openURL(top.url))}
           style={({ pressed }) => pressed && { opacity: 0.8 }}
         >
-          <SvgXml xml={icons.playButton} width={72} height={72} />
+          <SvgXml xml={playing ? icons.pauseButton : icons.playButton} width={72} height={72} />
         </Pressable>
         <Pressable
           testID="discover-like"

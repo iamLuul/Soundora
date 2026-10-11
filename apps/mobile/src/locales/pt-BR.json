@@ -127,7 +127,8 @@
     "genres_need_music": "O gênero só pode ser escolhido em post com música.",
     "invalid_parent": "Esse comentário não existe mais.",
     "charts_unavailable": "O ranking não respondeu agora. Tente de novo em instantes.",
-    "invalid_platform": "Plataforma de streaming inválida."
+    "invalid_platform": "Plataforma de streaming inválida.",
+    "discover_unavailable": "As sugestões não responderam agora. Tente de novo em instantes."
   },
   "tabs": {
     "feed": "Para você",
@@ -243,7 +244,19 @@
     "like": "Curti",
     "empty": "Você viu todas as músicas por agora. Volte mais tarde!",
     "reload": "Buscar mais",
-    "hint": "Arraste para a direita se curtir, para a esquerda para pular."
+    "hint": "Arraste para a direita se curtir, para a esquerda para pular.",
+    "searchGenres": "Buscar gêneros",
+    "onlyGenre": "Só {{genre}}",
+    "allGenres": "Voltar para todas as sugestões",
+    "loading": "Procurando músicas para você…",
+    "likedSongs": "Músicas curtidas",
+    "likedEmpty": "Arraste para a direita (ou toque na estrela) para guardar aqui as músicas que você curtir.",
+    "unlike": "Descurtir",
+    "play": "Ouvir a prévia",
+    "pause": "Pausar a prévia",
+    "because": "Porque você curtiu {{track}}",
+    "becauseGenre": "Em alta em {{genre}}",
+    "becausePopular": "Em alta no mundo"
   },
   "trending": {
     "title": "Mais tocadas no mundo",
@@ -278,7 +291,9 @@
     "confirmPassword": "Repita a nova senha",
     "savePassword": "Salvar senha",
     "passwordSaved": "Senha salva. Da próxima vez, entre com e-mail e senha.",
-    "removeBanner": "Remover banner"
+    "removeBanner": "Remover banner",
+    "genres": "Gêneros que você curte",
+    "genresHint": "Eles guiam as sugestões do Descobrir. Mínimo de {{min}}."
   },
   "settings": {
     "title": "Configurações",
