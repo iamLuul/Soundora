@@ -45,6 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
+      // A sessão salva pode ser de uma conta que não existe mais (banco local recriado com
+      // db reset, conta excluída). O token continua "válido" até vencer, então confere no
+      // servidor; se a conta sumiu, sai e volta para o login em vez de travar no onboarding.
+      if (data.session && (await accountGone())) {
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        if (!active) return;
+        setSession(null);
+        await loadProfile(null);
+        setLoading(false);
+        return;
+      }
       setSession(data.session);
       await loadProfile(data.session);
       if (active) setLoading(false);
@@ -74,6 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/** true só quando o servidor diz que a conta da sessão não existe (sem internet = false). */
+export async function accountGone(): Promise<boolean> {
+  const { error } = await supabase.auth.getUser();
+  if (!error) return false;
+  const status = (error as { status?: number }).status;
+  const code = (error as { code?: string }).code;
+  return status === 401 || status === 403 || code === 'user_not_found' || code === 'session_not_found' || code === 'bad_jwt';
 }
 
 export function useAuth(): AuthState {

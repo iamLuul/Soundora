@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import { SignInForm, SignUpForm } from '../src/components/auth/AuthForms';
 import { authErrorKey } from '../src/lib/auth-errors';
 import { parseIdentifier, sendLoginCode, signInWithPassword, signUp } from '../src/lib/auth-flows';
+import { accountGone } from '../src/lib/auth';
 import i18n from '../src/lib/i18n';
 
 const mockAuth = {
@@ -13,6 +14,7 @@ const mockAuth = {
   resend: jest.fn(),
   setSession: jest.fn(),
   updateUser: jest.fn(),
+  getUser: jest.fn(),
 };
 const mockInvoke = jest.fn();
 
@@ -172,5 +174,22 @@ describe('<SignInForm />', () => {
     });
     await waitFor(() => expect(onUnconfirmed).toHaveBeenCalledWith('raul@gmail.com'));
     expect(mockAuth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'raul@gmail.com' });
+  });
+});
+
+describe('sessão salva de uma conta que não existe mais', () => {
+  test('conta apagada no servidor (db reset, conta excluída) → sai', async () => {
+    mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: { status: 403, code: 'user_not_found' } });
+    expect(await accountGone()).toBe(true);
+  });
+
+  test('sem internet não desloga', async () => {
+    mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: { name: 'AuthRetryableFetchError', status: 0 } });
+    expect(await accountGone()).toBe(false);
+  });
+
+  test('conta existe', async () => {
+    mockAuth.getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+    expect(await accountGone()).toBe(false);
   });
 });

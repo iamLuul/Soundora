@@ -77,7 +77,8 @@
     "passwordTitle": "Create a password",
     "passwordHint": "So you can also sign in with your email or @username and password.",
     "personalTitle": "Tell us a bit about you",
-    "usernameCheckFailed": "Couldn't check right now."
+    "usernameCheckFailed": "Couldn't check right now.",
+    "signOut": "Sign out and use another account"
   },
   "age": {
     "too_young": "You must be at least {{min}} years old to use Soundora.",

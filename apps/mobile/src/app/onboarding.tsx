@@ -8,7 +8,7 @@ import { BackHeader } from '../components/figma';
 import { Button, Chip, ErrorText, Screen, TextField } from '../components/ui';
 import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
-import { useAuth } from '../lib/auth';
+import { accountGone, useAuth } from '../lib/auth';
 import { setPassword as savePassword } from '../lib/auth-flows';
 import { errorMessageKey, formatError } from '../lib/errors';
 import { useGenres } from '../lib/queries';
@@ -19,7 +19,7 @@ type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'terms';
 
 export default function Onboarding() {
   const { t, i18n } = useTranslation();
-  const { refreshProfile, session } = useAuth();
+  const { refreshProfile, session, signOut } = useAuth();
   // Quem entrou com Google ou Apple ainda não tem senha: cria aqui, para poder entrar também
   // com e-mail/@usuário e senha. Quem criou a conta pelo e-mail já definiu a senha no cadastro.
   const provider = session?.user.app_metadata?.provider;
@@ -107,7 +107,12 @@ export default function Onboarding() {
       await refreshProfile(); // o roteador troca para o feed sozinho
     } catch (err) {
       const key = errorMessageKey(err);
-      setError(t(key, { min: policy?.minAge, under: policy?.guardianRequiredUnder }));
+      // Sessão de uma conta que não existe mais no servidor: volta para o login.
+      if (key === 'errors.generic' && (await accountGone())) {
+        await signOut();
+        return;
+      }
+      setError(formatError(t, err, { min: policy?.minAge, under: policy?.guardianRequiredUnder }));
       if (key === 'errors.username_taken') setIndex(steps.indexOf('profile'));
     } finally {
       setBusy(false);
@@ -225,6 +230,11 @@ export default function Onboarding() {
           <Button testID="onboarding-finish" size="sm" title={t('onboarding.finish')} onPress={finish} disabled={!accepted} loading={busy} />
         )}
       </View>
+
+      {/* Sempre há saída: dá para trocar de conta no meio do onboarding. */}
+      <Text testID="onboarding-sign-out" style={styles.signOut} onPress={() => void signOut()} accessibilityRole="button">
+        {t('onboarding.signOut')}
+      </Text>
     </Screen>
   );
 }
@@ -244,4 +254,5 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, borderColor: colors.field },
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   footer: { alignItems: 'flex-end' },
+  signOut: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, textAlign: 'center', textDecorationLine: 'underline', marginTop: space.lg },
 });

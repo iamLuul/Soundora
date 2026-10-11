@@ -77,7 +77,8 @@
     "passwordTitle": "Crie uma senha",
     "passwordHint": "Assim você também pode entrar com o seu e-mail ou @usuário e a senha.",
     "personalTitle": "Conte um pouco sobre você",
-    "usernameCheckFailed": "Não foi possível verificar agora."
+    "usernameCheckFailed": "Não foi possível verificar agora.",
+    "signOut": "Sair e entrar com outra conta"
   },
   "age": {
     "too_young": "Você precisa ter pelo menos {{min}} anos para usar o Soundora.",
