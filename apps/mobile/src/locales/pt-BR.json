@@ -23,27 +23,24 @@
     "invalidEmail": "Digite um e-mail válido.",
     "invalidCode": "Código inválido ou vencido.",
     "networkError": "Não foi possível conectar ao servidor. Confira a internet e o endereço do Supabase.",
-    "modePassword": "Senha",
-    "modeCode": "Código por e-mail",
+    "modePassword": "Entrar com senha",
+    "modeCode": "Entrar com código por e-mail",
     "password": "Senha",
     "passwordHint": "Pelo menos 10 caracteres, com letras e números.",
     "signIn": "Entrar",
     "signUp": "Criar conta",
-    "forgot": "Esqueci a senha (entrar com código)",
+    "forgot": "Esqueci a senha",
     "wrongPassword": "E-mail, @usuário ou senha incorretos.",
     "emailExists": "Esse e-mail já tem conta. Vá em Entrar e use a senha ou o código por e-mail.",
     "rateLimit": "Muitas tentativas. Espere um pouco e tente de novo.",
     "codeHint": "Enviamos um código de 6 dígitos para o e-mail da sua conta.",
     "showPassword": "Mostrar senha",
     "hidePassword": "Ocultar senha",
-    "tabSignIn": "Entrar",
-    "tabSignUp": "Criar conta",
     "identifier": "E-mail ou @usuário",
     "identifierPlaceholder": "voce@email.com ou @usuario",
     "invalidIdentifier": "Digite um e-mail válido ou o seu @usuário.",
     "confirmPassword": "Confirmar senha",
     "signUpHint": "Depois enviamos um código de 6 dígitos para confirmar o seu e-mail.",
-    "signUpCodeTitle": "Confirme o seu e-mail",
     "confirm": "Confirmar",
     "resendIn": "Reenviar código em {{seconds}}s",
     "codeResent": "Enviamos um código novo.",
@@ -53,7 +50,10 @@
     "noAccount": "Não achamos uma conta com esse e-mail ou @usuário. Confira ou crie uma conta.",
     "usernameUnavailable": "Entrar com @usuário não está disponível agora. Tente com o seu e-mail.",
     "weakPassword": "A senha precisa ter pelo menos 10 caracteres, com letras e números.",
-    "reauthNeeded": "Por segurança, confirme com o código que enviamos ao seu e-mail."
+    "reauthNeeded": "Por segurança, confirme com o código que enviamos ao seu e-mail.",
+    "signUpTitle": "Criar conta!",
+    "noAccountYet": "Não tem conta?",
+    "checkEmail": "Confira seu e-mail"
   },
   "onboarding": {
     "step": "Passo {{current}} de {{total}}",
@@ -75,7 +75,8 @@
     "usernameChecking": "Verificando se está disponível…",
     "usernameAvailable": "@{{username}} está disponível",
     "passwordTitle": "Crie uma senha",
-    "passwordHint": "Assim você também pode entrar com o seu e-mail ou @usuário e a senha."
+    "passwordHint": "Assim você também pode entrar com o seu e-mail ou @usuário e a senha.",
+    "personalTitle": "Conte um pouco sobre você"
   },
   "age": {
     "too_young": "Você precisa ter pelo menos {{min}} anos para usar o Soundora.",
@@ -116,7 +117,9 @@
     "feed": "Para você",
     "compose": "Postar",
     "profile": "Perfil",
-    "discover": "Descobrir"
+    "discover": "Descobrir",
+    "music": "Músicas",
+    "home": "Início"
   },
   "feed": {
     "empty": "Seu feed está vazio. Siga pessoas ou poste a primeira música!",
@@ -128,7 +131,13 @@
     "block": "Bloquear @{{username}}",
     "reported": "Denúncia enviada. Obrigado.",
     "blocked": "Você bloqueou @{{username}}.",
-    "delete": "Apagar post"
+    "delete": "Apagar post",
+    "stories": "Pessoas que você segue",
+    "newPost": "Postar música",
+    "sharing": "Compartilhando",
+    "preview": "Prévia",
+    "share": "Compartilhar",
+    "postOptions": "Opções do post"
   },
   "compose": {
     "title": "Compartilhar música",
@@ -192,11 +201,12 @@
     "hint": "Arraste para a direita se curtir, para a esquerda para pular."
   },
   "trending": {
-    "title": "Em alta na semana",
+    "title": "Mais compartilhadas",
     "all": "Todos",
     "posts_one": "{{count}} post",
     "posts_other": "{{count}} posts",
-    "empty": "Nada em alta ainda neste gênero."
+    "empty": "Nada em alta ainda neste gênero.",
+    "thisWeek": "Esta semana"
   },
   "search": {
     "placeholder": "Busque pessoas, músicas ou artistas",
@@ -239,5 +249,20 @@
     "deleteConfirmLabel": "Para confirmar, digite @{{username}}",
     "deleteButton": "Excluir minha conta",
     "signInAgain": "Sair e entrar de novo"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "all": "Todas",
+    "replies": "Respostas",
+    "empty": "Nada por aqui ainda"
+  },
+  "music": {
+    "liked": "Curtidas",
+    "mine": "Que eu postei",
+    "likedTitle": "Músicas curtidas",
+    "likedHint": "As músicas que você curtiu no Descobrir.",
+    "mineTitle": "Suas músicas",
+    "empty": "Nenhuma música ainda.",
+    "search": "Buscar nas suas músicas"
   }
 }

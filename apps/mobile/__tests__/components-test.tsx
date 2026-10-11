@@ -46,7 +46,7 @@ describe('<MusicCard />', () => {
     );
     expect(screen.getByText('Harder, Better, Faster, Stronger')).toBeTruthy();
     expect(screen.getByText('Daft Punk')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('link', { name: 'Ouvir no Deezer' }));
+    await fireEvent.press(screen.getByRole('link', { name: /Ouvir no Deezer/ }));
     expect(onOpen).toHaveBeenCalledWith('https://www.deezer.com/track/3135556');
   });
 
@@ -76,7 +76,7 @@ describe('<PostCard />', () => {
   test('menu "…" abre as ações do post', async () => {
     const onMore = jest.fn();
     await render(<PostCard item={post} onToggleLike={jest.fn()} onMore={onMore} onOpenLink={jest.fn()} />);
-    await fireEvent.press(screen.getByRole('button', { name: '…' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Opções do post' }));
     expect(onMore).toHaveBeenCalledWith(post);
   });
 });

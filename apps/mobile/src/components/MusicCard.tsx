@@ -4,7 +4,8 @@ import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, space, text } from '../theme';
+import { colors, fonts, space } from '../theme';
+import { PLATFORM_ACCENT, PlatformLogo } from './figma';
 
 export interface MusicCardData {
   url: string;
@@ -15,61 +16,76 @@ export interface MusicCardData {
 }
 
 /**
- * Cartão de prévia de uma música. O Soundora não toca áudio: o botão abre a
- * faixa no streaming de origem do link (o app, se instalado; senão o site).
+ * Cartão de prévia de uma música, no layout do Figma ("Sharing"): capa com o play,
+ * título, artista e o logo da plataforma, numa caixa com a cor da plataforma.
+ * O Soundora não toca áudio: tocar abre a faixa no streaming de origem.
  */
 export function MusicCard({ data, onOpen }: { data: MusicCardData; onOpen?: (url: string) => void }) {
   const { t } = useTranslation();
   const platform = PLATFORM_LABELS[data.platform];
+  const accent = PLATFORM_ACCENT[data.platform];
   const open = () => (onOpen ? onOpen(data.url) : Linking.openURL(data.url));
 
   return (
-    <View style={styles.card}>
-      {data.imageUrl ? (
-        <Image source={{ uri: data.imageUrl }} style={styles.cover} contentFit="cover" accessibilityLabel={data.title} />
-      ) : (
-        <View style={[styles.cover, styles.coverFallback]}>
-          <Ionicons name="musical-notes" size={28} color={colors.muted} />
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${data.title}${data.artist ? `, ${data.artist}` : ''}. ${t('feed.listenOn', { platform })}`}
+      onPress={open}
+      style={({ pressed }) => [styles.card, { borderColor: accent, backgroundColor: `${accent}1A` }, pressed && { opacity: 0.85 }]}
+    >
+      <View>
+        {data.imageUrl ? (
+          <Image source={{ uri: data.imageUrl }} style={styles.cover} contentFit="cover" />
+        ) : (
+          <View style={[styles.cover, styles.coverFallback]}>
+            <Ionicons name="musical-notes" size={24} color={colors.muted} />
+          </View>
+        )}
+        <View style={styles.playOverlay} pointerEvents="none">
+          <Ionicons name="play" size={14} color="#FFFFFF" style={{ marginLeft: 2 }} />
         </View>
-      )}
+      </View>
       <View style={styles.info}>
-        <Text style={text.subtitle} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={1}>
           {data.title}
         </Text>
         {data.artist ? (
-          <Text style={text.small} numberOfLines={1}>
+          <Text style={styles.artist} numberOfLines={1}>
             {data.artist}
           </Text>
         ) : null}
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={t('feed.listenOn', { platform })}
-          onPress={open}
-          style={({ pressed }) => [styles.play, pressed && { opacity: 0.8 }]}
-        >
-          <Ionicons name="play" size={14} color={colors.text} />
-          <Text style={styles.playText}>{t('feed.listenOn', { platform })}</Text>
-        </Pressable>
+        <View style={styles.chip}>
+          <Text style={styles.chipText}>{t('feed.listenOn', { platform })}</Text>
+        </View>
       </View>
-    </View>
+      <View style={styles.logo}>
+        <PlatformLogo platform={data.platform} size={20} />
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: space.md, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.surface },
-  cover: { width: 88, height: 88, borderRadius: radius.md },
-  coverFallback: { backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
-  info: { flex: 1, gap: space.xs, justifyContent: 'center' },
-  play: {
-    marginTop: space.xs,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
+  card: { flexDirection: 'row', gap: space.md, padding: 10, borderRadius: 10, borderWidth: 0.5 },
+  cover: { width: 62, height: 62, borderRadius: 5 },
+  coverFallback: { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  playOverlay: {
+    position: 'absolute',
+    left: 15,
+    top: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'rgba(48, 45, 63, 0.5)',
     alignItems: 'center',
-    gap: space.xs,
-    paddingVertical: 6,
-    paddingHorizontal: space.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    justifyContent: 'center',
   },
-  playText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text },
+  info: { flex: 1, justifyContent: 'center', gap: 2 },
+  title: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
+  artist: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },
+  chip: { alignSelf: 'flex-start', marginTop: 6, backgroundColor: '#FFFFFF', borderRadius: 2, paddingHorizontal: 4, paddingVertical: 1 },
+  chipText: { fontFamily: fonts.bold, fontSize: 9, color: '#464B54' },
+  logo: { alignSelf: 'flex-start' },
 });

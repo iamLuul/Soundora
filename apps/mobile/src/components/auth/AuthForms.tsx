@@ -1,7 +1,7 @@
 import { passwordSchema } from '@soundora/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { authErrorKey } from '../../lib/auth-errors';
 import {
   isValidEmail,
@@ -16,8 +16,8 @@ import {
 } from '../../lib/auth-flows';
 import { errorDetail } from '../../lib/errors';
 import { supabaseUrl } from '../../lib/supabase';
-import { text } from '../../theme';
-import { Button, ErrorText, SegmentedControl, TextField } from '../ui';
+import { colors, fonts, space, text } from '../../theme';
+import { Button, ErrorText, TextField } from '../ui';
 import { CodeStep } from './CodeStep';
 import { PasswordField } from './PasswordField';
 
@@ -125,27 +125,40 @@ export function SignInForm({ onUnconfirmed }: { onUnconfirmed: (email: string) =
         keyboardType="email-address"
       />
 
-      <SegmentedControl<Method>
-        value={method}
-        onChange={switchMethod}
-        options={[
-          { value: 'password', label: t('auth.modePassword') },
-          { value: 'code', label: t('auth.modeCode') },
-        ]}
-      />
-
       {method === 'password' ? (
         <>
-          <PasswordField testID="password-input" label={t('auth.password')} value={password} onChangeText={setPassword} onSubmitEditing={withPassword} />
-          <Button testID="sign-in" title={t('auth.signIn')} onPress={withPassword} loading={busy === 'password'} disabled={!!busy || !identifier.trim() || !password} />
-          <Text style={[text.small, styles.link]} onPress={() => switchMethod('code')} accessibilityRole="link">
-            {t('auth.forgot')}
+          <View>
+            <PasswordField testID="password-input" label={t('auth.password')} value={password} onChangeText={setPassword} onSubmitEditing={withPassword} />
+            <Text testID="forgot-password" style={styles.forgot} onPress={() => switchMethod('code')} accessibilityRole="link">
+              {t('auth.forgot')}
+            </Text>
+          </View>
+          <Button
+            testID="sign-in"
+            title={t('auth.signIn')}
+            onPress={withPassword}
+            loading={busy === 'password'}
+            disabled={!!busy || !identifier.trim() || !password}
+            style={styles.main}
+          />
+          <Text testID="use-code" style={styles.switch} onPress={() => switchMethod('code')} accessibilityRole="link">
+            {t('auth.modeCode')}
           </Text>
         </>
       ) : (
         <>
-          <Text style={text.small}>{t('auth.codeHint')}</Text>
-          <Button testID="send-code" title={t('auth.sendCode')} onPress={sendCode} loading={busy === 'send'} disabled={!!busy || !identifier.trim()} />
+          <Text style={styles.hint}>{t('auth.codeHint')}</Text>
+          <Button
+            testID="send-code"
+            title={t('auth.sendCode')}
+            onPress={sendCode}
+            loading={busy === 'send'}
+            disabled={!!busy || !identifier.trim()}
+            style={styles.main}
+          />
+          <Text testID="use-password" style={styles.switch} onPress={() => switchMethod('password')} accessibilityRole="link">
+            {t('auth.modePassword')}
+          </Text>
         </>
       )}
       <ErrorText>{error}</ErrorText>
@@ -203,8 +216,7 @@ export function SignUpForm({ confirmEmail }: { confirmEmail: string | null }) {
   if (verifyFor) {
     return (
       <>
-        <Text style={text.subtitle}>{t('auth.signUpCodeTitle')}</Text>
-        {confirmEmail ? <Text style={text.small}>{t('auth.emailNotConfirmed')}</Text> : null}
+        {confirmEmail ? <Text style={[text.small, styles.center]}>{t('auth.emailNotConfirmed')}</Text> : null}
         <CodeStep
           destination={verifyFor}
           verifyLabel={t('auth.confirm')}
@@ -262,13 +274,19 @@ export function SignUpForm({ confirmEmail }: { confirmEmail: string | null }) {
         onSubmitEditing={create}
         newPassword
       />
-      <Text style={text.small}>{t('auth.signUpHint')}</Text>
-      <Button testID="sign-up" title={t('auth.signUp')} onPress={create} loading={busy === 'create'} disabled={!!busy} />
+      <Text style={styles.hint}>{t('auth.signUpHint')}</Text>
+      <Button testID="sign-up" title={t('common.next')} size="sm" onPress={create} loading={busy === 'create'} disabled={!!busy} />
       <ErrorText>{error}</ErrorText>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  link: { textAlign: 'center', textDecorationLine: 'underline' },
+  center: { textAlign: 'center' },
+  // Figma: "Esqueci a senha" pequeno, à direita, logo abaixo do campo de senha.
+  forgot: { alignSelf: 'flex-end', marginTop: space.sm, marginRight: space.xs, fontFamily: fonts.regular, fontSize: 12, color: colors.text, textDecorationLine: 'underline' },
+  // Figma: botão "Entrar" de 246 × 48, centralizado.
+  main: { alignSelf: 'center', width: 246, maxWidth: '100%' },
+  switch: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, textDecorationLine: 'underline' },
+  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, marginLeft: 14 },
 });

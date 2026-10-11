@@ -42,5 +42,5 @@ export function PasswordField({
 }
 
 const styles = StyleSheet.create({
-  eye: { position: 'absolute', right: space.md, top: 34, padding: 4 },
+  eye: { position: 'absolute', right: space.md, top: 31, padding: 4 },
 });

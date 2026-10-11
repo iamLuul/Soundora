@@ -144,7 +144,7 @@ describe('<SignInForm />', () => {
     mockInvoke.mockResolvedValue({ data: { sent: true, email_hint: 'ra•••@gmail.com' }, error: null });
     await render(<SignInForm onUnconfirmed={jest.fn()} />);
     await fireEvent.changeText(screen.getByTestId('identifier-input'), '@luul');
-    await fireEvent.press(screen.getByText('Código por e-mail'));
+    await fireEvent.press(screen.getByTestId('use-code'));
     await fireEvent.press(screen.getByTestId('send-code'));
     await waitFor(() => expect(screen.getByText('Enviamos um código de 6 dígitos para ra•••@gmail.com')).toBeTruthy());
   });

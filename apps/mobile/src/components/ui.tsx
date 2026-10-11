@@ -40,6 +40,8 @@ export function Button({
   loading,
   icon,
   testID,
+  size = 'md',
+  style,
 }: {
   title: string;
   onPress: () => void;
@@ -48,6 +50,9 @@ export function Button({
   loading?: boolean;
   icon?: ReactNode;
   testID?: string;
+  /** md: 48 px (Figma "Sign in"); sm: 32 px (Figma "Next"). */
+  size?: 'md' | 'sm';
+  style?: StyleProp<ViewStyle>;
 }) {
   const inactive = disabled || loading;
   return (
@@ -57,14 +62,14 @@ export function Button({
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={onPress}
       disabled={inactive}
-      style={({ pressed }) => [styles.button, styles[variant], inactive && styles.disabled, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.button, size === 'sm' && styles.buttonSm, styles[variant], inactive && styles.disabled, pressed && styles.pressed, style]}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' ? colors.background : colors.text} />
       ) : (
         <View style={styles.buttonRow}>
           {icon}
-          <Text style={[styles.buttonText, variant === 'secondary' && { color: colors.background }]}>{title}</Text>
+          <Text style={[styles.buttonText, size === 'sm' && { fontSize: 12 }, variant === 'secondary' && styles.buttonTextLight]}>{title}</Text>
         </View>
       )}
     </Pressable>
@@ -80,9 +85,9 @@ export function TextField({
 }: TextInputProps & { label: string; hint?: string; error?: string | null; success?: string | null }) {
   return (
     <View style={{ gap: space.xs }}>
-      <Text style={text.label}>{label}</Text>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={colors.placeholder}
         accessibilityLabel={label}
         {...props}
         style={[styles.input, !!error && { borderColor: colors.danger }, !!success && { borderColor: colors.success }, props.style]}
@@ -170,7 +175,10 @@ export function ErrorText({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: space.lg, gap: space.lg },
-  button: { minHeight: 48, borderRadius: radius.md, paddingHorizontal: space.lg, alignItems: 'center', justifyContent: 'center' },
+  button: { minHeight: 48, borderRadius: 10, paddingHorizontal: space.lg, alignItems: 'center', justifyContent: 'center' },
+  buttonSm: { minHeight: 32, paddingHorizontal: 28, alignSelf: 'flex-end' },
+  buttonTextLight: { color: colors.background, fontFamily: fonts.regular, fontSize: 12 },
+  fieldLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.text, marginLeft: 14 },
   buttonRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   primary: { backgroundColor: colors.primary },
   secondary: { backgroundColor: colors.text },
@@ -178,17 +186,18 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: colors.danger },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
-  buttonText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },
+  buttonText: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  // Figma: campo 48 px, borda branca de 1 px, raio 10, sem fundo.
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: space.md,
+    borderColor: colors.field,
+    borderRadius: 10,
+    paddingHorizontal: 14,
     color: colors.text,
     fontFamily: fonts.regular,
-    fontSize: 15,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    fontSize: 14,
+    backgroundColor: 'transparent',
     outlineWidth: 0, // Web: sem o contorno branco do navegador; a borda colorida mostra o estado
   },
   chip: { paddingVertical: space.sm, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },

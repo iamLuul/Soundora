@@ -27,7 +27,8 @@ env:
 - tapOn:
     id: "identifier-input"
 - inputText: "@${USERNAME}"
-- tapOn: "Código por e-mail"
+- tapOn:
+    id: "use-code"
 - tapOn:
     id: "send-code"
 - extendedWaitUntil:

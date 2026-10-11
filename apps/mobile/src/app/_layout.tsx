@@ -34,7 +34,9 @@ function RootNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: fonts.semibold },
+        headerTitleStyle: { fontFamily: fonts.regular, fontSize: 16 },
+        headerShadowVisible: false, // Figma: sem linha embaixo do cabeçalho
+        headerBackButtonDisplayMode: 'minimal', // só a seta, como no Figma
         contentStyle: { backgroundColor: colors.background },
       }}
     >
@@ -53,6 +55,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="u/[username]" options={{ title: '' }} />
         <Stack.Screen name="post/[id]" options={{ title: '' }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="settings/index" options={{ title: '' }} />
         <Stack.Screen name="settings/profile" options={{ title: '' }} />
         <Stack.Screen name="settings/username" options={{ title: '' }} />

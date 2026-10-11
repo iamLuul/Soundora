@@ -23,27 +23,24 @@
     "invalidEmail": "Enter a valid email.",
     "invalidCode": "Invalid or expired code.",
     "networkError": "Couldn't reach the server. Check your connection and the Supabase address.",
-    "modePassword": "Password",
-    "modeCode": "Email code",
+    "modePassword": "Sign in with password",
+    "modeCode": "Sign in with an email code",
     "password": "Password",
     "passwordHint": "At least 10 characters, with letters and numbers.",
     "signIn": "Sign in",
     "signUp": "Create account",
-    "forgot": "Forgot password (sign in with a code)",
+    "forgot": "Forgot password",
     "wrongPassword": "Wrong email, @username or password.",
     "emailExists": "This email already has an account. Go to Sign in and use your password or an email code.",
     "rateLimit": "Too many attempts. Please wait a moment and try again.",
     "codeHint": "We'll send a 6-digit code to your account's email.",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
-    "tabSignIn": "Sign in",
-    "tabSignUp": "Create account",
     "identifier": "Email or @username",
     "identifierPlaceholder": "you@email.com or @username",
     "invalidIdentifier": "Enter a valid email or your @username.",
     "confirmPassword": "Confirm password",
     "signUpHint": "Next, we'll send a 6-digit code to confirm your email.",
-    "signUpCodeTitle": "Confirm your email",
     "confirm": "Confirm",
     "resendIn": "Resend code in {{seconds}}s",
     "codeResent": "We sent you a new code.",
@@ -53,7 +50,10 @@
     "noAccount": "We couldn't find an account with that email or @username. Check it or create an account.",
     "usernameUnavailable": "Signing in with @username isn't available right now. Try your email.",
     "weakPassword": "Your password needs at least 10 characters, with letters and numbers.",
-    "reauthNeeded": "For your security, confirm with the code we sent to your email."
+    "reauthNeeded": "For your security, confirm with the code we sent to your email.",
+    "signUpTitle": "Create account!",
+    "noAccountYet": "Don't have an account?",
+    "checkEmail": "Check your email"
   },
   "onboarding": {
     "step": "Step {{current}} of {{total}}",
@@ -75,7 +75,8 @@
     "usernameChecking": "Checking availability…",
     "usernameAvailable": "@{{username}} is available",
     "passwordTitle": "Create a password",
-    "passwordHint": "So you can also sign in with your email or @username and password."
+    "passwordHint": "So you can also sign in with your email or @username and password.",
+    "personalTitle": "Tell us a bit about you"
   },
   "age": {
     "too_young": "You must be at least {{min}} years old to use Soundora.",
@@ -116,7 +117,9 @@
     "feed": "For you",
     "compose": "Post",
     "profile": "Profile",
-    "discover": "Discover"
+    "discover": "Discover",
+    "music": "Music",
+    "home": "Home"
   },
   "feed": {
     "empty": "Your feed is empty. Follow people or post the first song!",
@@ -128,7 +131,13 @@
     "block": "Block @{{username}}",
     "reported": "Report sent. Thank you.",
     "blocked": "You blocked @{{username}}.",
-    "delete": "Delete post"
+    "delete": "Delete post",
+    "stories": "People you follow",
+    "newPost": "Post a song",
+    "sharing": "Sharing",
+    "preview": "Preview",
+    "share": "Share",
+    "postOptions": "Post options"
   },
   "compose": {
     "title": "Share music",
@@ -192,11 +201,12 @@
     "hint": "Swipe right if you like it, left to skip."
   },
   "trending": {
-    "title": "Trending this week",
+    "title": "Most shared songs",
     "all": "All",
     "posts_one": "{{count}} post",
     "posts_other": "{{count}} posts",
-    "empty": "Nothing trending in this genre yet."
+    "empty": "Nothing trending in this genre yet.",
+    "thisWeek": "This week"
   },
   "search": {
     "placeholder": "Search people, songs or artists",
@@ -239,5 +249,20 @@
     "deleteConfirmLabel": "To confirm, type @{{username}}",
     "deleteButton": "Delete my account",
     "signInAgain": "Sign out and sign in again"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "all": "All",
+    "replies": "Replies",
+    "empty": "Nothing to see here"
+  },
+  "music": {
+    "liked": "Liked",
+    "mine": "I posted",
+    "likedTitle": "Liked songs",
+    "likedHint": "Songs you liked in Discover.",
+    "mineTitle": "Your songs",
+    "empty": "No songs yet.",
+    "search": "Search your songs"
   }
 }

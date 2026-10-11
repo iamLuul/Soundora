@@ -103,6 +103,8 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
     try {
       await setFollowing(p.id, !p.i_follow);
       await refresh();
+      // A fila de quem você segue, no topo da Home.
+      void qc.invalidateQueries({ queryKey: ['following'] });
     } catch (err) {
       notify(formatError(t, err));
     }

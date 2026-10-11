@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PasswordField } from '../components/auth/PasswordField';
+import { BackHeader } from '../components/figma';
 import { Button, Chip, ErrorText, Screen, TextField } from '../components/ui';
 import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
@@ -12,7 +13,7 @@ import { setPassword as savePassword } from '../lib/auth-flows';
 import { errorMessageKey, formatError } from '../lib/errors';
 import { useGenres } from '../lib/queries';
 import { useUsernameStatus, validateUsernameFormat } from '../lib/username';
-import { colors, space, text } from '../theme';
+import { colors, fonts, space, text } from '../theme';
 
 type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'terms';
 
@@ -118,15 +119,18 @@ export default function Onboarding() {
 
   return (
     <Screen scroll style={styles.container}>
-      <Text style={text.small}>{t('onboarding.step', { current: index + 1, total: steps.length })}</Text>
-      <View style={styles.progress}>
-        <View style={[styles.progressFill, { width: `${((index + 1) / steps.length) * 100}%` }]} />
+      {index > 0 ? <BackHeader onBack={() => setIndex((i) => i - 1)} /> : <View style={styles.headerSpace} />}
+      {/* Figma: pontos no topo marcam o passo (o atual é o longo, em roxo). */}
+      <View style={styles.dots} accessible accessibilityRole="progressbar" accessibilityLabel={t('onboarding.step', { current: index + 1, total: steps.length })}>
+        {steps.map((s, i) => (
+          <View key={s} style={[styles.dot, i === index && styles.dotActive, i < index && styles.dotDone]} />
+        ))}
       </View>
 
       {step === 'password' && (
         <>
-          <Text style={text.title}>{t('onboarding.passwordTitle')}</Text>
-          <Text style={text.small}>{t('onboarding.passwordHint')}</Text>
+          <Text style={styles.title}>{t('onboarding.passwordTitle')}</Text>
+          <Text style={styles.hint}>{t('onboarding.passwordHint')}</Text>
           <PasswordField testID="new-password-input" label={t('auth.password')} hint={t('auth.passwordHint')} value={password} onChangeText={setPassword} newPassword />
           <PasswordField testID="confirm-password-input" label={t('auth.confirmPassword')} value={confirm} onChangeText={setConfirm} newPassword />
         </>
@@ -134,7 +138,7 @@ export default function Onboarding() {
 
       {step === 'profile' && (
         <>
-          <Text style={text.title}>{t('onboarding.profileTitle')}</Text>
+          <Text style={styles.title}>{t('onboarding.profileTitle')}</Text>
           <TextField
             testID="username-input"
             label={t('onboarding.username')}
@@ -159,8 +163,8 @@ export default function Onboarding() {
 
       {step === 'birthdate' && (
         <>
-          <Text style={text.title}>{t('onboarding.birthdateTitle')}</Text>
-          <Text style={text.small}>{t('onboarding.birthdateHint')}</Text>
+          <Text style={styles.title}>{t('onboarding.birthdateTitle')}</Text>
+          <Text style={styles.hint}>{t('onboarding.birthdateHint')}</Text>
           <View style={styles.dateRow}>
             <View style={{ flex: 1 }}>
               <TextField label={t('onboarding.day')} value={day} onChangeText={(v) => setDay(v.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" placeholder="DD" />
@@ -177,8 +181,8 @@ export default function Onboarding() {
 
       {step === 'genres' && (
         <>
-          <Text style={text.title}>{t('onboarding.genresTitle')}</Text>
-          <Text style={text.small}>{t('onboarding.genresHint', { min: MIN_GENRES })}</Text>
+          <Text style={styles.title}>{t('onboarding.genresTitle')}</Text>
+          <Text style={styles.hint}>{t('onboarding.genresHint', { min: MIN_GENRES })}</Text>
           <View style={styles.chips}>
             {(genreList.data ?? []).map((g) => (
               <Chip key={g.slug} label={i18n.language === 'pt-BR' ? g.name_pt : g.name_en} selected={genres.includes(g.slug)} onPress={() => toggleGenre(g.slug)} />
@@ -189,7 +193,7 @@ export default function Onboarding() {
 
       {step === 'terms' && (
         <>
-          <Text style={text.title}>{t('onboarding.termsTitle')}</Text>
+          <Text style={styles.title}>{t('onboarding.termsTitle')}</Text>
           <Text style={text.body}>{t('onboarding.termsBody')}</Text>
           <Pressable
             accessibilityRole="checkbox"
@@ -206,17 +210,17 @@ export default function Onboarding() {
       <ErrorText>{error}</ErrorText>
 
       <View style={styles.footer}>
-        {index > 0 ? <Button title={t('common.back')} variant="ghost" onPress={() => setIndex((i) => i - 1)} /> : <View />}
         {step !== 'terms' ? (
           <Button
             testID="onboarding-next"
+            size="sm"
             title={t('common.next')}
             onPress={next}
             loading={checkingNext}
             disabled={step === 'profile' && (usernameStatus.state === 'taken' || usernameStatus.state === 'invalid')}
           />
         ) : (
-          <Button testID="onboarding-finish" title={t('onboarding.finish')} onPress={finish} disabled={!accepted} loading={busy} />
+          <Button testID="onboarding-finish" size="sm" title={t('onboarding.finish')} onPress={finish} disabled={!accepted} loading={busy} />
         )}
       </View>
     </Screen>
@@ -225,12 +229,17 @@ export default function Onboarding() {
 
 const styles = StyleSheet.create({
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
-  progress: { height: 4, borderRadius: 2, backgroundColor: colors.surface, overflow: 'hidden' },
-  progressFill: { height: 4, backgroundColor: colors.primary },
+  headerSpace: { height: 26 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: space.sm },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surface },
+  dotActive: { width: 24, backgroundColor: colors.primary },
+  dotDone: { backgroundColor: colors.muted },
+  title: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, textAlign: 'center' },
+  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, textAlign: 'center' },
   dateRow: { flexDirection: 'row', gap: space.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.muted },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, borderColor: colors.field },
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', gap: space.md },
+  footer: { alignItems: 'flex-end' },
 });

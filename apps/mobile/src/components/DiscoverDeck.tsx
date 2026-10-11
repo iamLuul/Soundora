@@ -1,12 +1,16 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { PLATFORM_LABELS } from '@soundora/core';
+import * as Linking from 'expo-linking';
+import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { SvgXml } from 'react-native-svg';
+import { icons } from '../assets/icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { DiscoverCard } from '../lib/types';
 import { colors, fonts, radius, space } from '../theme';
 import { DiscoverCardView } from './DiscoverCardView';
+import { Icon } from './figma';
 
 const SWIPE_THRESHOLD = 0.3; // fração da largura da tela
 
@@ -19,10 +23,13 @@ export function DiscoverDeck({
   cards,
   genreName,
   onSwipe,
+  onShuffle,
 }: {
   cards: DiscoverCard[];
   genreName: (slug: string | null) => string | null;
   onSwipe: (card: DiscoverCard, liked: boolean) => void;
+  /** Botão da esquerda (Figma): busca outras sugestões. */
+  onShuffle?: () => void;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -72,6 +79,9 @@ export function DiscoverDeck({
   return (
     <View style={styles.wrap}>
       <View style={styles.stack}>
+        {/* Cartões inclinados atrás, como no Figma */}
+        {cards.length > 2 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '-6deg' }, { scale: 0.92 }] }]} /> : null}
+        {cards.length > 1 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '5deg' }, { scale: 0.94 }] }]} /> : null}
         {next ? (
           <Animated.View key={next.link_preview_id} style={[StyleSheet.absoluteFill, nextStyle]} pointerEvents="none">
             <DiscoverCardView card={next} genreName={genreName(next.genre)} />
@@ -90,24 +100,47 @@ export function DiscoverDeck({
         </GestureDetector>
       </View>
 
+      {/* Figma: trocar, pular (X), abrir (play), curtir (estrela), compartilhar */}
       <View style={styles.buttons}>
+        <Pressable testID="discover-shuffle" accessibilityRole="button" accessibilityLabel={t('discover.reload')} onPress={onShuffle} hitSlop={12} style={styles.side}>
+          <Icon name="swap" size={22} />
+        </Pressable>
         <Pressable
           testID="discover-skip"
           accessibilityRole="button"
           accessibilityLabel={t('discover.skip')}
           onPress={() => fling(false)}
-          style={({ pressed }) => [styles.round, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => pressed && { opacity: 0.7 }}
         >
-          <Ionicons name="close" size={30} color={colors.text} />
+          <SvgXml xml={icons.skipButton} width={52} height={52} />
+        </Pressable>
+        <Pressable
+          testID="discover-open"
+          accessibilityRole="link"
+          accessibilityLabel={t('feed.listenOn', { platform: PLATFORM_LABELS[top.platform] })}
+          onPress={() => Linking.openURL(top.url)}
+          style={({ pressed }) => pressed && { opacity: 0.8 }}
+        >
+          <SvgXml xml={icons.playButton} width={72} height={72} />
         </Pressable>
         <Pressable
           testID="discover-like"
           accessibilityRole="button"
           accessibilityLabel={t('discover.like')}
           onPress={() => fling(true)}
-          style={({ pressed }) => [styles.round, styles.roundLike, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => pressed && { opacity: 0.7 }}
         >
-          <Ionicons name="heart" size={28} color={colors.text} />
+          <SvgXml xml={icons.likeButton} width={52} height={52} />
+        </Pressable>
+        <Pressable
+          testID="discover-share"
+          accessibilityRole="button"
+          accessibilityLabel={t('feed.share')}
+          onPress={() => Share.share({ message: `${top.title}${top.artist ? ` · ${top.artist}` : ''}\n${top.url}` }).catch(() => undefined)}
+          hitSlop={12}
+          style={styles.side}
+        >
+          <Icon name="shareUp" size={22} />
         </Pressable>
       </View>
     </View>
@@ -116,17 +149,10 @@ export function DiscoverDeck({
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, gap: space.lg },
-  stack: { flex: 1 },
-  buttons: { flexDirection: 'row', justifyContent: 'center', gap: space.xxl, paddingBottom: space.md },
-  round: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  roundLike: { backgroundColor: colors.primary },
+  stack: { flex: 1, marginHorizontal: space.xl, marginTop: space.md },
+  behind: { borderRadius: 10, backgroundColor: colors.tabBar, opacity: 0.7 },
+  buttons: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.sm, paddingBottom: space.md },
+  side: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stamp: { position: 'absolute', top: space.xl, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 3 },
   stampLike: { left: space.xl, borderColor: colors.primary, transform: [{ rotate: '-12deg' }] },
   stampSkip: { right: space.xl, borderColor: colors.danger, transform: [{ rotate: '12deg' }] },

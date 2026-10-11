@@ -7,7 +7,10 @@ export const colors = {
   background: '#3A374C', // Plush
   surface: '#5A5577', // The Fang
   card: '#322F42', // cartões do perfil (Figma: Profile page)
-  handle: '#857EAE', // @usuário
+  handle: '#857EAE', // @usuário, placeholder da busca
+  placeholder: '#878787', // texto de exemplo nos campos (Figma)
+  field: '#FFFFFF', // borda dos campos (Figma: 1 px branco, raio 10)
+  tabBar: '#5A5577', // barra inferior (Figma: Rectangle 8)
   muted: '#B3A9EB', // Maximum Blue Purple
   text: '#FFFFFF',
   textMuted: '#B3A9EB',

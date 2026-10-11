@@ -1,38 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { colors, fonts } from '../../theme';
+import { TabBar } from '../../components/TabBar';
+import { colors } from '../../theme';
 
+/** Abas do app, na ordem do Figma: Início, Buscar, + (postar), Músicas, Perfil. */
 export default function TabsLayout() {
   const { t } = useTranslation();
   return (
     <Tabs
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: fonts.semibold },
-        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: fonts.semibold },
-      }}
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: t('tabs.feed'), tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{ title: t('tabs.discover'), tabBarIcon: ({ color, size }) => <Ionicons name="compass" color={color} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="compose"
-        options={{ title: t('tabs.compose'), tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={colors.primary} size={size + 8} /> }}
-      />
-      <Tabs.Screen
-        name="me"
-        options={{ title: t('tabs.profile'), headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} /> }}
-      />
+      <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
+      <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />
+      <Tabs.Screen name="compose" options={{ title: t('tabs.compose') }} />
+      <Tabs.Screen name="music" options={{ title: t('tabs.music') }} />
+      <Tabs.Screen name="me" options={{ title: t('tabs.profile') }} />
     </Tabs>
   );
 }

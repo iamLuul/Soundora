@@ -6,7 +6,8 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import type { TrendingTrack } from '../lib/types';
-import { colors, fonts, radius, space, text } from '../theme';
+import { colors, fonts, space, text } from '../theme';
+import { PlatformLogo } from './figma';
 
 /** Uma linha do ranking: posição, capa, música e quantos posts teve. */
 export function TrendingRow({ item, onOpen, showRank = true }: { item: TrendingTrack; onOpen?: (url: string) => void; showRank?: boolean }) {
@@ -21,7 +22,7 @@ export function TrendingRow({ item, onOpen, showRank = true }: { item: TrendingT
       onPress={open}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
     >
-      {showRank ? <Text style={[styles.rank, item.rank <= 3 && { color: colors.primary }]}>{item.rank}</Text> : null}
+      {showRank ? <Text style={styles.rank}>{item.rank}</Text> : null}
       {item.image_url ? (
         <Image source={{ uri: item.image_url }} style={styles.cover} contentFit="cover" />
       ) : (
@@ -33,11 +34,11 @@ export function TrendingRow({ item, onOpen, showRank = true }: { item: TrendingT
         <Text style={styles.title} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={text.small} numberOfLines={1}>
+        <Text style={styles.artist} numberOfLines={1}>
           {[item.artist, t('trending.posts', { count: item.post_count })].filter(Boolean).join(' · ')}
         </Text>
       </View>
-      <Ionicons name="play-circle" size={28} color={colors.muted} />
+      <PlatformLogo platform={item.platform} size={20} />
     </Pressable>
   );
 }
@@ -77,8 +78,9 @@ export function TrendingList({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
-  rank: { width: 28, textAlign: 'center', fontFamily: fonts.bold, fontSize: 18, color: colors.textMuted },
-  cover: { width: 52, height: 52, borderRadius: radius.sm },
+  rank: { width: 22, textAlign: 'center', fontFamily: fonts.bold, fontSize: 18, color: colors.text },
+  cover: { width: 52, height: 52, borderRadius: 10 },
+  artist: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
   coverFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },
+  title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
 });

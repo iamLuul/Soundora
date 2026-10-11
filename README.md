@@ -11,6 +11,7 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 - postar música, feed "Para você", curtir, comentar, seguir;
 - Descobrir (cartões com swipe: destaques da curadoria e indicações da comunidade), Em alta (ranking da semana por gênero) e Buscar (pessoas e músicas);
 - perfil no layout do Figma (banner, foto centralizada, números), com troca de foto e banner, menu de opções e Configurações (editar perfil, alterar @, redefinir senha, idioma, sair, excluir conta); denunciar, bloquear e apagar post;
+- todas as telas no layout do Figma (Case Study UI/UX): logo, ícones e logos das plataformas exportados do arquivo (`apps/mobile/src/assets`), barra inferior com o botão "+" central, Home com a fila de quem você segue, Notificações, aba Músicas (curtidas e postadas), cartão de música por plataforma, botões do Descobrir, login, cadastro, código em 6 caixas e onboarding com pontos de progresso;
 - interface em português do Brasil e inglês.
 
 ## Estrutura
