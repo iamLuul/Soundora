@@ -37,6 +37,8 @@ const KNOWN = new Set([
   'server_outdated',
   'push_unavailable',
   'invalid_media',
+  'genres_need_music',
+  'invalid_parent',
   'unsupported_video',
   'invalid_video',
   'video_too_long',

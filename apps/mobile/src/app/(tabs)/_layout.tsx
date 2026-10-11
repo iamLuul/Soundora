@@ -9,6 +9,8 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}
+      // Fechar o "postar" (o X) volta para a aba de onde a pessoa veio.
+      backBehavior="history"
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
     >
       <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />

@@ -89,6 +89,7 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | Posts | 30 por hora | Banco (trigger) |
 | Comentários | 60 a cada 10 min | Banco |
 | Curtidas | 300 por hora | Banco |
+| Curtidas em comentários | 300 por hora | Banco |
 | Seguir | 100 por hora | Banco |
 | Denúncias | 20 por dia | Banco |
 | Bloqueios | 50 por dia | Banco |

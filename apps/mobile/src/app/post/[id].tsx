@@ -1,17 +1,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BackHeader, RingAvatar } from '../../components/figma';
+import { BackHeader } from '../../components/figma';
 import { PostActions, type PostAction } from '../../components/PostActions';
 import { PostCard } from '../../components/PostCard';
 import { ErrorText } from '../../components/ui';
-import { addComment, blockUser, deletePost, fetchComments, report } from '../../lib/api';
+import { addComment, blockUser, deletePost, fetchComments, report, setCommentLiked } from '../../lib/api';
+import type { CommentRow } from '../../lib/types';
+import { CommentItem } from '../../components/CommentItem';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
-import { relativeTime } from '../../lib/i18n';
 import { keys, usePost, useToggleLike } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 
@@ -34,14 +35,37 @@ export default function PostScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Respondendo a um comentário: o principal (onde a resposta fica) e o @ de quem é respondido.
+  const [replyTo, setReplyTo] = useState<{ rootId: string; username: string } | null>(null);
+  const input = useRef<TextInput>(null);
+
+  const startReply = (c: CommentRow) => {
+    setReplyTo({ rootId: c.parent_id ?? c.id, username: c.author_username });
+    setBody((b) => (b.startsWith(`@${c.author_username} `) ? b : `@${c.author_username} `));
+    input.current?.focus();
+  };
+
+  const toggleCommentLike = async (c: CommentRow) => {
+    const key = keys.comments(id);
+    const before = qc.getQueryData<CommentRow[]>(key);
+    const patch = (r: CommentRow) => (r.id === c.id ? { ...r, liked_by_me: !c.liked_by_me, like_count: Math.max(0, r.like_count + (c.liked_by_me ? -1 : 1)) } : r);
+    qc.setQueryData<CommentRow[]>(key, (rows) => rows?.map(patch));
+    try {
+      await setCommentLiked(c.id, !c.liked_by_me);
+    } catch (err) {
+      qc.setQueryData(key, before);
+      notify(formatError(t, err));
+    }
+  };
 
   const send = async () => {
     if (!body.trim()) return;
     setSending(true);
     setError(null);
     try {
-      await addComment(id, body);
+      await addComment(id, body, replyTo?.rootId ?? null);
       setBody('');
+      setReplyTo(null);
       await Promise.all([
         qc.invalidateQueries({ queryKey: keys.comments(id) }),
         qc.invalidateQueries({ queryKey: keys.post(id) }),
@@ -119,27 +143,33 @@ export default function PostScreen() {
             </>
           }
           ListEmptyComponent={comments.isLoading ? <ActivityIndicator color={colors.muted} /> : <Text style={styles.empty}>{t('post.noComments')}</Text>}
-          renderItem={({ item }) => (
-            <View style={styles.comment} testID={`comment-${item.id}`}>
-              <Pressable accessibilityRole="link" onPress={() => item.author && router.push(`/u/${item.author.username}`)}>
-                <RingAvatar uri={item.author?.avatar_url ?? null} name={item.author?.display_name ?? '?'} size={34} />
-              </Pressable>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {item.author?.display_name} <Text style={styles.handle}>@{item.author?.username} · {relativeTime(item.created_at)}</Text>
-                </Text>
-                <Text style={styles.commentBody}>{item.body}</Text>
-              </View>
-            </View>
-          )}
+          renderItem={({ item }) => <CommentItem item={item} onToggleLike={toggleCommentLike} onReply={startReply} />}
         />
       )}
 
       {post.data ? (
         <View style={[styles.composer, { paddingBottom: insets.bottom + space.sm }]}>
           <ErrorText>{error}</ErrorText>
+          {replyTo ? (
+            <View style={styles.replying}>
+              <Text style={styles.replyingText}>{t('post.replyingTo', { username: replyTo.username })}</Text>
+              <Pressable
+                testID="cancel-reply"
+                accessibilityRole="button"
+                accessibilityLabel={t('common.cancel')}
+                hitSlop={10}
+                onPress={() => {
+                  setReplyTo(null);
+                  setBody((b) => b.replace(new RegExp(`^@${replyTo.username} `), ''));
+                }}
+              >
+                <Text style={styles.replyingCancel}>✕</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.composerRow}>
             <TextInput
+              ref={input}
               testID="comment-input"
               value={body}
               onChangeText={setBody}
@@ -183,10 +213,9 @@ const styles = StyleSheet.create({
   gone: { fontFamily: fonts.regular, fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: space.xl },
   section: { fontFamily: fonts.bold, fontSize: 14, color: colors.text, paddingVertical: space.md, borderTopWidth: 1, borderTopColor: colors.tabBar },
   empty: { fontFamily: fonts.regular, fontSize: 13, color: colors.textMuted, paddingVertical: space.md },
-  comment: { flexDirection: 'row', gap: space.md, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
-  name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
-  handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
-  commentBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.text },
+  replying: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: space.xs },
+  replyingText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
+  replyingCancel: { fontFamily: fonts.bold, fontSize: 13, color: colors.textMuted },
   composer: { borderTopWidth: 1, borderTopColor: colors.tabBar, paddingHorizontal: space.lg, paddingTop: space.sm, backgroundColor: colors.background },
   composerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   input: {

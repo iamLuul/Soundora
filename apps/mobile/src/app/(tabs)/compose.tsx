@@ -4,10 +4,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useTranslation } from 'react-i18next';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GenrePicker } from '../../components/GenrePicker';
 import { MusicCard } from '../../components/MusicCard';
@@ -37,7 +39,35 @@ export default function ComposeScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const { height } = useWindowDimensions();
   const [body, setBody] = useState('');
+
+  // A tela sobe ao abrir; o X (o "+" girado na barra) faz ela descer e volta para a aba anterior.
+  const slide = useSharedValue(height);
+  useFocusEffect(
+    useCallback(() => {
+      slide.set(height);
+      slide.set(withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }));
+    }, [slide, height]),
+  );
+  const goBack = useCallback(() => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else router.navigate('/');
+  }, [navigation]);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('tabPress' as never, (e: { preventDefault: () => void }) => {
+      if (!navigation.isFocused()) return;
+      e.preventDefault();
+      slide.set(
+        withTiming(height, { duration: 240, easing: Easing.in(Easing.cubic) }, (done) => {
+          if (done) scheduleOnRN(goBack);
+        }),
+      );
+    });
+    return unsubscribe;
+  }, [navigation, slide, height, goBack]);
+  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateY: slide.value }] }));
   const [media, setMedia] = useState<Picked[]>([]);
   const [link, setLink] = useState('');
   const [showLink, setShowLink] = useState(false);
@@ -53,11 +83,15 @@ export default function ComposeScreen() {
   const canAddMedia = !hasVideo && media.length < POST_LIMITS.photos;
   const canPublish = (!!body.trim() || media.length > 0 || !!preview) && body.length <= POST_TEXT_MAX;
 
-  const loadPreview = async (value = link) => {
+  /** Gera o card da música. Devolve true se deu certo. */
+  const loadPreview = async (value = link): Promise<boolean> => {
     setError(null);
     const url = extractFirstUrl(value);
     // Confere no app antes de chamar o servidor: resposta instantânea para links errados.
-    if (!url || !parseStreamingUrl(url)) return setError(t('errors.unsupported'));
+    if (!url || !parseStreamingUrl(url)) {
+      setError(t('errors.unsupported'));
+      return false;
+    }
     setLoadingPreview(true);
     try {
       const p = await previewLink(url);
@@ -66,8 +100,11 @@ export default function ComposeScreen() {
       const found = (p.genres ?? []).slice(0, MAX_POST_GENRES);
       setDetected(found);
       setGenres((current) => [...found, ...current.filter((g) => !found.includes(g))].slice(0, MAX_POST_GENRES));
+      setShowLink(false);
+      return true;
     } catch (err) {
       setError(formatError(t, err));
+      return false;
     } finally {
       setLoadingPreview(false);
     }
@@ -82,9 +119,25 @@ export default function ComposeScreen() {
   const removeMusic = () => {
     setPreview(null);
     setLink('');
-    setGenres((g) => g.filter((x) => !detected.includes(x)));
+    // Sem música, sem gênero: o gênero descreve a música.
+    setGenres([]);
     setDetected([]);
   };
+
+  // Link de música colado/digitado no texto: vira o card sozinho, e o link sai do texto.
+  const autoTried = useRef<string | null>(null);
+  useEffect(() => {
+    if (preview || loadingPreview) return;
+    const url = extractFirstUrl(body);
+    if (!url || url === autoTried.current || !parseStreamingUrl(url)) return;
+    const timer = setTimeout(async () => {
+      autoTried.current = url;
+      const ok = await loadPreview(url);
+      if (ok) setBody((b) => b.replace(url, '').replace(/[ \t]{2,}/g, ' ').trim());
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPreview muda a cada render; o que importa é o texto
+  }, [body, preview, loadingPreview]);
 
   const pick = async (source: 'library' | 'camera') => {
     setError(null);
@@ -140,7 +193,7 @@ export default function ComposeScreen() {
         uploaded.push({ path: up.path, kind: m.type, width: up.width, height: up.height, duration_ms: up.durationMs ?? null });
       }
       setPublishing(t('compose.publishing'));
-      const id = await createPost({ body, previewId: preview?.id ?? null, genres, media: uploaded });
+      const id = await createPost({ body, previewId: preview?.id ?? null, genres: preview ? genres : [], media: uploaded });
       setBody('');
       setMedia([]);
       removeMusic();
@@ -156,7 +209,7 @@ export default function ComposeScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <Animated.View style={[styles.screen, { paddingTop: insets.top }, slideStyle]}>
       <View style={styles.top}>
         <Text style={styles.title}>{t('compose.title')}</Text>
         <Button testID="publish" title={publishing ?? t('compose.publish')} size="sm" onPress={publish} loading={!!publishing} disabled={!canPublish || !!publishing} style={{ alignSelf: 'center' }} />
@@ -207,6 +260,7 @@ export default function ComposeScreen() {
           </ScrollView>
         ) : null}
 
+        {loadingPreview && !showLink ? <Text style={styles.limits}>{t('compose.loadingMusic')}</Text> : null}
         {preview ? (
           <View>
             <MusicCard data={{ url: preview.url, platform: preview.platform, title: preview.title, artist: preview.artist, imageUrl: preview.image_url }} />
@@ -242,11 +296,14 @@ export default function ComposeScreen() {
         </View>
         <Text style={styles.limits}>{t('compose.limits')}</Text>
 
-        <GenrePicker value={genres} onChange={setGenres} detected={detected} suggestions={myGenres.data ?? []} max={MAX_POST_GENRES} />
+        {/* Gênero só com música: ele descreve a música do post. */}
+        {preview ? (
+          <GenrePicker value={genres} onChange={setGenres} detected={detected} suggestions={myGenres.data ?? []} max={MAX_POST_GENRES} />
+        ) : null}
 
         <ErrorText>{error}</ErrorText>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 

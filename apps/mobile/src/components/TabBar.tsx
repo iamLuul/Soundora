@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import type { ComponentProps } from 'react';
+import { useEffect, type ComponentProps } from 'react';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +32,10 @@ export function TabBar({ state, navigation }: TabBarProps) {
         const focused = state.index === index;
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+          if (event.defaultPrevented) return;
+          if (!focused) navigation.navigate(route.name, route.params);
+          // O "+" virou X: fechar o postar (a tela cuida da animação; isto é só o plano B).
+          else if (route.name === 'compose') navigation.goBack();
         };
         const label = t(tab.label);
 
@@ -41,11 +45,11 @@ export function TabBar({ state, navigation }: TabBarProps) {
               <Pressable
                 testID="tab-compose"
                 accessibilityRole="button"
-                accessibilityLabel={label}
+                accessibilityLabel={focused ? t('common.close') : label}
                 onPress={onPress}
                 style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
               >
-                <Icon name="plus" size={18} color={colors.text} />
+                <PlusToX open={focused} />
               </Pressable>
             </View>
           );
@@ -67,6 +71,20 @@ export function TabBar({ state, navigation }: TabBarProps) {
         );
       })}
     </View>
+  );
+}
+
+/** O "+" gira 45° e vira um X enquanto a tela de postar está aberta. */
+function PlusToX({ open }: { open: boolean }) {
+  const turn = useSharedValue(open ? 1 : 0);
+  useEffect(() => {
+    turn.set(withSpring(open ? 1 : 0, { damping: 14, stiffness: 180 }));
+  }, [open, turn]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 45}deg` }] }));
+  return (
+    <Animated.View style={style} testID={open ? 'compose-close-icon' : 'compose-open-icon'}>
+      <Icon name="plus" size={18} color={colors.text} />
+    </Animated.View>
   );
 }
 

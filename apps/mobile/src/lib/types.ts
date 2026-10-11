@@ -81,13 +81,19 @@ export interface ProfileSummary {
   i_follow: boolean;
 }
 
+/** Linha de post_comments: principais na ordem, cada um seguido das suas respostas. */
 export interface CommentRow {
   id: string;
-  post_id: string;
-  author_id: string;
+  parent_id: string | null;
   body: string;
   created_at: string;
-  author: Pick<Profile, 'username' | 'display_name' | 'avatar_url'> | null;
+  like_count: number;
+  reply_count: number;
+  liked_by_me: boolean;
+  author_id: string;
+  author_username: string;
+  author_display_name: string;
+  author_avatar_url: string | null;
 }
 
 export interface AppConfig {

@@ -215,22 +215,27 @@ export async function report(targetType: 'post' | 'comment' | 'profile' | 'vibe'
 }
 
 export async function fetchComments(postId: string): Promise<CommentRow[]> {
-  const { data, error } = await supabase
-    .from('comments')
-    .select('id, post_id, author_id, body, created_at, author:profiles(username, display_name, avatar_url)')
-    .eq('post_id', postId)
-    .order('created_at', { ascending: true })
-    .limit(200);
+  const { data, error } = await supabase.rpc('post_comments', { p_post: postId });
   if (error) throw error;
-  return data as unknown as CommentRow[];
+  return (data ?? []) as CommentRow[];
 }
 
-export async function addComment(postId: string, body: string): Promise<void> {
+/** Comenta no post; com parentId, responde a um comentário (o servidor pendura no principal). */
+export async function addComment(postId: string, body: string, parentId: string | null = null): Promise<void> {
   const parsed = commentSchema.safeParse(body);
   if (!parsed.success) throw new AppError(parsed.error.issues[0]?.message ?? 'generic');
   const userId = await currentUserId();
-  const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: userId, body: parsed.data });
+  const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: userId, body: parsed.data, parent_id: parentId });
   if (error) throw error;
+}
+
+export async function setCommentLiked(commentId: string, liked: boolean): Promise<void> {
+  const userId = await currentUserId();
+  const { error } = liked
+    ? await supabase.from('comment_likes').insert({ user_id: userId, comment_id: commentId })
+    : await supabase.from('comment_likes').delete().eq('user_id', userId).eq('comment_id', commentId);
+  // Clique duplo: já curtido conta como sucesso.
+  if (error && error.code !== '23505') throw error;
 }
 
 export async function updateLocale(locale: 'pt-BR' | 'en'): Promise<void> {
@@ -441,7 +446,7 @@ export async function fetchFollowing(): Promise<FollowedProfile[]> {
 
 // ---------- Notificações ----------
 
-export type NotificationKind = 'like' | 'comment' | 'reply' | 'follow';
+export type NotificationKind = 'like' | 'comment' | 'reply' | 'follow' | 'comment_reply' | 'comment_like';
 export type NotificationFilter = 'all' | 'replies';
 
 export interface NotificationItem {

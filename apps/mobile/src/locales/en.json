@@ -123,7 +123,9 @@
     "video_too_large": "Videos can be up to 30 MB.",
     "video_dimensions": "This video's resolution isn't supported.",
     "post_empty": "Write something, add media or a song.",
-    "invalid_genre": "Invalid genre."
+    "invalid_genre": "Invalid genre.",
+    "genres_need_music": "Genres can only be set on posts with a song.",
+    "invalid_parent": "That comment no longer exists."
   },
   "tabs": {
     "feed": "For you",
@@ -175,7 +177,8 @@
     "removeMusic": "Remove the song",
     "addMedia": "Photo/video",
     "addMusic": "Song",
-    "limits": "Up to 500 characters, 4 photos or one 30 s video (30 MB)."
+    "limits": "Up to 500 characters, 4 photos or one 30 s video (30 MB).",
+    "loadingMusic": "Making the song card…"
   },
   "post": {
     "commentPlaceholder": "Write a comment…",
@@ -188,7 +191,9 @@
     "comments_zero": "Comments",
     "replyPlaceholder": "Reply to @{{username}}…",
     "openHint": "Opens the post with its comments",
-    "openPhoto": "View photo"
+    "openPhoto": "View photo",
+    "reply": "Reply",
+    "replyingTo": "Replying to @{{username}}"
   },
   "profile": {
     "followers": "Followers",
@@ -300,7 +305,9 @@
     "pushTitle": "Phone notifications",
     "pushBody": "Get a heads-up when someone likes, comments or follows you.",
     "pushDenied": "Notifications are blocked. Allow them in your phone settings.",
-    "pushEnable": "Turn on"
+    "pushEnable": "Turn on",
+    "comment_reply": "replied to you",
+    "comment_like": "liked your comment"
   },
   "music": {
     "liked": "Liked",

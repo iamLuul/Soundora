@@ -123,7 +123,9 @@
     "video_too_large": "O vídeo pode ter até 30 MB.",
     "video_dimensions": "A resolução do vídeo não é aceita.",
     "post_empty": "Escreva algo, adicione uma mídia ou uma música.",
-    "invalid_genre": "Gênero inválido."
+    "invalid_genre": "Gênero inválido.",
+    "genres_need_music": "O gênero só pode ser escolhido em post com música.",
+    "invalid_parent": "Esse comentário não existe mais."
   },
   "tabs": {
     "feed": "Para você",
@@ -175,7 +177,8 @@
     "removeMusic": "Tirar a música",
     "addMedia": "Foto/vídeo",
     "addMusic": "Música",
-    "limits": "Até 500 caracteres, 4 fotos ou 1 vídeo de 30 s (30 MB)."
+    "limits": "Até 500 caracteres, 4 fotos ou 1 vídeo de 30 s (30 MB).",
+    "loadingMusic": "Gerando o card da música…"
   },
   "post": {
     "commentPlaceholder": "Escreva um comentário…",
@@ -188,7 +191,9 @@
     "comments_zero": "Comentários",
     "replyPlaceholder": "Responder @{{username}}…",
     "openHint": "Abre o post com os comentários",
-    "openPhoto": "Ver foto"
+    "openPhoto": "Ver foto",
+    "reply": "Responder",
+    "replyingTo": "Respondendo @{{username}}"
   },
   "profile": {
     "followers": "Seguidores",
@@ -300,7 +305,9 @@
     "pushTitle": "Avisos no celular",
     "pushBody": "Receba um aviso quando curtirem, comentarem ou seguirem você.",
     "pushDenied": "As notificações estão bloqueadas. Libere nas configurações do celular.",
-    "pushEnable": "Ativar"
+    "pushEnable": "Ativar",
+    "comment_reply": "respondeu você",
+    "comment_like": "curtiu seu comentário"
   },
   "music": {
     "liked": "Curtidas",
