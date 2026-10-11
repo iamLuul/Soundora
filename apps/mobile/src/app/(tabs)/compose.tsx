@@ -200,6 +200,8 @@ export default function ComposeScreen() {
       setGenres([]);
       setShowLink(false);
       await Promise.all([qc.invalidateQueries({ queryKey: keys.feed }), qc.invalidateQueries({ queryKey: ['profile-posts'] })]);
+      // Sai da aba de postar antes de abrir o post: ao fechar o post, volta para onde a pessoa estava.
+      goBack();
       router.push(`/post/${id}`);
     } catch (err) {
       setError(formatError(t, err));

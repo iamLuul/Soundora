@@ -11,13 +11,14 @@ jest.mock('react-native-worklets', () => require('react-native-worklets/lib/modu
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 const mockPreview = jest.fn();
 const mockCreatePost = jest.fn(async () => 'p1');
+const mockNav: string[] = [];
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), navigate: jest.fn() },
+  router: { push: (to: string) => mockNav.push(`push ${to}`), navigate: jest.fn() },
   useFocusEffect: (cb: () => void) => {
     const { useEffect } = jest.requireActual('react');
     useEffect(cb, [cb]);
   },
-  useNavigation: () => ({ addListener: () => () => {}, canGoBack: () => true, goBack: jest.fn(), isFocused: () => true }),
+  useNavigation: () => ({ addListener: () => () => {}, canGoBack: () => true, goBack: () => mockNav.push('back'), isFocused: () => true }),
 }));
 jest.mock('expo-clipboard', () => ({ getStringAsync: async () => '' }));
 jest.mock('expo-image-picker', () => ({ VideoExportPreset: { H264_1280x720: 0 } }));
@@ -62,6 +63,8 @@ describe('Postar', () => {
 
     await fireEvent.press(screen.getByTestId('publish'));
     await waitFor(() => expect(mockCreatePost).toHaveBeenCalledWith({ body: 'ouçam', previewId: 'lp1', genres: ['rock'], media: [] }));
+    // Sai da aba de postar e só então abre o post: fechar o post volta para a tela anterior.
+    await waitFor(() => expect(mockNav).toEqual(['back', 'push /post/p1']));
   });
 
   test('tirar a música some com os gêneros', async () => {
