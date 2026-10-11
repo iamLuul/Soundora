@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 /** Abas que se alcançam arrastando para os lados, da esquerda para a direita (o + fica de fora). */
@@ -53,5 +53,12 @@ export function SwipeTabs({ route, onNavigate, children }: { route: string; onNa
       const target = swipeTarget(route, e.translationX, e.velocityX);
       if (target) onNavigate(target);
     });
-  return <GestureDetector gesture={pan}>{children}</GestureDetector>;
+  // O gesto precisa de uma View nativa de verdade (a tela em si é um componente, sem view própria).
+  return (
+    <GestureDetector gesture={pan}>
+      <View style={{ flex: 1 }} collapsable={false}>
+        {children}
+      </View>
+    </GestureDetector>
+  );
 }

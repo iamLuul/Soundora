@@ -10,6 +10,7 @@ import { useVibesTray } from '../lib/queries';
 import { colors, fonts, space } from '../theme';
 import { Icon } from './figma';
 import { Avatar } from './ui';
+import { uniqueBy } from '../lib/hooks';
 
 const SIZE = 62;
 
@@ -37,9 +38,9 @@ export function FollowingRow() {
 
   const items = tray.data ?? [];
   const mine = items.find((x) => x.is_me);
-  const others = items.filter((x) => !x.is_me);
+  const others = uniqueBy(items.filter((x) => !x.is_me), (x) => x.author_id, 'fila de vibes');
   const withVibes = new Set(others.map((x) => x.username));
-  const rest = (following.data ?? []).filter((p) => !withVibes.has(p.username));
+  const rest = uniqueBy((following.data ?? []).filter((p) => !withVibes.has(p.username)), (p) => p.username, 'seguindo');
 
   /** Abre as vibes de alguém e deixa na fila as pessoas seguintes. */
   const open = (item: VibeTrayItem, list: VibeTrayItem[]) => {

@@ -11,6 +11,7 @@ import type { FeedItem } from '../lib/types';
 import { colors, space, text } from '../theme';
 import { PostActions, type PostAction } from './PostActions';
 import { PostCard } from './PostCard';
+import { uniqueBy } from '../lib/hooks';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -92,7 +93,7 @@ export function PostList({
   return (
     <>
       <FlatList
-        data={items}
+        data={uniqueBy(items, (i) => i.id, 'posts')}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}
         contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}

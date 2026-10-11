@@ -9,6 +9,7 @@ import { fetchBlockedProfiles, unblockUser } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import type { PersonCard } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
+import { uniqueBy } from '../../lib/hooks';
 
 /** Quem eu bloqueei, com a opção de desbloquear. */
 export default function BlockedScreen() {
@@ -48,7 +49,7 @@ export default function BlockedScreen() {
         </Text>
       ) : (
         <View style={{ gap: space.sm }}>
-          {blocked.data.map((p) => (
+          {uniqueBy(blocked.data, (p) => p.id, 'bloqueados').map((p) => (
             <View key={p.id} testID={`blocked-${p.username}`} style={styles.row}>
               <RingAvatar uri={p.avatar_url} name={p.display_name} size={44} />
               <View style={{ flex: 1 }}>

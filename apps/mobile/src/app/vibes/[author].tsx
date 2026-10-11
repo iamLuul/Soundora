@@ -16,6 +16,7 @@ import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
 import { keys, useVibeMedia, useVibesOf, useVibesTray } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
+import { uniqueBy } from '../../lib/hooks';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -42,7 +43,7 @@ export default function VibeViewerScreen() {
   const { profile } = useAuth();
   const tray = useVibesTray();
   const vibes = useVibesOf(author);
-  const list = useMemo(() => vibes.data ?? [], [vibes.data]);
+  const list = useMemo(() => uniqueBy(vibes.data ?? [], (v) => v.id, 'vibes'), [vibes.data]);
   const isMine = profile?.id === author;
   const who = tray.data?.find((x) => x.author_id === author);
   const username = who?.username ?? (isMine ? profile?.username : paramUsername) ?? '';

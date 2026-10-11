@@ -7,6 +7,7 @@ import { SearchField, TopTabs } from '../../components/figma';
 import { TrackRow } from '../../components/TrackRow';
 import { fetchLikedTracks, fetchMyTracks } from '../../lib/api';
 import { colors, fonts, space, text } from '../../theme';
+import { uniqueBy } from '../../lib/hooks';
 
 type Tab = 'liked' | 'mine';
 
@@ -22,7 +23,7 @@ export default function MusicScreen() {
   const tracks = useQuery({ queryKey: ['my-music', tab], queryFn: tab === 'liked' ? fetchLikedTracks : fetchMyTracks });
 
   const q = query.trim().toLowerCase();
-  const items = (tracks.data ?? []).filter((x) => !q || x.title.toLowerCase().includes(q) || x.artist?.toLowerCase().includes(q));
+  const items = uniqueBy(tracks.data ?? [], (x) => x.link_preview_id, 'músicas').filter((x) => !q || x.title.toLowerCase().includes(q) || x.artist?.toLowerCase().includes(q));
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>

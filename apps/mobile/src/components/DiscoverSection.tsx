@@ -15,6 +15,7 @@ import { searchGenres } from './GenrePicker';
 import { useStreamingOpener } from './StreamingOpener';
 import { Button } from './ui';
 import { VibeAudio } from './vibes/VibeAudio';
+import { uniqueBy } from '../lib/hooks';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -220,7 +221,7 @@ export function DiscoverSection() {
       ) : !liked.data?.length ? (
         <Text style={[text.small, { color: colors.textMuted }]}>{t('discover.likedEmpty')}</Text>
       ) : (
-        liked.data.map((s) => <LikedSongRow key={s.link_preview_id} song={s} onOpen={openSong} onUnlike={unlike} />)
+        uniqueBy(liked.data, (s) => s.link_preview_id, 'curtidas do Descobrir').map((s) => <LikedSongRow key={s.link_preview_id} song={s} onOpen={openSong} onUnlike={unlike} />)
       )}
       {chooser}
     </ScrollView>

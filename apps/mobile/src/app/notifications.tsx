@@ -13,6 +13,7 @@ import { relativeTime } from '../lib/i18n';
 import { enablePush, pushAvailability, pushEnabled } from '../lib/push';
 import { keys, useNotifications } from '../lib/queries';
 import { colors, fonts, space, text } from '../theme';
+import { uniqueBy } from '../lib/hooks';
 
 /** Notificações (Figma: Notifications page): Todas e Respostas, com push opcional no celular. */
 export default function NotificationsScreen() {
@@ -21,7 +22,7 @@ export default function NotificationsScreen() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<NotificationFilter>('all');
   const query = useNotifications(tab);
-  const items = query.data?.pages.flat() ?? [];
+  const items = uniqueBy(query.data?.pages.flat() ?? [], (n) => String(n.id), 'notificações');
 
   // Ao abrir a tela, tudo vira lido (a bolinha do sino some). As linhas continuam destacadas
   // até a próxima atualização, para a pessoa ver o que era novo.

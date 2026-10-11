@@ -12,6 +12,7 @@ import { formatError } from '../../lib/errors';
 import { keys, useProfileLikedSongs } from '../../lib/queries';
 import type { LikedSong } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
+import { uniqueBy } from '../../lib/hooks';
 
 /** Perfil › Curtidas: as músicas que a pessoa curtiu no Descobrir (a mais recente primeiro). */
 export default function LikedSongsScreen() {
@@ -22,7 +23,7 @@ export default function LikedSongsScreen() {
   const { profile } = useAuth();
   const isMe = !!profile && profile.id === id;
   const liked = useProfileLikedSongs(id);
-  const items = liked.data?.pages.flat() ?? [];
+  const items = uniqueBy(liked.data?.pages.flat() ?? [], (s) => s.link_preview_id, 'músicas curtidas');
   const { open, opening, message, chooser } = useStreamingOpener((target, choice) => trackLink(target.key, choice));
 
   const openSong = (s: LikedSong) => open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });

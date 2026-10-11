@@ -9,6 +9,7 @@ import { setFollowing, type PersonRow } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import { keys, usePeople } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
+import { uniqueBy } from '../../lib/hooks';
 
 type List = 'followers' | 'following';
 
@@ -19,7 +20,7 @@ export default function PeopleScreen() {
   const insets = useSafeAreaInsets();
   const [list, setList] = useState<List>(initial === 'following' ? 'following' : 'followers');
   const people = usePeople(username, list);
-  const items = people.data?.pages.flat() ?? [];
+  const items = uniqueBy(people.data?.pages.flat() ?? [], (p) => p.id, 'pessoas');
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + space.sm }]}>

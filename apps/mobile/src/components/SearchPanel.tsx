@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { searchProfiles, searchTracks, unblockUser } from '../lib/api';
 import { formatError } from '../lib/errors';
-import { useDebouncedValue } from '../lib/hooks';
+import { uniqueBy, useDebouncedValue } from '../lib/hooks';
 import type { PersonCard, TrackResult } from '../lib/types';
 import { colors, fonts, space, text } from '../theme';
 import { RingAvatar, SearchField } from './figma';
@@ -44,7 +44,7 @@ export function SearchResults({
       {people.length ? (
         <View style={{ gap: space.sm }}>
           <Text style={styles.section}>{t('search.people')}</Text>
-          {people.map((p) =>
+          {uniqueBy(people, (p) => p.id, 'busca de pessoas').map((p) =>
             p.blocked_by_me ? (
               // Bloqueado por mim: o perfil não abre, mas dá para desbloquear daqui.
               <View key={p.id} testID={`blocked-${p.username}`} style={styles.person}>
@@ -88,7 +88,7 @@ export function SearchResults({
       {tracks.length ? (
         <View style={{ gap: space.xs }}>
           <Text style={styles.section}>{t('search.tracks')}</Text>
-          {tracks.map((tr, i) => (
+          {uniqueBy(tracks, (tr) => tr.link_preview_id, 'busca de músicas').map((tr, i) => (
             <TrendingRow key={tr.link_preview_id} showRank={false} item={{ ...tr, rank: i + 1, like_count: 0, score: 0 }} />
           ))}
         </View>

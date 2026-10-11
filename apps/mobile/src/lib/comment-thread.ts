@@ -1,4 +1,5 @@
 import type { CommentRow } from './types';
+import { uniqueBy } from './hooks';
 
 /** Respostas que aparecem antes do "Ver mais" numa conversa recolhida. */
 export const VISIBLE_REPLIES = 2;
@@ -15,7 +16,8 @@ export type CommentListRow =
  * "Mostrar menos". `continues` diz se a linha vertical da conversa segue para baixo.
  * A lista do servidor já vem com as respostas logo depois do comentário principal.
  */
-export function buildCommentRows(comments: CommentRow[], expanded: ReadonlySet<string>): CommentListRow[] {
+export function buildCommentRows(list: CommentRow[], expanded: ReadonlySet<string>): CommentListRow[] {
+  const comments = uniqueBy(list, (c) => c.id, 'comentários');
   const replies = new Map<string, CommentRow[]>();
   for (const c of comments) if (c.parent_id) replies.set(c.parent_id, [...(replies.get(c.parent_id) ?? []), c]);
 
