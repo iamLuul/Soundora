@@ -57,6 +57,20 @@ A aba **Em alta** (as mais tocadas no mundo) usa a API do Last.fm, que precisa d
 
 Sem a chave, o resto do app funciona; só a aba Em alta mostra que o ranking não carregou.
 
+### Dados de teste (opcional)
+
+Para o app não ficar vazio nos testes, com o Supabase e as functions rodando:
+
+```powershell
+npm run demo
+```
+
+Cria 6 contas de teste (@marina.sons, @caio.beats, @lua.indie, @dj.tavares, @bia.ramos, @theo.rock) com foto, banner, posts com música e foto, comentários, respostas, curtidas e vibes. As suas contas passam a seguir as de teste e ganham seguidores e notificações. Para entrar como uma delas: `marina_sons@demo.soundora.dev` (ou `@marina.sons`), senha `Soundora2026demo`.
+
+- Rodar de novo apaga e recria só as contas de teste (as vibes somem em 24 h; é assim que se renova).
+- `npm run demo -- --remove` apaga as contas de teste e tudo delas.
+- O script só roda contra o Supabase local: recusa qualquer endereço que não seja o do seu PC.
+
 ## 4. App
 
 ```powershell
