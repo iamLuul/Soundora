@@ -39,6 +39,8 @@ Se a chave secreta vazar: no painel, em **Project Settings → API Keys**, crie 
 
 ## Arquivos (foto e banner do perfil)
 
+Antes de enviar, o app converte a imagem no próprio aparelho (`apps/mobile/src/lib/image-convert.ts` e `.web.ts`): recorta no centro, deixa no tamanho exato (foto 512 × 512, banner 1500 × 500), recodifica como JPEG sem metadados (EXIF e GPS saem) e reduz a qualidade até caber no limite. Qualquer foto da galeria funciona, inclusive HEIC no celular e PNG de 50 MB, e só esse JPEG pequeno sai do aparelho. O servidor não confia nisso e confere tudo de novo.
+
 O app não escreve no Storage. A foto e o banner passam pela Edge Function `profile-image`, que confere, nesta ordem:
 
 1. Login, antes de ler qualquer byte do arquivo.

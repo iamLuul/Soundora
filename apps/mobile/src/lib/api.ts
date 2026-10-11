@@ -1,7 +1,7 @@
 import { commentSchema, displayNameSchema, passwordSchema, postTextSchema, type ReportReason } from '@soundora/core';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
+import { convertProfileImage } from './image-convert';
 import { supabase } from './supabase';
 import type {
   AppConfig,
@@ -248,39 +248,21 @@ async function functionError(name: string, error: Error, unavailableCode: string
 export type ProfileImageKind = 'avatar' | 'banner';
 
 /** Tamanho final de cada imagem: foto quadrada de 512 px, banner 3:1 com 1500 px. */
-export const PROFILE_IMAGE_SIZE: Record<ProfileImageKind, { width: number; aspect: number }> = {
-  avatar: { width: 512, aspect: 1 },
-  banner: { width: 1500, aspect: 3 },
-};
-
 /**
- * Recorta no centro (quadrado para a foto, 3:1 para o banner), reduz e manda como JPEG
- * para a Edge Function profile-image, que confere o arquivo (tipo real, tamanho, dimensões)
- * e grava no Storage e no perfil. O app não tem permissão de escrever nos buckets.
+ * Converte no aparelho (recorte, tamanho exato, JPEG sem metadados: lib/image-convert) e
+ * envia só o resultado para a Edge Function, que confere tudo de novo antes de gravar.
  */
 export async function uploadProfileImage(
   kind: ProfileImageKind,
   image: { uri: string; width: number; height: number },
 ): Promise<string> {
-  const { width: targetWidth, aspect } = PROFILE_IMAGE_SIZE[kind];
-  const context = ImageManipulator.manipulate(image.uri);
-  if (image.width > 0 && image.height > 0) {
-    const cropWidth = Math.min(image.width, Math.round(image.height * aspect));
-    const cropHeight = Math.round(cropWidth / aspect);
-    context.crop({
-      originX: Math.round((image.width - cropWidth) / 2),
-      originY: Math.round((image.height - cropHeight) / 2),
-      width: cropWidth,
-      height: cropHeight,
-    });
-  }
-  context.resize({ width: targetWidth, height: null });
-  const rendered = await context.renderAsync();
-  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
-  const bytes = await (await fetch(saved.uri)).arrayBuffer();
+  const bytes = await convertProfileImage(kind, image.uri, image.width, image.height);
+  // ArrayBuffer (não Uint8Array): com Content-Type próprio, o supabase-js transformaria um
+  // Uint8Array em JSON.
+  const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 
   const { data, error } = await supabase.functions.invoke<{ path: string }>(`profile-image?kind=${kind}`, {
-    body: bytes,
+    body,
     headers: { 'Content-Type': 'image/jpeg' },
   });
   if (error) throw await functionError('profile-image', error, 'generic');
