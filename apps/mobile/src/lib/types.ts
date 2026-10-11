@@ -27,6 +27,8 @@ export interface LinkPreviewRow {
   fetched_at: string;
   /** Gêneros detectados nas lojas (null = ainda não procurou). */
   genres: string[] | null;
+  /** Prévia de 30 s oficial da Apple/Deezer (null = a loja não oferece). */
+  audio_url?: string | null;
 }
 
 /** Linha devolvida por feed_for_you e profile_posts. */

@@ -17,6 +17,8 @@ export interface VibeMusic {
   title: string;
   artist: string | null;
   imageUrl: string | null;
+  /** Prévia de 30 s (Apple/Deezer), se a loja oferecer. */
+  audioUrl?: string | null;
 }
 
 export interface VibeSharedPost {
@@ -41,10 +43,12 @@ export interface VibeContentProps {
   /** Prévia na tela de criar: vídeo em loop, sem abrir links. */
   preview?: boolean;
   onVideoEnd?: () => void;
+  /** Tela de criar: onde o card da música ficou (para tocar nele e trocar o link). */
+  onMusicLayout?: (rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 /** O conteúdo de uma vibe em 9:16. Igual na criação e na visualização. */
-export function VibeContent({ kind, mediaUri, text, textPos = null, style, music, post, paused = false, preview = false, onVideoEnd }: VibeContentProps) {
+export function VibeContent({ kind, mediaUri, text, textPos = null, style, music, post, paused = false, preview = false, onVideoEnd, onMusicLayout }: VibeContentProps) {
   const { t } = useTranslation();
 
   if (kind === 'photo' || kind === 'video') {
@@ -67,7 +71,7 @@ export function VibeContent({ kind, mediaUri, text, textPos = null, style, music
 
       {kind === 'music' && music ? (
         <>
-          <MusicBlock music={music} disabled={preview} />
+          <MusicBlock music={music} disabled={preview} onLayout={onMusicLayout} />
         </>
       ) : null}
 
@@ -99,11 +103,11 @@ export function VibeContent({ kind, mediaUri, text, textPos = null, style, music
   );
 }
 
-function MusicBlock({ music, disabled }: { music: VibeMusic; disabled: boolean }) {
+function MusicBlock({ music, disabled, onLayout }: { music: VibeMusic; disabled: boolean; onLayout?: VibeContentProps['onMusicLayout'] }) {
   const { t } = useTranslation();
   const label = PLATFORM_LABELS[music.platform as Platform] ?? music.platform;
   return (
-    <View style={styles.musicBlock}>
+    <View testID="vibe-music-card" style={styles.musicBlock} onLayout={onLayout ? (e) => onLayout(e.nativeEvent.layout) : undefined}>
       {music.imageUrl ? (
         <Image source={{ uri: music.imageUrl }} style={styles.bigCover} contentFit="cover" />
       ) : (

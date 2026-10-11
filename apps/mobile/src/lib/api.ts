@@ -533,6 +533,7 @@ export interface Vibe {
   post_author_avatar_url: string | null;
   text_x: number | null;
   text_y: number | null;
+  preview_audio_url: string | null;
 }
 
 export interface VibeViewer {

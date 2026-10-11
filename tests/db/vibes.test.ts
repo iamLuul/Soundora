@@ -193,3 +193,14 @@ describe('posição do texto', () => {
     expect(mrow.text_x).toBeNull();
   });
 });
+
+describe('prévia de 30 s', () => {
+  it('vem junto com a vibe de música e só aceita endereço das lojas', async () => {
+    const lp = await createPreview(db, 'https://open.spotify.com/track/audiopreview000000001');
+    await db.sql(`update public.link_previews set audio_url = 'https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a' where id = $1`, [lp]);
+    const [{ id }] = await db.as<{ id: string }>(bia, `select public.vibe_create(p_kind => 'music', p_link_preview_id => $1) as id`, [lp]);
+    const row = (await vibesOf(ana, bia)).find((v) => v.id === id) as unknown as { preview_audio_url: string };
+    expect(row.preview_audio_url).toBe('https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a');
+    await expect(db.sql(`update public.link_previews set audio_url = 'https://evil.example/a.mp3' where id = $1`, [lp])).rejects.toThrow(/check constraint/);
+  });
+});

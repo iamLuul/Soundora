@@ -8,7 +8,7 @@
 // Deploy: npx supabase functions deploy link-preview
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { FetchLike } from '../_shared/links/preview.ts';
-import { detectGenres } from '../_shared/links/genres.ts';
+import { detectStoreInfo, isAllowedAudioUrl } from '../_shared/links/genres.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
 import { createHandler, PREVIEW_RATE, type PreviewRow } from './handler.ts';
 
@@ -44,12 +44,15 @@ Deno.serve(
       if (error) throw error;
       return data as PreviewRow | null;
     },
-    detectGenres: (title, artist) => detectGenres(title, artist, { fetch: fetch as unknown as FetchLike, timeoutMs: 4000 }),
-    async saveGenres(id, genres) {
-      const { error } = await admin.from('link_previews').update({ genres }).eq('id', id);
+    detectStore: (ref) => detectStoreInfo(ref, { fetch: fetch as unknown as FetchLike, timeoutMs: 4000 }),
+    async saveStore(id, info) {
+      const { error } = await admin
+        .from('link_previews')
+        .update({ genres: info.genres, audio_url: isAllowedAudioUrl(info.audioUrl) ? info.audioUrl : null, store_checked_at: new Date().toISOString() })
+        .eq('id', id);
       if (error) throw error;
     },
-    async savePreview(preview, genres) {
+    async savePreview(preview, info) {
       const { data, error } = await admin
         .from('link_previews')
         .upsert(
@@ -61,7 +64,9 @@ Deno.serve(
             title: preview.title,
             artist: preview.artist,
             image_url: preview.imageUrl?.startsWith('https://') ? preview.imageUrl : null,
-            genres,
+            genres: info?.genres ?? null,
+            audio_url: info && isAllowedAudioUrl(info.audioUrl) ? info.audioUrl : null,
+            store_checked_at: info ? new Date().toISOString() : null,
             fetched_at: new Date().toISOString(),
           },
           { onConflict: 'url' },

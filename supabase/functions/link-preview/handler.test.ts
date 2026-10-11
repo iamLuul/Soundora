@@ -52,7 +52,7 @@ function makeDeps(fetch: FetchLike, overrides: Partial<Deps> = {}) {
     log: () => {},
     getUserId: async (h) => (h === 'Bearer token-valido' ? 'user-1' : null),
     findPreview: async (url) => store.get(url) ?? null,
-    savePreview: async (p: LinkPreview, genres: string[] | null) => {
+    savePreview: async (p: LinkPreview, info) => {
       const row: PreviewRow = {
         id: crypto.randomUUID(),
         url: p.url,
@@ -63,7 +63,9 @@ function makeDeps(fetch: FetchLike, overrides: Partial<Deps> = {}) {
         artist: p.artist,
         image_url: p.imageUrl,
         fetched_at: new Date().toISOString(),
-        genres,
+        genres: info?.genres ?? null,
+        audio_url: info?.audioUrl ?? null,
+        store_checked_at: info ? new Date().toISOString() : null,
       };
       store.set(row.url, row);
       return row;
@@ -173,20 +175,21 @@ Deno.test('gêneros: detectados e gravados com o cartão', async () => {
   const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
   const asked: string[] = [];
   const { deps, store } = makeDeps(fetch, {
-    detectGenres: async (title, artist) => {
+    detectStore: async ({ title, artist }) => {
       asked.push(`${artist} - ${title}`);
-      return ['pop', 'dance'];
+      return { genres: ['pop', 'dance'], audioUrl: 'https://audio-ssl.itunes.apple.com/p.m4a' };
     },
   });
   const res = await createHandler(deps)(post({ url: TRACK }));
-  assertEquals((await res.json()).preview.genres, ['pop', 'dance']);
+  const body = await res.json();
+  assertEquals([body.preview.genres, body.preview.audio_url], [['pop', 'dance'], 'https://audio-ssl.itunes.apple.com/p.m4a']);
   assertEquals(store.get(TRACK)?.genres, ['pop', 'dance']);
   assertEquals(asked.length, 1);
 });
 
 Deno.test('gêneros: lojas fora do ar não impedem o cartão (fica para depois)', async () => {
   const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
-  const { deps } = makeDeps(fetch, { detectGenres: () => Promise.reject(new Error('offline')) });
+  const { deps } = makeDeps(fetch, { detectStore: () => Promise.reject(new Error('offline')) });
   const res = await createHandler(deps)(post({ url: TRACK }));
   assertEquals(res.status, 200);
   assertEquals((await res.json()).preview.genres, null);
@@ -195,11 +198,18 @@ Deno.test('gêneros: lojas fora do ar não impedem o cartão (fica para depois)'
 Deno.test('gêneros: cartão antigo do cache sem gênero é completado', async () => {
   const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
   const saved: [string, string[]][] = [];
-  const { deps, store } = makeDeps(fetch, { detectGenres: async () => ['rock'], saveGenres: async (id, g) => void saved.push([id, g]) });
+  const { deps, store } = makeDeps(fetch, {
+    detectStore: async () => ({ genres: ['rock'], audioUrl: null }),
+    saveStore: async (id, info) => void saved.push([id, info.genres]),
+  });
   const handler = createHandler(deps);
   await handler(post({ url: TRACK }));
-  store.get(TRACK)!.genres = null;
+  store.get(TRACK)!.store_checked_at = null;
   const json = await (await handler(post({ url: TRACK }))).json();
   assertEquals([json.cached, json.preview.genres], [true, ['rock']]);
+  assertEquals(saved.length, 1);
+  // Já consultado e sem prévia da Deezer vencendo: não consulta de novo.
+  store.get(TRACK)!.store_checked_at = new Date().toISOString();
+  await handler(post({ url: TRACK }));
   assertEquals(saved.length, 1);
 });

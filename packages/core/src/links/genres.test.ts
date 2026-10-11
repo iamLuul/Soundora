@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectGenres, GENRE_SLUGS, mapStoreGenre, mapStoreGenres } from './genres.ts';
+import { detectGenres, detectStoreInfo, GENRE_SLUGS, isAllowedAudioUrl, mapStoreGenre, mapStoreGenres } from './genres.ts';
 import type { FetchLike } from './preview.ts';
 
 describe('mapStoreGenre', () => {
@@ -75,5 +75,48 @@ describe('detectGenres', () => {
       throw new Error('offline');
     };
     expect(await detectGenres('Faixa', 'Artista', { fetch: failing })).toEqual([]);
+  });
+});
+
+describe('prévia de 30 s', () => {
+  it('pega a da Apple quando a faixa é a mesma (ignora versão e acento)', async () => {
+    const { fetch } = fakeFetch({
+      'https://itunes.apple.com/search': {
+        results: [
+          { trackName: 'Outra Música', artistName: 'Outro', previewUrl: 'https://audio-ssl.itunes.apple.com/x/errada.m4a' },
+          { trackName: 'Midnight City (Remastered)', artistName: 'M83', primaryGenreName: 'Electronic', previewUrl: 'https://audio-ssl.itunes.apple.com/x/certa.m4a' },
+        ],
+      },
+    });
+    const info = await detectStoreInfo({ title: 'Midnight City', artist: 'M83' }, { fetch });
+    expect(info.audioUrl).toBe('https://audio-ssl.itunes.apple.com/x/certa.m4a');
+  });
+
+  it('link do Apple Music: busca a faixa exata pelo id', async () => {
+    const { fetch, calls } = fakeFetch({
+      'https://itunes.apple.com/lookup': { results: [{ trackName: 'Qualquer', primaryGenreName: 'Pop', previewUrl: 'https://audio-ssl.itunes.apple.com/p.m4a' }] },
+    });
+    const info = await detectStoreInfo({ title: 'Faixa', artist: 'X', platform: 'apple_music', kind: 'track', providerId: '1440818839' }, { fetch });
+    expect(calls[0]).toBe('https://itunes.apple.com/lookup?entity=song&id=1440818839');
+    expect(info).toEqual({ genres: ['pop'], audioUrl: 'https://audio-ssl.itunes.apple.com/p.m4a' });
+  });
+
+  it('sem a Apple, usa a da Deezer; endereço de fora das lojas é recusado', async () => {
+    const { fetch } = fakeFetch({
+      'https://api.deezer.com/track/3135556': { title: 'Harder', artist: { name: 'Daft Punk' }, preview: 'https://cdnt-preview.dzcdn.net/api/1/1/a.mp3?hdnea=exp=1' },
+    });
+    expect((await detectStoreInfo({ title: 'Harder', artist: 'Daft Punk', platform: 'deezer', kind: 'track', providerId: '3135556' }, { fetch })).audioUrl).toBe(
+      'https://cdnt-preview.dzcdn.net/api/1/1/a.mp3?hdnea=exp=1',
+    );
+    const evil = fakeFetch({ 'https://itunes.apple.com/search': { results: [{ trackName: 'Faixa', artistName: 'Artista', previewUrl: 'https://evil.example/a.mp3' }] } });
+    expect((await detectStoreInfo({ title: 'Faixa', artist: 'Artista' }, { fetch: evil.fetch })).audioUrl).toBeNull();
+    expect(isAllowedAudioUrl('http://audio-ssl.itunes.apple.com/a.m4a')).toBe(false);
+  });
+
+  it('faixa diferente não toca a prévia errada', async () => {
+    const { fetch } = fakeFetch({
+      'https://itunes.apple.com/search': { results: [{ trackName: 'Cover de Midnight', artistName: 'Banda X', previewUrl: 'https://audio-ssl.itunes.apple.com/cover.m4a' }] },
+    });
+    expect((await detectStoreInfo({ title: 'Midnight City', artist: 'M83' }, { fetch })).audioUrl).toBeNull();
   });
 });

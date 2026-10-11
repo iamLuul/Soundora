@@ -30,6 +30,32 @@ export interface PreviewRow {
   fetched_at: string;
   /** Gêneros do Soundora detectados nas lojas (null = ainda não procurou). */
   genres: string[] | null;
+  /** Prévia de 30 s oficial da Apple/Deezer (null = não achou). */
+  audio_url: string | null;
+  /** Quando as lojas foram consultadas (null = ainda não). */
+  store_checked_at: string | null;
+}
+
+/** O que as lojas disseram da música. */
+export interface StoreInfo {
+  genres: string[];
+  audioUrl: string | null;
+}
+
+export interface StoreRef {
+  title: string;
+  artist: string | null;
+  platform: string;
+  kind: string;
+  providerId: string | null;
+}
+
+/** A prévia da Deezer vence em algumas horas: consulta de novo depois de 6 h. */
+const DEEZER_AUDIO_TTL_MS = 6 * 3600_000;
+
+function storeIsStale(row: PreviewRow): boolean {
+  if (!row.store_checked_at) return true;
+  return !!row.audio_url?.includes('dzcdn.net') && Date.now() - new Date(row.store_checked_at).getTime() > DEEZER_AUDIO_TTL_MS;
 }
 
 /** O que o handler precisa do mundo externo. Em produção vem do Supabase; nos testes, de fakes. */
@@ -37,11 +63,12 @@ export interface Deps {
   /** Devolve o id da pessoa logada a partir do header Authorization, ou null. */
   getUserId(authHeader: string): Promise<string | null>;
   findPreview(url: string): Promise<PreviewRow | null>;
-  savePreview(preview: LinkPreview, genres: string[] | null): Promise<PreviewRow>;
-  /** Gêneros da música pelos metadados das lojas (Apple/Deezer). Opcional: sem ele, não detecta. */
-  detectGenres?(title: string, artist: string | null): Promise<string[]>;
-  /** Grava os gêneros num cartão que já existia (veio do cache sem eles). */
-  saveGenres?(id: string, genres: string[]): Promise<void>;
+  /** Grava o cartão; store = o que as lojas disseram (null = não deu para consultar agora). */
+  savePreview(preview: LinkPreview, store: StoreInfo | null): Promise<PreviewRow>;
+  /** Gêneros e prévia de 30 s pelas lojas (Apple/Deezer). Opcional: sem ele, não consulta. */
+  detectStore?(ref: StoreRef): Promise<StoreInfo>;
+  /** Grava gêneros e prévia num cartão que já existia (veio do cache sem eles ou vencido). */
+  saveStore?(id: string, store: StoreInfo): Promise<void>;
   /** true = dentro do limite de pedidos da pessoa. */
   rateLimit?(userId: string): Promise<boolean>;
   /** fetch usado para ler as plataformas de música. */
@@ -66,13 +93,15 @@ function describe(err: unknown): string {
 export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
 
-  /** Gêneros detectados, ou null se a busca falhou de vez. */
-  const detect = async (title: string, artist: string | null): Promise<string[] | null> => {
-    if (!deps.detectGenres) return null;
+  /** O que as lojas disseram, ou null se a consulta falhou de vez. */
+  const detect = async (ref: StoreRef): Promise<StoreInfo | null> => {
+    if (!deps.detectStore) return null;
+    // Artista e playlist não têm gênero nem prévia de uma faixa.
+    if (ref.kind === 'artist' || ref.kind === 'playlist') return { genres: [], audioUrl: null };
     try {
-      return await deps.detectGenres(title, artist);
+      return await deps.detectStore(ref);
     } catch (err) {
-      log('link-preview: gêneros indisponíveis', err);
+      log('link-preview: lojas indisponíveis', err);
       return null;
     }
   };
@@ -114,11 +143,11 @@ export function createHandler(deps: Deps) {
       if (!parsed.isShortLink) {
         const cached = await deps.findPreview(parsed.url);
         if (cached && Date.now() - new Date(cached.fetched_at).getTime() < CACHE_DAYS * 86_400_000) {
-          if (cached.genres === null && deps.detectGenres) {
-            const genres = await detect(cached.title, cached.artist);
-            if (genres) {
-              await deps.saveGenres?.(cached.id, genres);
-              return json({ preview: { ...cached, genres }, cached: true });
+          if (deps.detectStore && storeIsStale(cached)) {
+            const info = await detect({ title: cached.title, artist: cached.artist, platform: cached.platform, kind: cached.kind, providerId: cached.provider_id });
+            if (info) {
+              await deps.saveStore?.(cached.id, info);
+              return json({ preview: { ...cached, genres: info.genres, audio_url: info.audioUrl, store_checked_at: new Date().toISOString() }, cached: true });
             }
           }
           return json({ preview: cached, cached: true });
@@ -126,9 +155,9 @@ export function createHandler(deps: Deps) {
       }
 
       const preview = await buildLinkPreview(input, { fetch: deps.fetch, timeoutMs: 8000 });
-      // Gênero é extra: se as lojas não responderem, o cartão sai sem ele (null = tenta de novo depois).
-      const genres = preview.kind === 'artist' || preview.kind === 'playlist' ? [] : await detect(preview.title, preview.artist);
-      const saved = await deps.savePreview(preview, genres);
+      // Gênero e prévia são extras: se as lojas não responderem, o cartão sai sem eles (tenta de novo depois).
+      const info = await detect({ title: preview.title, artist: preview.artist, platform: preview.platform, kind: preview.kind, providerId: preview.providerId });
+      const saved = await deps.savePreview(preview, info);
       return json({ preview: saved, cached: false });
     } catch (err) {
       log('link-preview: erro', parsed.platform, parsed.url, err);

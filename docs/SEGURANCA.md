@@ -24,6 +24,7 @@ Se a chave secreta vazar: no painel, em **Project Settings → API Keys**, crie 
 - **Novas tabelas e funções nascem fechadas.** Os privilégios padrão foram removidos, então cada uma precisa de `grant` explícito.
 - **Sem TRUNCATE pelo app.** O TRUNCATE apaga a tabela inteira ignorando o RLS, e o Supabase o libera por padrão.
 - **Funções com privilégio de dono** (`security definer`) fixam o `search_path`, o que impede sequestro de funções.
+- **Prévia de 30 s das músicas** (Vibes): só endereços dos CDNs da Apple (`mzstatic.com`, `itunes.apple.com`) e da Deezer (`dzcdn.net`), conferidos na Edge Function e por uma regra do banco. O Soundora não baixa nem guarda o áudio: o app toca direto da loja, que oferece essas prévias para divulgação, e o botão "Ouvir no ..." leva para a música completa.
 - **Capas das músicas só de CDNs das plataformas** (Spotify, Apple, Deezer, YouTube, SoundCloud, TIDAL, Amazon, Bandcamp). Capa de outro domínio é descartada, para ninguém usar uma imagem para registrar o IP de quem vê o post. O indexador só busca páginas numa lista fechada de domínios (o Amazon Music tem um domínio por país, listado um a um).
 - **Dados privados.** A data de nascimento fica em `profile_private`, que só a própria pessoa lê. O e-mail fica em `auth.users`, que o app não alcança. O login com @usuário acha o e-mail no servidor e nunca devolve o e-mail ao app.
 - **Tempo máximo por consulta:** 8 s para quem está logado e 3 s para visitantes. Cada pedido devolve no máximo 100 linhas (`max_rows`).

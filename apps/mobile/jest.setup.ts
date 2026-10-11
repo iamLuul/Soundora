@@ -27,3 +27,9 @@ jest.mock('expo-video', () => ({
   useVideoPlayer: () => ({ play: jest.fn(), pause: jest.fn(), addListener: () => ({ remove: jest.fn() }), playing: false, currentTime: 0, duration: 0 }),
   VideoView: () => null,
 }));
+
+// expo-audio usa módulo nativo: no Jest, um player falso que só registra play/pause.
+jest.mock('expo-audio', () => ({
+  setAudioModeAsync: async () => undefined,
+  useAudioPlayer: () => ({ play: jest.fn(), pause: jest.fn(), loop: false, muted: false }),
+}));

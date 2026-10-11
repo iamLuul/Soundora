@@ -13,7 +13,7 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 - perfil no layout do Figma (banner, foto centralizada, números que abrem seguidores, seguindo e posts curtidos), com troca de foto e banner, menu de opções e Configurações (editar perfil, alterar @, redefinir senha, idioma, sair, excluir conta); denunciar, bloquear e apagar post;
 - todas as telas no layout do Figma (Case Study UI/UX): logo, ícones e logos das plataformas exportados do arquivo (`apps/mobile/src/assets`), barra inferior com o botão "+" central, Home com a fila de quem você segue, Notificações, aba Músicas (curtidas e postadas), cartão de música por plataforma, botões do Descobrir, login, cadastro, código em 6 caixas e onboarding com pontos de progresso;
 - notificações de curtidas, comentários, respostas e novos seguidores (aba Todas e Respostas, bolinha no sino) e aviso no celular (push) para quem ativar;
-- Vibes (como os Stories): foto, vídeo de até 30 s, texto, card de música ou post compartilhado, que somem em 24 horas; fila no topo da Home com anel de "não visto", tela cheia com avançar/voltar/pausar, quem viu, apagar e denunciar;
+- Vibes (como os Stories): foto, vídeo de até 30 s, texto escrito direto na tela, card de música (com a prévia de 30 s tocando de fundo, quando a Apple Music ou a Deezer oferecem) ou post compartilhado, que somem em 24 horas; fila no topo da Home com anel de "não visto", tela cheia com avançar/voltar/pausar, quem viu, apagar e denunciar;
 - interface em português do Brasil e inglês.
 
 ## Estrutura

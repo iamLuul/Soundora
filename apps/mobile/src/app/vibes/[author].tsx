@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, FlatList, Modal, Platform, Pressable, StyleSh
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar } from '../../components/figma';
 import { OptionsSheet, type SheetOption } from '../../components/OptionsSheet';
+import { VibeAudio } from '../../components/vibes/VibeAudio';
 import { VibeContent } from '../../components/vibes/VibeContent';
 import { deleteVibe, fetchVibeViewers, markVibeSeen, report, type Vibe } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -18,6 +19,8 @@ import { colors, fonts, space } from '../../theme';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
+/** Vibe de música com prévia: 15 s tocando, como nos Stories. */
+const MUSIC_MS = 15_000;
 const TICK_MS = 50;
 
 function notify(message: string) {
@@ -57,13 +60,15 @@ export default function VibeViewerScreen() {
   const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
   const [holding, setHolding] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [menu, setMenu] = useState<null | 'options' | 'report'>(null);
   const [viewersFor, setViewersFor] = useState<string | null>(null);
 
   const current: Vibe | undefined = index !== null ? list[index] : undefined;
   const media = useVibeMedia(current?.media_path ?? null);
   const mediaReady = !current?.media_path || !!media.data;
-  const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : STILL_MS;
+  const audioUrl = current?.kind === 'music' ? current.preview_audio_url : null;
+  const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : audioUrl ? MUSIC_MS : STILL_MS;
   const paused = holding || !!menu || !!viewersFor || !mediaReady;
 
   const close = useCallback(() => {
@@ -211,6 +216,9 @@ export default function VibeViewerScreen() {
             }
           />
 
+          {/* Prévia de 30 s da loja, de fundo (a key recomeça a música a cada vibe). */}
+          {audioUrl ? <VibeAudio key={current.id} url={audioUrl} paused={paused} muted={muted} /> : null}
+
           {/* Faixas de toque: esquerda volta, direita avança. O meio fica livre para os botões da vibe. */}
           <Pressable testID="vibe-prev" accessibilityRole="button" accessibilityLabel={t('vibes.previous')} style={[styles.zone, { left: 0 }]} onPress={goPrev} {...hold} />
           <Pressable testID="vibe-next" accessibilityRole="button" accessibilityLabel={t('vibes.next')} style={[styles.zone, { right: 0 }]} onPress={goNext} {...hold} />
@@ -234,6 +242,17 @@ export default function VibeViewerScreen() {
                 <Text style={styles.username}>@{username}</Text>
                 <Text style={styles.time}>{relativeTime(current.created_at)}</Text>
               </Pressable>
+              {audioUrl ? (
+                <Pressable
+                  testID="vibe-mute"
+                  accessibilityRole="button"
+                  accessibilityLabel={muted ? t('vibes.unmute') : t('vibes.mute')}
+                  onPress={() => setMuted((m) => !m)}
+                  hitSlop={10}
+                >
+                  <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={22} color={colors.text} />
+                </Pressable>
+              ) : null}
               <Pressable testID="vibe-menu" accessibilityRole="button" accessibilityLabel={t('vibes.options')} onPress={() => setMenu('options')} hitSlop={10}>
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
               </Pressable>

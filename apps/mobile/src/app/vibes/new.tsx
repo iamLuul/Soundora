@@ -1,8 +1,9 @@
 import { extractFirstUrl, parseStreamingUrl } from '@soundora/core';
 import { useQueryClient } from '@tanstack/react-query';
+import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { Button, ErrorText } from '../../components/ui';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
 import { VibeContent, type VibeMusic } from '../../components/vibes/VibeContent';
 import { defaultTextPos, EditableVibeText, type TextPos } from '../../components/vibes/VibeText';
+import { VibeAudio } from '../../components/vibes/VibeAudio';
 import {
   createVibe,
   previewLink,
@@ -78,6 +80,10 @@ export default function NewVibeScreen() {
   const [style, setStyle] = useState<VibeStyle>('violet');
   const [link, setLink] = useState('');
   const [music, setMusic] = useState<(VibeMusic & { id: string }) | null>(null);
+  // Link da música digitado/colado direto na vibe (como o texto); tocar no card abre de novo.
+  const [linkEditing, setLinkEditing] = useState(false);
+  const [musicRect, setMusicRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState<null | 'preview' | 'publish'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,19 +123,50 @@ export default function NewVibeScreen() {
     }
   };
 
-  const loadMusic = async () => {
+  /** Gera o card. Uma música por vibe: um link novo troca a anterior. */
+  const loadMusic = async (value = link) => {
     setError(null);
-    const url = extractFirstUrl(link);
+    const url = extractFirstUrl(value);
     if (!url || !parseStreamingUrl(url)) return setError(t('errors.unsupported'));
+    if (music && url === music.url) return setLinkEditing(false);
     setBusy('preview');
     try {
       const p = await previewLink(url);
-      setMusic({ id: p.id, url: p.url, platform: p.platform, title: p.title, artist: p.artist, imageUrl: p.image_url });
+      setMusic({ id: p.id, url: p.url, platform: p.platform, title: p.title, artist: p.artist, imageUrl: p.image_url, audioUrl: p.audio_url ?? null });
+      setLinkEditing(false);
+      Keyboard.dismiss();
     } catch (err) {
       setError(formatError(t, err));
     } finally {
       setBusy(null);
     }
+  };
+
+  // Colou/digitou um link de música válido: gera o card sozinho.
+  const lastTried = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkEditing) return;
+    const url = extractFirstUrl(link);
+    if (!url || url === lastTried.current || !parseStreamingUrl(url) || url === music?.url) return;
+    const timer = setTimeout(() => {
+      lastTried.current = url;
+      void loadMusic(url);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMusic muda a cada render; o que importa é o link
+  }, [link, linkEditing, music?.url]);
+
+  const openLinkEditor = () => {
+    setEditing(false);
+    setError(null);
+    setLink(music?.url ?? '');
+    lastTried.current = music?.url ?? null;
+    setLinkEditing(true);
+  };
+
+  const pasteLink = async () => {
+    const value = await Clipboard.getStringAsync().catch(() => '');
+    if (value) setLink(value);
   };
 
   const canPublish =
@@ -175,6 +212,8 @@ export default function NewVibeScreen() {
   const switchTo = (next: VibeKind) => {
     setError(null);
     setKind(next);
+    // Música: já abre o campo do link na própria vibe.
+    setLinkEditing(next === 'music' && !music);
     if (next !== 'photo' && next !== 'video') setMedia(null);
   };
 
@@ -201,10 +240,10 @@ export default function NewVibeScreen() {
 
         <View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
           {kind === 'music' && !music ? (
-            <View style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}>
+            <Pressable testID="vibe-music-empty" accessibilityRole="button" onPress={openLinkEditor} style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}>
               <Ionicons name="musical-notes" size={48} color={colors.text} />
-              <Text style={styles.placeholderText}>{t('vibes.musicHint')}</Text>
-            </View>
+              {!linkEditing ? <Text style={styles.placeholderText}>{t('vibes.musicHint')}</Text> : null}
+            </Pressable>
           ) : (kind === 'photo' || kind === 'video') && !media ? (
             <View style={[styles.placeholder, { backgroundColor: '#000' }]}>
               <Ionicons name="images" size={48} color={colors.text} />
@@ -217,7 +256,16 @@ export default function NewVibeScreen() {
                   <Text style={styles.placeholderText}>{t('vibes.textHint')}</Text>
                 </View>
               ) : (
-                <VibeContent kind={kind} mediaUri={media?.uri} text={null} style={style} music={music} post={sharedPost} preview />
+                <VibeContent
+                  kind={kind}
+                  mediaUri={media?.uri}
+                  text={null}
+                  style={style}
+                  music={music}
+                  post={sharedPost}
+                  preview
+                  onMusicLayout={setMusicRect}
+                />
               )}
               {/* Tocar na tela escreve ali (ou leva o texto para lá); arrastar o texto também move. */}
               <Pressable
@@ -228,8 +276,13 @@ export default function NewVibeScreen() {
                 ref={canvasRef}
                 onPress={(e) => {
                   if (editing) return finishEditing();
+                  if (linkEditing) return music ? setLinkEditing(false) : undefined;
                   const { locationX, locationY, pageX, pageY } = e.nativeEvent;
                   const apply = (x: number, y: number) => {
+                    // Tocou no card da música: edita o link (uma música por vibe).
+                    if (kind === 'music' && musicRect && x >= musicRect.x && x <= musicRect.x + musicRect.width && y >= musicRect.y && y <= musicRect.y + musicRect.height) {
+                      return openLinkEditor();
+                    }
                     setTextPos({ x: Math.min(1, Math.max(0, x / cardWidth)), y: Math.min(1, Math.max(0, y / cardHeight)) });
                     if (!text.trim()) setEditing(true);
                   };
@@ -249,6 +302,21 @@ export default function NewVibeScreen() {
                 onStartEdit={() => setEditing(true)}
                 onEndEdit={finishEditing}
               />
+              {kind === 'music' && music?.audioUrl && !linkEditing ? (
+                <>
+                  <VibeAudio url={music.audioUrl} paused={busy === 'publish'} muted={muted} loop />
+                  <Pressable
+                    testID="vibe-mute"
+                    accessibilityRole="button"
+                    accessibilityLabel={muted ? t('vibes.unmute') : t('vibes.mute')}
+                    onPress={() => setMuted((m) => !m)}
+                    style={styles.mute}
+                    hitSlop={8}
+                  >
+                    <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={18} color={colors.text} />
+                  </Pressable>
+                </>
+              ) : null}
               {editing ? (
                 <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={finishEditing} style={styles.done} hitSlop={8}>
                   <Text style={styles.doneText}>{t('vibes.done')}</Text>
@@ -256,24 +324,39 @@ export default function NewVibeScreen() {
               ) : null}
             </>
           )}
+          {kind === 'music' && linkEditing ? (
+            <View style={styles.linkEditor}>
+              <Text style={styles.linkTitle}>{music ? t('vibes.changeMusic') : t('vibes.pasteMusic')}</Text>
+              <TextInput
+                testID="vibe-link"
+                value={link}
+                onChangeText={setLink}
+                placeholder={t('compose.linkPlaceholder')}
+                placeholderTextColor={colors.placeholder}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                inputMode="url"
+                onSubmitEditing={() => loadMusic()}
+                style={styles.linkInput}
+              />
+              {busy === 'preview' ? <Text style={styles.linkStatus}>{t('compose.loadingMusic')}</Text> : null}
+              <View style={styles.linkButtons}>
+                {Platform.OS !== 'web' ? (
+                  <Pressable testID="vibe-link-paste" accessibilityRole="button" onPress={pasteLink} style={styles.linkButton}>
+                    <Text style={styles.linkButtonText}>{t('compose.paste')}</Text>
+                  </Pressable>
+                ) : null}
+                {music ? (
+                  <Pressable testID="vibe-link-cancel" accessibilityRole="button" onPress={() => setLinkEditing(false)} style={styles.linkButton}>
+                    <Text style={styles.linkButtonText}>{t('common.cancel')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
         </View>
 
-        {kind === 'music' && !music ? (
-          <View style={[styles.linkRow, { width: cardWidth }]}>
-            <TextInput
-              testID="vibe-link"
-              value={link}
-              onChangeText={setLink}
-              placeholder={t('compose.linkPlaceholder')}
-              placeholderTextColor={colors.placeholder}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={[styles.input, { flex: 1 }]}
-              onSubmitEditing={loadMusic}
-            />
-            <Button testID="vibe-load-music" title={t('vibes.loadMusic')} size="sm" onPress={loadMusic} loading={busy === 'preview'} style={{ alignSelf: 'center' }} />
-          </View>
-        ) : null}
 
         {canWrite && !editing ? <Text style={styles.hint}>{text.trim() ? t('vibes.dragHint') : t('vibes.tapToWrite')}</Text> : null}
 
@@ -329,7 +412,23 @@ const styles = StyleSheet.create({
   card: { borderRadius: 16, overflow: 'hidden', backgroundColor: colors.card },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl },
   placeholderText: { fontFamily: fonts.semibold, fontSize: 16, color: colors.text, textAlign: 'center', opacity: 0.9 },
-  linkRow: { flexDirection: 'row', gap: space.sm },
+  linkEditor: {
+    position: 'absolute',
+    left: space.lg,
+    right: space.lg,
+    top: '38%',
+    backgroundColor: 'rgba(20,18,30,0.92)',
+    borderRadius: 14,
+    padding: space.lg,
+    gap: space.sm,
+  },
+  linkTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  linkInput: { minHeight: 42, borderWidth: 1, borderColor: colors.field, borderRadius: 10, paddingHorizontal: space.md, color: colors.text, fontFamily: fonts.regular, fontSize: 13, outlineWidth: 0 },
+  linkStatus: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
+  linkButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.md },
+  linkButton: { paddingVertical: 4, paddingHorizontal: space.sm },
+  linkButtonText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.text },
+  mute: { position: 'absolute', top: space.md, left: space.md, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   input: {
     minHeight: 44,
     borderWidth: 1,

@@ -328,7 +328,7 @@
     "library": "Galeria",
     "loadMusic": "Gerar card",
     "music": "Música",
-    "musicHint": "Cole o link de uma música para criar o card.",
+    "musicHint": "Toque para colar o link de uma música.",
     "new": "Nova vibe",
     "next": "Próxima",
     "noViewers": "Ninguém viu ainda.",
@@ -358,7 +358,11 @@
     "views_zero": "Nenhuma visualização",
     "tapToWrite": "Toque na vibe para escrever onde quiser.",
     "dragHint": "Arraste o texto para mudar o lugar; toque nele para editar.",
-    "done": "Pronto"
+    "done": "Pronto",
+    "pasteMusic": "Cole o link da música",
+    "changeMusic": "Trocar a música",
+    "mute": "Tirar o som",
+    "unmute": "Ligar o som"
   },
   "people": {
     "noFollowers": "Ninguém segue esse perfil ainda.",

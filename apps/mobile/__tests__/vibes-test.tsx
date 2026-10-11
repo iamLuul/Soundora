@@ -6,6 +6,7 @@ import i18n from '../src/lib/i18n';
 
 const mockPush = jest.fn();
 const mockCreate = jest.fn(async () => 'v1');
+const mockPreviewLink = jest.fn();
 const mockParams: Record<string, string> = {};
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('expo-router', () => ({
@@ -15,6 +16,7 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('expo', () => ({ ...jest.requireActual('expo'), useEvent: () => ({ isPlaying: false }) }));
 jest.mock('expo-image-picker', () => ({ VideoExportPreset: { H264_1280x720: 0 } }));
+jest.mock('expo-clipboard', () => ({ getStringAsync: async () => '' }));
 jest.mock('expo-image-manipulator', () => ({ ImageManipulator: {}, SaveFormat: { JPEG: 'jpeg' } }));
 jest.mock('../src/lib/supabase', () => ({ supabase: {}, supabaseUrl: 'http://localhost:54321' }));
 jest.mock('../src/lib/auth', () => ({
@@ -23,6 +25,7 @@ jest.mock('../src/lib/auth', () => ({
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
   createVibe: (...a: unknown[]) => mockCreate(...(a as [])),
+  previewLink: (...a: unknown[]) => mockPreviewLink(...a),
   fetchFollowing: async () => [
     { username: 'bia', display_name: 'Bia', avatar_url: null },
     { username: 'caio', display_name: 'Caio', avatar_url: null },
@@ -80,5 +83,20 @@ describe('Fila de Vibes na Home', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/vibes/[author]', params: { author: 'b', queue: '' } });
     await fireEvent.press(screen.getByTestId('vibe-new'));
     expect(mockPush).toHaveBeenCalledWith('/vibes/new');
+  });
+});
+
+describe('Vibe de música', () => {
+  test('o link é colado na própria vibe e gera o card; tocar no card abre o link de novo', async () => {
+    mockPreviewLink.mockResolvedValue({ id: 'lp1', url: 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC', platform: 'spotify', kind: 'track', title: 'Midnight City', artist: 'M83', image_url: null, audio_url: null });
+    await wrap(<NewVibeScreen />);
+    await fireEvent.press(screen.getByTestId('vibe-mode-music'));
+    // Campo do link já aberto na vibe; nada de caixa embaixo.
+    await fireEvent.changeText(screen.getByTestId('vibe-link'), 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC');
+    await waitFor(() => expect(mockPreviewLink).toHaveBeenCalledWith('https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC'));
+    await waitFor(() => expect(screen.getByText('Midnight City')).toBeTruthy());
+    expect(screen.queryByTestId('vibe-link')).toBeNull();
+    await fireEvent.press(screen.getByTestId('vibe-publish'));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'music', linkPreviewId: 'lp1', text: '', style: 'violet', textPos: null }));
   });
 });
