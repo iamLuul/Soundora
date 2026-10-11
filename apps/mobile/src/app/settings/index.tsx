@@ -1,3 +1,4 @@
+import { PLATFORM_LABELS } from '@soundora/core';
 import Constants from 'expo-constants';
 import { router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +9,7 @@ import { Screen, SegmentedControl } from '../../components/ui';
 import { updateLocale } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
+import { useStreamingPlatform } from '../../lib/queries';
 import { disablePush, enablePush, pushAvailability, pushEnabled } from '../../lib/push';
 import { colors, space, text } from '../../theme';
 
@@ -53,6 +55,7 @@ export default function SettingsScreen() {
             ]}
           />
         </View>
+        <StreamingRow />
         <PushRow />
       </SettingsSection>
 
@@ -63,6 +66,21 @@ export default function SettingsScreen() {
 
       <Text style={[text.small, { textAlign: 'center' }]}>Soundora {Constants.expoConfig?.version ?? ''}</Text>
     </Screen>
+  );
+}
+
+/** Plataforma de streaming: as músicas do Trending abrem nela. */
+function StreamingRow() {
+  const { t } = useTranslation();
+  const platform = useStreamingPlatform();
+  return (
+    <SettingsRow
+      testID="settings-streaming"
+      icon="musical-notes-outline"
+      label={t('settings.streaming')}
+      value={platform.data ? PLATFORM_LABELS[platform.data] : t('settings.streamingNone')}
+      onPress={() => router.push('/settings/streaming')}
+    />
   );
 }
 

@@ -1,17 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopTabs } from '../../components/figma';
 import { DiscoverDeck } from '../../components/DiscoverDeck';
 import { SearchPanel } from '../../components/SearchPanel';
-import { TrendingList } from '../../components/TrendingList';
-import { Button, Chip } from '../../components/ui';
-import { fetchDiscoverCards, fetchTrending, getMyGenres, swipeDiscover } from '../../lib/api';
+import { TrendingSection } from '../../components/TrendingSection';
+import { Button } from '../../components/ui';
+import { fetchDiscoverCards, swipeDiscover } from '../../lib/api';
 import { genreLabel, keys, useGenres } from '../../lib/queries';
 import type { DiscoverCard } from '../../lib/types';
-import { colors, fonts, space, text } from '../../theme';
+import { colors, space, text } from '../../theme';
 
 type Section = 'discover' | 'trending' | 'search';
 
@@ -80,51 +80,9 @@ function DiscoverSection() {
   );
 }
 
-function TrendingSection() {
-  const { t, i18n } = useTranslation();
-  const [genre, setGenre] = useState<string | null>(null);
-  const genres = useGenres();
-  const myGenres = useQuery({ queryKey: ['my-genres'], queryFn: getMyGenres });
-  const trending = useQuery({ queryKey: ['trending', genre], queryFn: () => fetchTrending(genre) });
-
-  // Os gêneros da pessoa aparecem primeiro nos filtros.
-  const chips = [...(myGenres.data ?? []), ...(genres.data ?? []).map((g) => g.slug).filter((s) => !myGenres.data?.includes(s))];
-
-  const header = (
-    <View style={{ gap: space.md, paddingBottom: space.md }}>
-      <View style={styles.trendingTitle}>
-        <Text style={styles.sectionTitle}>{t('trending.title')}</Text>
-        <View style={styles.weekChip}>
-          <Text style={styles.weekText}>{t('trending.thisWeek')}</Text>
-        </View>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        <Chip label={t('trending.all')} selected={genre === null} onPress={() => setGenre(null)} />
-        {chips.map((slug) => (
-          <Chip key={slug} label={genreLabel(genres.data, slug, i18n.language) ?? slug} selected={genre === slug} onPress={() => setGenre(slug)} />
-        ))}
-      </ScrollView>
-    </View>
-  );
-
-  return (
-    <TrendingList
-      header={header}
-      items={trending.data ?? []}
-      loading={trending.isLoading}
-      refreshing={trending.isRefetching}
-      onRefresh={() => trending.refetch()}
-    />
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   header: { marginHorizontal: space.lg },
   body: { flex: 1, paddingHorizontal: space.md, paddingTop: space.sm, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  trendingTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  weekChip: { borderRadius: 6, borderWidth: 1, borderColor: colors.text, paddingHorizontal: space.sm, paddingVertical: 2 },
-  weekText: { fontFamily: fonts.regular, fontSize: 10, color: colors.text },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xl },
 });

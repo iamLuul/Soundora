@@ -49,6 +49,14 @@ Em outro terminal, suba as Edge Functions: o indexador de links (precisa de inte
 npx supabase functions serve
 ```
 
+A aba **Em alta** (as mais tocadas no mundo) usa a API do Last.fm, que precisa de uma chave gratuita:
+
+1. Crie a chave em https://www.last.fm/api/account/create (o que importa é a **API key**; o "shared secret" não é usado).
+2. Copie `supabase/functions/.env.example` para `supabase/functions/.env` e cole a chave em `LASTFM_API_KEY=`. Esse arquivo nunca sobe para o GitHub.
+3. Reinicie o `npx supabase functions serve`.
+
+Sem a chave, o resto do app funciona; só a aba Em alta mostra que o ranking não carregou.
+
 ## 4. App
 
 ```powershell
@@ -93,6 +101,9 @@ npx supabase functions deploy link-preview
 npx supabase functions deploy auth-username --no-verify-jwt
 npx supabase functions deploy profile-image
 npx supabase functions deploy delete-account
+npx supabase functions deploy media-upload
+npx supabase functions deploy music-charts
+npx supabase secrets set LASTFM_API_KEY=<sua-chave-do-last.fm>
 ```
 
 3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link), e `supabase/templates/reauthentication.html` em **Reauthentication**.

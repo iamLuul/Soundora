@@ -70,6 +70,13 @@ A mídia das Vibes e dos posts passa pela Edge Function `media-upload` (`?for=vi
 - **Faxina:** a cada envio, a função apaga os arquivos da pessoa que venceram, foram apagados ou nunca viraram vibe (com 1 h de folga).
 - Quem viu a vibe só aparece para o autor.
 
+### Em alta (Last.fm)
+
+- A chave do Last.fm fica só no servidor, como segredo da Edge Function `music-charts` (`LASTFM_API_KEY`). O app nunca a recebe nem fala com o Last.fm, a Deezer ou o song.link: pede o ranking e o link à função, que exige login.
+- O ranking fica em cache no banco (`music_chart_snapshots`, atualizado a cada 3 h) e os links por plataforma também (`track_platform_links`, 30 dias). As duas tabelas são fechadas para o app (RLS e `revoke all`); só a função, com a chave secreta, lê e grava.
+- A função só procura links de músicas que estão no ranking, e cada link do song.link é conferido pelo indexador: só volta se for mesmo da plataforma pedida. Se não houver link exato, o app abre a busca da música na plataforma.
+- A plataforma de streaming de cada pessoa fica em `profile_private`: só ela vê, e só troca pela função `set_streaming_platform`, que aceita apenas as plataformas da lista.
+
 Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo ganha a sua própria validação nesse mesmo modelo.
 
 ## Limite de requisições
@@ -98,6 +105,7 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | Editar perfil | 30 por hora | Banco |
 | Vibes | 30 por dia | Banco (trigger) |
 | Envio de foto/vídeo (vibes e posts) | 100 por dia | Edge Function `media-upload` |
+| Em alta: ranking e links | 30 por minuto cada | Edge Function `music-charts` |
 | Push recebidos | 30 por hora por pessoa (o resto fica só na lista do app) | Banco (`tg_push_notification`) |
 | Cadastrar aparelho para push | 30 por hora; até 10 aparelhos por conta | Banco |
 
@@ -128,6 +136,7 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
    npx supabase functions deploy profile-image
    npx supabase functions deploy delete-account
    npx supabase functions deploy media-upload
+   npx supabase functions deploy music-charts
    ```
 
 ## Excluir conta

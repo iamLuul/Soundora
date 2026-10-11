@@ -125,7 +125,9 @@
     "post_empty": "Write something, add media or a song.",
     "invalid_genre": "Invalid genre.",
     "genres_need_music": "Genres can only be set on posts with a song.",
-    "invalid_parent": "That comment no longer exists."
+    "invalid_parent": "That comment no longer exists.",
+    "charts_unavailable": "The chart didn't respond. Try again in a moment.",
+    "invalid_platform": "Invalid streaming platform."
   },
   "tabs": {
     "feed": "For you",
@@ -241,12 +243,19 @@
     "hint": "Swipe right if you like it, left to skip."
   },
   "trending": {
-    "title": "Most shared songs",
-    "all": "All",
+    "title": "Most played worldwide",
     "posts_one": "{{count}} post",
     "posts_other": "{{count}} posts",
-    "empty": "Nothing trending in this genre yet.",
-    "thisWeek": "This week"
+    "empty": "The chart didn't load. Pull to refresh.",
+    "thisWeek": "This week",
+    "source": "Data from Last.fm. Tap a song to listen.",
+    "opensIn": "Data from Last.fm · songs open in {{platform}}.",
+    "change": "Change",
+    "moveNew": "New on the chart",
+    "moveUp": "Up (was #{{position}})",
+    "moveDown": "Down (was #{{position}})",
+    "moveSame": "Same position",
+    "rowLabel": "#{{position}}, {{title}} by {{artist}}"
   },
   "search": {
     "placeholder": "Search people, songs or artists",
@@ -290,7 +299,9 @@
     "deleteButton": "Delete my account",
     "signInAgain": "Sign out and sign in again",
     "push": "Phone notifications",
-    "pushUnavailable": "Available in the installed app (not in Expo Go, emulators or the web)."
+    "pushUnavailable": "Available in the installed app (not in Expo Go, emulators or the web).",
+    "streaming": "Streaming platform",
+    "streamingNone": "Not chosen"
   },
   "notifications": {
     "title": "Notifications",
@@ -371,5 +382,10 @@
   "liked": {
     "title": "Liked by @{{username}}",
     "empty": "No liked posts yet."
+  },
+  "streaming": {
+    "title": "Where do you listen to music?",
+    "hint": "Songs in Trending will always open on this platform. You can change it later in Settings.",
+    "required": "Pick a platform to continue."
   }
 }

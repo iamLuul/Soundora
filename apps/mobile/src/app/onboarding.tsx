@@ -1,10 +1,11 @@
-import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy } from '@soundora/core';
+import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy, type StreamingChoice } from '@soundora/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PasswordField } from '../components/auth/PasswordField';
 import { BackHeader } from '../components/figma';
+import { StreamingPicker } from '../components/StreamingPicker';
 import { Button, Chip, ErrorText, Screen, TextField } from '../components/ui';
 import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
@@ -15,7 +16,7 @@ import { useGenres } from '../lib/queries';
 import { useUsernameStatus, validateUsernameFormat } from '../lib/username';
 import { colors, fonts, space, text } from '../theme';
 
-type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'terms';
+type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'platform' | 'terms';
 
 export default function Onboarding() {
   const { t, i18n } = useTranslation();
@@ -24,7 +25,7 @@ export default function Onboarding() {
   // com e-mail/@usuário e senha. Quem criou a conta pelo e-mail já definiu a senha no cadastro.
   const provider = session?.user.app_metadata?.provider;
   const [needsPassword] = useState(() => !!provider && provider !== 'email');
-  const steps: Step[] = needsPassword ? ['password', 'profile', 'birthdate', 'genres', 'terms'] : ['profile', 'birthdate', 'genres', 'terms'];
+  const steps: Step[] = needsPassword ? ['password', 'profile', 'birthdate', 'genres', 'platform', 'terms'] : ['profile', 'birthdate', 'genres', 'platform', 'terms'];
   const [index, setIndex] = useState(0);
   const step = steps[index]!;
   const [password, setPassword] = useState('');
@@ -36,6 +37,7 @@ export default function Onboarding() {
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
+  const [platform, setPlatform] = useState<StreamingChoice | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -90,6 +92,7 @@ export default function Onboarding() {
       if (result.status === 'needs_guardian') return setError(t('age.needs_guardian', { under: policy.guardianRequiredUnder }));
     }
     if (step === 'genres' && genres.length < MIN_GENRES) return setError(t('errors.genres_too_few'));
+    if (step === 'platform' && !platform) return setError(t('streaming.required'));
     setIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
@@ -103,6 +106,7 @@ export default function Onboarding() {
         birthdate: toIsoDate(day, month, year),
         genres,
         locale: i18n.language === 'pt-BR' ? 'pt-BR' : 'en',
+        streamingPlatform: platform!,
       });
       await refreshProfile(); // o roteador troca para o feed sozinho
     } catch (err) {
@@ -195,6 +199,14 @@ export default function Onboarding() {
               <Chip key={g.slug} label={i18n.language === 'pt-BR' ? g.name_pt : g.name_en} selected={genres.includes(g.slug)} onPress={() => toggleGenre(g.slug)} />
             ))}
           </View>
+        </>
+      )}
+
+      {step === 'platform' && (
+        <>
+          <Text style={styles.title}>{t('streaming.title')}</Text>
+          <Text style={styles.hint}>{t('streaming.hint')}</Text>
+          <StreamingPicker value={platform} onChange={setPlatform} />
         </>
       )}
 

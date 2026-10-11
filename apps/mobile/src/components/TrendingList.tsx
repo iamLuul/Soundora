@@ -2,11 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { PLATFORM_LABELS } from '@soundora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
-import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { TrendingTrack } from '../lib/types';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, space } from '../theme';
 import { PlatformLogo } from './figma';
 
 /** Uma linha do ranking: posição, capa, música e quantos posts teve. */
@@ -40,39 +39,6 @@ export function TrendingRow({ item, onOpen, showRank = true }: { item: TrendingT
       </View>
       <PlatformLogo platform={item.platform} size={20} />
     </Pressable>
-  );
-}
-
-export function TrendingList({
-  items,
-  loading,
-  refreshing,
-  onRefresh,
-  header,
-}: {
-  items: TrendingTrack[];
-  loading: boolean;
-  refreshing: boolean;
-  onRefresh: () => void;
-  header: ReactElement;
-}) {
-  const { t } = useTranslation();
-  return (
-    <FlatList
-      data={items}
-      keyExtractor={(i) => i.link_preview_id}
-      ListHeaderComponent={header}
-      renderItem={({ item }) => <TrendingRow item={item} />}
-      contentContainerStyle={{ paddingBottom: space.xxl }}
-      ListEmptyComponent={
-        loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />
-        ) : (
-          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>{t('trending.empty')}</Text>
-        )
-      }
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-    />
   );
 }
 

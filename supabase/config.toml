@@ -103,3 +103,7 @@ verify_jwt = true
 # Foto e vídeo das Vibes e dos posts: exige login (e a função confere o usuário de novo).
 [functions.media-upload]
 verify_jwt = true
+
+# Trending (mais tocadas no mundo, Last.fm): exige login (e a função confere o usuário de novo).
+[functions.music-charts]
+verify_jwt = true

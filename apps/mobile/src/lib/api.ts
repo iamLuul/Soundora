@@ -1,4 +1,4 @@
-import { commentSchema, displayNameSchema, passwordSchema, postTextSchema, type ReportReason } from '@soundora/core';
+import { commentSchema, displayNameSchema, isStreamingChoice, passwordSchema, postTextSchema, type ReportReason, type StreamingChoice } from '@soundora/core';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
 import { convertProfileImage } from './image-convert';
@@ -12,7 +12,6 @@ import type {
   Profile,
   ProfileSummary,
   TrackResult,
-  TrendingTrack,
 } from './types';
 
 export const FEED_PAGE_SIZE = 20;
@@ -57,6 +56,7 @@ export interface OnboardingInput {
   birthdate: string;
   genres: string[];
   locale: 'pt-BR' | 'en';
+  streamingPlatform: StreamingChoice;
 }
 
 export async function completeOnboarding(input: OnboardingInput): Promise<Profile> {
@@ -66,6 +66,7 @@ export async function completeOnboarding(input: OnboardingInput): Promise<Profil
     p_birthdate: input.birthdate,
     p_genres: input.genres,
     p_locale: input.locale,
+    p_streaming_platform: input.streamingPlatform,
   });
   if (error) throw error;
   return data as Profile;
@@ -260,10 +261,45 @@ export async function swipeDiscover(card: Pick<DiscoverCard, 'link_preview_id' |
   if (error) throw error;
 }
 
-export async function fetchTrending(genre: string | null, days = 7): Promise<TrendingTrack[]> {
-  const { data, error } = await supabase.rpc('trending_tracks', { p_days: days, p_genre: genre, p_limit: 50 });
+/** Uma música do ranking mundial (Edge Function music-charts). */
+export interface ChartTrack {
+  position: number;
+  key: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  image_url: string | null;
+  /** Subiu, caiu, manteve, entrou agora, ou null (sem ranking anterior para comparar). */
+  move: 'up' | 'down' | 'same' | 'new' | null;
+  previous_position: number | null;
+}
+
+/** As mais tocadas no mundo (Last.fm), pelo servidor. */
+export async function fetchWorldChart(): Promise<{ updated_at: string; stale: boolean; entries: ChartTrack[] }> {
+  const { data, error } = await supabase.functions.invoke('music-charts', { body: { action: 'chart' } });
+  if (error) throw await functionError('music-charts', error, 'charts_unavailable');
+  return data as { updated_at: string; stale: boolean; entries: ChartTrack[] };
+}
+
+/** Link da música do ranking na plataforma escolhida (exato, ou a busca dela na plataforma). */
+export async function chartTrackLink(key: string, platform: StreamingChoice): Promise<string> {
+  const { data, error } = await supabase.functions.invoke<{ url: string }>('music-charts', { body: { action: 'link', key, platform } });
+  if (error) throw await functionError('music-charts', error, 'charts_unavailable');
+  if (!data?.url || !data.url.startsWith('https://')) throw new AppError('generic');
+  return data.url;
+}
+
+/** Plataforma de streaming que a pessoa usa (só ela vê). null = ainda não escolheu. */
+export async function getStreamingPlatform(): Promise<StreamingChoice | null> {
+  const { data, error } = await supabase.from('profile_private').select('streaming_platform').maybeSingle();
   if (error) throw error;
-  return data as TrendingTrack[];
+  const value: unknown = data?.streaming_platform;
+  return isStreamingChoice(value) ? value : null;
+}
+
+export async function setStreamingPlatform(platform: StreamingChoice): Promise<void> {
+  const { error } = await supabase.rpc('set_streaming_platform', { p_platform: platform });
+  if (error) throw error;
 }
 
 export async function searchProfiles(query: string): Promise<Profile[]> {

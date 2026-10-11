@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import {
+  getStreamingPlatform,
   FEED_PAGE_SIZE,
   fetchFeed,
   fetchLikedPosts,
@@ -31,7 +32,14 @@ export const keys = {
   unread: ['notifications-unread'] as const,
   vibesTray: ['vibes', 'tray'] as const,
   vibesOf: (authorId: string) => ['vibes', 'of', authorId] as const,
+  streamingPlatform: ['streaming-platform'] as const,
+  worldChart: ['world-chart'] as const,
 };
+
+/** Plataforma de streaming da pessoa (null = ainda não escolheu). */
+export function useStreamingPlatform(enabled = true) {
+  return useQuery({ queryKey: keys.streamingPlatform, queryFn: getStreamingPlatform, enabled, staleTime: Infinity });
+}
 
 /** Quem tem vibe ativa (eu + quem eu sigo). */
 export function useVibesTray(enabled = true) {

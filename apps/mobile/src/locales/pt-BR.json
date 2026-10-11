@@ -125,7 +125,9 @@
     "post_empty": "Escreva algo, adicione uma mídia ou uma música.",
     "invalid_genre": "Gênero inválido.",
     "genres_need_music": "O gênero só pode ser escolhido em post com música.",
-    "invalid_parent": "Esse comentário não existe mais."
+    "invalid_parent": "Esse comentário não existe mais.",
+    "charts_unavailable": "O ranking não respondeu agora. Tente de novo em instantes.",
+    "invalid_platform": "Plataforma de streaming inválida."
   },
   "tabs": {
     "feed": "Para você",
@@ -241,12 +243,19 @@
     "hint": "Arraste para a direita se curtir, para a esquerda para pular."
   },
   "trending": {
-    "title": "Mais compartilhadas",
-    "all": "Todos",
+    "title": "Mais tocadas no mundo",
     "posts_one": "{{count}} post",
     "posts_other": "{{count}} posts",
-    "empty": "Nada em alta ainda neste gênero.",
-    "thisWeek": "Esta semana"
+    "empty": "O ranking não carregou. Puxe para atualizar.",
+    "thisWeek": "Esta semana",
+    "source": "Dados do Last.fm. Toque numa música para ouvir.",
+    "opensIn": "Dados do Last.fm · as músicas abrem no {{platform}}.",
+    "change": "Trocar",
+    "moveNew": "Nova no ranking",
+    "moveUp": "Subiu (estava em {{position}}º)",
+    "moveDown": "Caiu (estava em {{position}}º)",
+    "moveSame": "Mesma posição",
+    "rowLabel": "{{position}}º, {{title}}, de {{artist}}"
   },
   "search": {
     "placeholder": "Busque pessoas, músicas ou artistas",
@@ -290,7 +299,9 @@
     "deleteButton": "Excluir minha conta",
     "signInAgain": "Sair e entrar de novo",
     "push": "Notificações no celular",
-    "pushUnavailable": "Disponível no app instalado (não no Expo Go, no emulador nem na Web)."
+    "pushUnavailable": "Disponível no app instalado (não no Expo Go, no emulador nem na Web).",
+    "streaming": "Plataforma de streaming",
+    "streamingNone": "Não escolhida"
   },
   "notifications": {
     "title": "Notificações",
@@ -371,5 +382,10 @@
   "liked": {
     "title": "Curtidos por @{{username}}",
     "empty": "Nenhum post curtido ainda."
+  },
+  "streaming": {
+    "title": "Onde você escuta música?",
+    "hint": "As músicas do Em alta vão abrir sempre nessa plataforma. Dá para trocar depois em Configurações.",
+    "required": "Escolha uma plataforma para continuar."
   }
 }
