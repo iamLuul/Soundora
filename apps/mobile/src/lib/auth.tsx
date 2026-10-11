@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Platform } from 'react-native';
 import { getMyProfile } from './api';
 import i18n from './i18n';
+import { disablePush } from './push';
 import { supabase } from './supabase';
 import type { Profile } from './types';
 
@@ -78,6 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       refreshProfile: () => loadProfile(session),
       signOut: async () => {
+        // Este aparelho para de receber push da conta que está saindo (precisa da sessão ainda).
+        await disablePush().catch(() => undefined);
         await supabase.auth.signOut();
       },
     }),

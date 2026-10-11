@@ -114,6 +114,17 @@ npx eas-cli@latest build --profile production --platform all     # lojas
 
 Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
 
+### Notificações no celular (push)
+
+As notificações aparecem sempre na tela de Notificações (sino). O aviso no celular, com o app fechado, só funciona no **app instalado** (build do EAS): o Expo Go, os emuladores e a Web não recebem push.
+
+1. `npx eas-cli@latest init` grava o `projectId` no `app.json`. Sem ele, a opção aparece desativada.
+2. Android: no painel do Firebase, crie um projeto, baixe a chave de conta de serviço (FCM V1) e envie com `npx eas-cli@latest credentials` → Android → Push Notifications.
+3. iOS: o próprio `eas build` cria a chave de push da Apple (precisa da conta de desenvolvedor).
+4. No app instalado: **Configurações → Notificações no celular**, ou o cartão no topo das Notificações.
+
+O banco envia os avisos pelo serviço da Expo usando a extensão `pg_net`, que o Supabase já tem. Nada a configurar no servidor.
+
 ## 8. Problemas comuns
 
 | Sintoma | Causa | Solução |
@@ -129,5 +140,6 @@ Builds de iOS rodam na nuvem do EAS, então não é preciso ter um Mac.
 | Trocar foto ou banner dá erro | A Edge Function `profile-image` não está rodando | Deixe `npx supabase functions serve` aberto |
 | Depois de atualizar, o app pediu login de novo | A sessão no celular passou a ser criptografada; a antiga é descartada | Normal, só na primeira vez |
 | `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
+| "Notificações no celular" desativada nas Configurações | Expo Go, emulador, Web ou falta o `projectId` do EAS | Normal em desenvolvimento. Veja "Notificações no celular (push)" acima |
 
 Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundora] Supabase em ...` ao abrir o app.

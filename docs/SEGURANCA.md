@@ -28,6 +28,9 @@ Se a chave secreta vazar: no painel, em **Project Settings → API Keys**, crie 
 - **Dados privados.** A data de nascimento fica em `profile_private`, que só a própria pessoa lê. O e-mail fica em `auth.users`, que o app não alcança. O login com @usuário acha o e-mail no servidor e nunca devolve o e-mail ao app.
 - **Tempo máximo por consulta:** 8 s para quem está logado e 3 s para visitantes. Cada pedido devolve no máximo 100 linhas (`max_rows`).
 
+- **Notificações** são criadas só por triggers do banco. As tabelas `notifications` e `push_tokens` são fechadas para o app (sem leitura nem escrita direta); o app só usa as funções `notifications_list`, `notifications_mark_read` e `push_token_register/unregister`, que sempre filtram pela pessoa logada. Quem está bloqueado não gera notificação, e as antigas somem da lista.
+- **Push** sai do banco para o serviço da Expo (`https://exp.host`) com o `@` de quem agiu e, em comentários, o começo do texto, que já é público no post. Nunca vai e-mail, data de nascimento ou outro dado privado. Ao sair da conta, o aparelho é descadastrado.
+
 ## Senhas e sessão
 
 - **Hash, não texto.** O Supabase Auth guarda só o hash da senha (bcrypt) em `auth.users`. A senha nunca passa pelas tabelas do Soundora.
@@ -79,6 +82,8 @@ Não existe upload de ZIP ou de outros arquivos. Quando houver, cada tipo novo g
 | Bloqueios | 50 por dia | Banco |
 | Swipes no Descobrir | 600 por hora | Banco |
 | Editar perfil | 30 por hora | Banco |
+| Push recebidos | 30 por hora por pessoa (o resto fica só na lista do app) | Banco (`tg_push_notification`) |
+| Cadastrar aparelho para push | 30 por hora; até 10 aparelhos por conta | Banco |
 
 Os limites de ações ficam em `supabase/migrations/20261010000004_security.sql`, e os do login por @ em `20261010000006_review_fixes.sql`. As tentativas de login são reservadas **antes** de falar com o Supabase Auth, com trava no banco: pedidos simultâneos contam um por um (um teste dispara 50 de uma vez e só 5 passam). Para mudar um, crie uma migration nova que recrie o trigger com o número novo.
 

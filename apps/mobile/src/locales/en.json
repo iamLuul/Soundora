@@ -114,7 +114,8 @@
     "username_change_too_soon": "You can only change your @ once every 30 days.",
     "confirmation_mismatch": "The @ you typed doesn't match.",
     "reauth_required": "For your security, sign out, sign in again and come back within 30 minutes.",
-    "server_outdated": "The server database is out of date (migrations missing). Local: npx supabase db reset. Cloud: npx supabase db push."
+    "server_outdated": "The server database is out of date (migrations missing). Local: npx supabase db reset. Cloud: npx supabase db push.",
+    "push_unavailable": "Phone notifications are not available on this device."
   },
   "tabs": {
     "feed": "For you",
@@ -251,13 +252,24 @@
     "deleteForever": "This can't be undone. Your @ becomes available to others.",
     "deleteConfirmLabel": "To confirm, type @{{username}}",
     "deleteButton": "Delete my account",
-    "signInAgain": "Sign out and sign in again"
+    "signInAgain": "Sign out and sign in again",
+    "push": "Phone notifications",
+    "pushUnavailable": "Available in the installed app (not in Expo Go, emulators or the web)."
   },
   "notifications": {
     "title": "Notifications",
     "all": "All",
     "replies": "Replies",
-    "empty": "Nothing to see here"
+    "empty": "Nothing here yet. Likes, comments and new followers show up here.",
+    "emptyReplies": "No comments yet.",
+    "like": "liked your post",
+    "comment": "commented on your post",
+    "reply": "also commented",
+    "follow": "started following you",
+    "pushTitle": "Phone notifications",
+    "pushBody": "Get a heads-up when someone likes, comments or follows you.",
+    "pushDenied": "Notifications are blocked. Allow them in your phone settings.",
+    "pushEnable": "Turn on"
   },
   "music": {
     "liked": "Liked",

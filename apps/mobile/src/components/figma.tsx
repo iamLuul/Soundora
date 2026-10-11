@@ -10,6 +10,7 @@ import { SvgXml } from 'react-native-svg';
 import { logoSvg, platformSvgs } from '../assets/brand';
 import { icons, type IconName } from '../assets/icons';
 import { colors, fonts, space } from '../theme';
+import { useUnreadNotifications } from '../lib/queries';
 import { Avatar } from './ui';
 
 /** Tamanho natural de cada SVG (do viewBox), para manter a proporção. */
@@ -120,6 +121,7 @@ export function TopTabs<T extends string>({
           style={styles.bell}
         >
           <Icon name="bell" size={20} />
+          <UnreadDot />
         </Pressable>
       ) : null}
     </View>
@@ -159,9 +161,33 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
   tabActive: { fontFamily: fonts.bold },
   bell: { position: 'absolute', right: 0, top: 12 },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontFamily: fonts.bold, fontSize: 9, color: colors.text },
   backRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backTitle: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
 });
+
+/** Bolinha com o número de notificações não lidas, em cima do sino. */
+function UnreadDot() {
+  const { data: count = 0 } = useUnreadNotifications();
+  if (count <= 0) return null;
+  return (
+    <View testID="unread-badge" style={styles.badge} accessibilityLabel={String(count)}>
+      <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
+    </View>
+  );
+}
 
 /** Avatar com o anel roxo do Figma (posts e fila de quem você segue). */
 export function RingAvatar({ uri, name, size = 38 }: { uri: string | null; name: string; size?: number }) {

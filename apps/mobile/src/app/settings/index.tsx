@@ -1,12 +1,15 @@
 import Constants from 'expo-constants';
 import { router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Text, View } from 'react-native';
+import { useState } from 'react';
+import { Switch, Text, View } from 'react-native';
 import { SettingsRow, SettingsSection } from '../../components/Settings';
 import { Screen, SegmentedControl } from '../../components/ui';
 import { updateLocale } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { space, text } from '../../theme';
+import { formatError } from '../../lib/errors';
+import { disablePush, enablePush, pushAvailability, pushEnabled } from '../../lib/push';
+import { colors, space, text } from '../../theme';
 
 type Locale = 'pt-BR' | 'en';
 
@@ -50,6 +53,7 @@ export default function SettingsScreen() {
             ]}
           />
         </View>
+        <PushRow />
       </SettingsSection>
 
       <SettingsSection title={t('settings.session')}>
@@ -59,5 +63,52 @@ export default function SettingsScreen() {
 
       <Text style={[text.small, { textAlign: 'center' }]}>Soundora {Constants.expoConfig?.version ?? ''}</Text>
     </Screen>
+  );
+}
+
+/** Liga/desliga o push neste aparelho. */
+function PushRow() {
+  const { t } = useTranslation();
+  const available = pushAvailability();
+  const [on, setOn] = useState(pushEnabled);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const toggle = async (next: boolean) => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      if (next) {
+        const granted = await enablePush();
+        setOn(granted);
+        if (!granted) setMessage(t('notifications.pushDenied'));
+      } else {
+        await disablePush();
+        setOn(false);
+      }
+    } catch (err) {
+      setMessage(formatError(t, err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SettingsRow
+      testID="settings-push"
+      icon="notifications-outline"
+      label={t('settings.push')}
+      value={!available.ok ? t('settings.pushUnavailable') : (message ?? undefined)}
+      right={
+        <Switch
+          value={on}
+          onValueChange={toggle}
+          disabled={!available.ok || busy}
+          trackColor={{ true: colors.primary, false: colors.surface }}
+          accessibilityLabel={t('settings.push')}
+        />
+      }
+      last
+    />
   );
 }

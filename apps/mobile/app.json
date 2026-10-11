@@ -58,6 +58,12 @@
         {
           "photosPermission": "O Soundora usa suas fotos só quando você escolhe uma foto de perfil."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#6C62FF"
+        }
       ]
     ],
     "experiments": {

@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -28,6 +29,12 @@ function RootNavigator() {
 
   const signedIn = !!session;
   const onboarded = signedIn && !!profile;
+  return <Navigator signedIn={signedIn} onboarded={onboarded} />;
+}
+
+function Navigator({ signedIn, onboarded }: { signedIn: boolean; onboarded: boolean }) {
+  // Tocar num push abre a tela dele (só depois do login e do onboarding).
+  usePushNavigation(onboarded);
 
   return (
     <Stack

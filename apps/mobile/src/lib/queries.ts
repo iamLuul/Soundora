@@ -1,5 +1,14 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { FEED_PAGE_SIZE, fetchFeed, fetchProfilePosts, setLiked, type PostCursor } from './api';
+import {
+  FEED_PAGE_SIZE,
+  fetchFeed,
+  fetchNotifications,
+  fetchProfilePosts,
+  fetchUnreadNotifications,
+  setLiked,
+  type NotificationFilter,
+  type PostCursor,
+} from './api';
 import { supabase } from './supabase';
 import type { FeedItem } from './types';
 
@@ -8,7 +17,30 @@ export const keys = {
   profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
   profile: (username: string) => ['profile', username] as const,
   comments: (postId: string) => ['comments', postId] as const,
+  notifications: (filter: string) => ['notifications', filter] as const,
+  unread: ['notifications-unread'] as const,
 };
+
+/** Quantas notificações não lidas (bolinha no sino). Atualiza a cada minuto e ao voltar para o app. */
+export function useUnreadNotifications(enabled = true) {
+  return useQuery({
+    queryKey: keys.unread,
+    queryFn: fetchUnreadNotifications,
+    enabled,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
+}
+
+export function useNotifications(filter: NotificationFilter) {
+  return useInfiniteQuery({
+    queryKey: keys.notifications(filter),
+    queryFn: ({ pageParam }: { pageParam: number | null }) => fetchNotifications(filter, pageParam),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => (last.length < 30 ? undefined : last[last.length - 1]!.id),
+  });
+}
 
 interface FeedPage {
   page: number;

@@ -35,6 +35,7 @@ const KNOWN = new Set([
   'confirmation_mismatch',
   'reauth_required',
   'server_outdated',
+  'push_unavailable',
 ]);
 
 export class AppError extends Error {

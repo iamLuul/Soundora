@@ -12,6 +12,7 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 - Descobrir (cartões com swipe: destaques da curadoria e indicações da comunidade), Em alta (ranking da semana por gênero) e Buscar (pessoas e músicas);
 - perfil no layout do Figma (banner, foto centralizada, números), com troca de foto e banner, menu de opções e Configurações (editar perfil, alterar @, redefinir senha, idioma, sair, excluir conta); denunciar, bloquear e apagar post;
 - todas as telas no layout do Figma (Case Study UI/UX): logo, ícones e logos das plataformas exportados do arquivo (`apps/mobile/src/assets`), barra inferior com o botão "+" central, Home com a fila de quem você segue, Notificações, aba Músicas (curtidas e postadas), cartão de música por plataforma, botões do Descobrir, login, cadastro, código em 6 caixas e onboarding com pontos de progresso;
+- notificações de curtidas, comentários, respostas e novos seguidores (aba Todas e Respostas, bolinha no sino) e aviso no celular (push) para quem ativar;
 - interface em português do Brasil e inglês.
 
 ## Estrutura
@@ -82,4 +83,4 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 
 ## Próximos passos do roteiro
 
-Painel admin (moderação e curadoria sem SQL), notificações push, vídeos e Vibes, e vínculo com responsável.
+Painel admin (moderação e curadoria sem SQL), vídeos e Vibes, e vínculo com responsável.

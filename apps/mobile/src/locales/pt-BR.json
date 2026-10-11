@@ -114,7 +114,8 @@
     "username_change_too_soon": "Você só pode trocar de @ uma vez a cada 30 dias.",
     "confirmation_mismatch": "O @ digitado não confere.",
     "reauth_required": "Por segurança, saia, entre de novo na conta e volte aqui em até 30 minutos.",
-    "server_outdated": "O banco de dados do servidor está desatualizado (faltam as migrations). Local: npx supabase db reset. Na nuvem: npx supabase db push."
+    "server_outdated": "O banco de dados do servidor está desatualizado (faltam as migrations). Local: npx supabase db reset. Na nuvem: npx supabase db push.",
+    "push_unavailable": "Notificações no celular não estão disponíveis neste aparelho."
   },
   "tabs": {
     "feed": "Para você",
@@ -251,13 +252,24 @@
     "deleteForever": "Não dá para desfazer. Seu @ fica livre para outra pessoa.",
     "deleteConfirmLabel": "Para confirmar, digite @{{username}}",
     "deleteButton": "Excluir minha conta",
-    "signInAgain": "Sair e entrar de novo"
+    "signInAgain": "Sair e entrar de novo",
+    "push": "Notificações no celular",
+    "pushUnavailable": "Disponível no app instalado (não no Expo Go, no emulador nem na Web)."
   },
   "notifications": {
     "title": "Notificações",
     "all": "Todas",
     "replies": "Respostas",
-    "empty": "Nada por aqui ainda"
+    "empty": "Nada por aqui ainda. Quando curtirem, comentarem ou seguirem você, aparece aqui.",
+    "emptyReplies": "Nenhum comentário ainda.",
+    "like": "curtiu seu post",
+    "comment": "comentou no seu post",
+    "reply": "também comentou",
+    "follow": "começou a seguir você",
+    "pushTitle": "Avisos no celular",
+    "pushBody": "Receba um aviso quando curtirem, comentarem ou seguirem você.",
+    "pushDenied": "As notificações estão bloqueadas. Libere nas configurações do celular.",
+    "pushEnable": "Ativar"
   },
   "music": {
     "liked": "Curtidas",
