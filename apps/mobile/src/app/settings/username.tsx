@@ -58,7 +58,7 @@ export default function UsernameScreen() {
         autoCorrect={false}
         editable={!blockedUntil}
         hint={status.state === 'checking' ? t('onboarding.usernameChecking') : t('onboarding.usernameHint')}
-        error={status.state === 'invalid' ? t(`errors.${status.reason}`) : status.state === 'taken' ? t('errors.username_taken') : null}
+        error={status.state === 'invalid' ? t(`errors.${status.reason}`) : status.state === 'taken' ? t('errors.username_taken') : status.state === 'error' ? status.message : null}
         success={status.state === 'available' ? t('onboarding.usernameAvailable', { username: status.username }) : null}
       />
       <ErrorText>{error}</ErrorText>

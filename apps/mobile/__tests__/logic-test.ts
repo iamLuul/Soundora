@@ -31,6 +31,8 @@ describe('erros', () => {
     expect(errorMessageKey({ message: 'username_taken', code: 'P0001' })).toBe('errors.username_taken');
     expect(errorMessageKey({ message: 'needs_guardian' })).toBe('age.needs_guardian');
     expect(errorMessageKey(new AppError('unsupported'))).toBe('errors.unsupported');
+    // Função que não existe no servidor (banco sem migrations)
+    expect(errorMessageKey({ code: 'PGRST202', message: 'Could not find the function public.username_available(p_username) in the schema cache' })).toBe('errors.server_outdated');
   });
   test('erro desconhecido vira genérico', () => {
     expect(errorCode(new Error('boom'))).toBe('generic');

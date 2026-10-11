@@ -34,6 +34,7 @@ const KNOWN = new Set([
   'username_change_too_soon',
   'confirmation_mismatch',
   'reauth_required',
+  'server_outdated',
 ]);
 
 export class AppError extends Error {
@@ -63,6 +64,8 @@ export function errorCode(err: unknown): string {
   if (err instanceof AppError) return KNOWN.has(err.code) ? err.code : 'generic';
   if (err && typeof err === 'object') {
     const anyErr = err as { message?: unknown; code?: unknown; context?: unknown };
+    // PGRST202/PGRST205: a função ou tabela não existe no servidor = banco sem as migrations.
+    if (anyErr.code === 'PGRST202' || anyErr.code === 'PGRST205') return 'server_outdated';
     // Funções do banco usam "raise exception 'codigo'"
     if (typeof anyErr.message === 'string' && KNOWN.has(anyErr.message)) return anyErr.message;
     // Edge Function devolve { error: 'codigo' }

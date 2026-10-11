@@ -76,7 +76,8 @@
     "usernameAvailable": "@{{username}} está disponível",
     "passwordTitle": "Crie uma senha",
     "passwordHint": "Assim você também pode entrar com o seu e-mail ou @usuário e a senha.",
-    "personalTitle": "Conte um pouco sobre você"
+    "personalTitle": "Conte um pouco sobre você",
+    "usernameCheckFailed": "Não foi possível verificar agora."
   },
   "age": {
     "too_young": "Você precisa ter pelo menos {{min}} anos para usar o Soundora.",
@@ -111,7 +112,8 @@
     "image_dimensions": "A foto precisa ter entre 32 e 2048 pixels de lado.",
     "username_change_too_soon": "Você só pode trocar de @ uma vez a cada 30 dias.",
     "confirmation_mismatch": "O @ digitado não confere.",
-    "reauth_required": "Por segurança, saia, entre de novo na conta e volte aqui em até 30 minutos."
+    "reauth_required": "Por segurança, saia, entre de novo na conta e volte aqui em até 30 minutos.",
+    "server_outdated": "O banco de dados do servidor está desatualizado (faltam as migrations). Local: npx supabase db reset. Na nuvem: npx supabase db push."
   },
   "tabs": {
     "feed": "Para você",

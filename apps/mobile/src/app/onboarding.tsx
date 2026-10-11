@@ -148,7 +148,9 @@ export default function Onboarding() {
                 ? t(`errors.${usernameStatus.reason}`)
                 : usernameStatus.state === 'taken'
                   ? t('errors.username_taken')
-                  : null
+                  : usernameStatus.state === 'error'
+                    ? usernameStatus.message
+                    : null
             }
             success={usernameStatus.state === 'available' ? t('onboarding.usernameAvailable', { username: usernameStatus.username }) : null}
             value={username}
