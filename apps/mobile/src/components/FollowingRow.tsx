@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+// ScrollView do gesture-handler: rolar a fila de vibes não troca de aba.
+import { ScrollView } from 'react-native-gesture-handler';
 import { fetchFollowing, type VibeTrayItem } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useVibesTray } from '../lib/queries';
