@@ -292,11 +292,18 @@
     "rowLabel": "#{{position}}, {{title}} by {{artist}}"
   },
   "search": {
-    "placeholder": "Search people, songs or artists",
+    "placeholder": "Search people, songs, artists or genres",
     "people": "People",
     "tracks": "Songs",
     "noResults": "Nothing found for “{{query}}”.",
-    "minChars": "Type at least 2 letters."
+    "minChars": "Type at least 2 letters.",
+    "genres": "Genres",
+    "browseGenres": "Browse by genre",
+    "genrePosts_zero": "no posts yet",
+    "genrePosts_one": "{{count}} post",
+    "genrePosts_other": "{{count}} posts",
+    "genreTitle": "{{genre}} posts",
+    "genreEmpty": "Nobody has posted with this genre yet."
   },
   "editProfile": {
     "title": "Edit profile",

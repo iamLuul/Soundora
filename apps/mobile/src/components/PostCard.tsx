@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { exactTime, relativeTime } from '../lib/i18n';
@@ -108,9 +108,17 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
       {item.genres?.length ? (
         <View style={styles.genres}>
           {item.genres.map((g) => (
-            <View key={g} style={styles.genre}>
+            // Toque no gênero: os posts com esse gênero (Buscar › gênero).
+            <Pressable
+              key={g}
+              testID={`post-genre-${g}`}
+              accessibilityRole="link"
+              onPress={() => router.push(`/genre/${g}`)}
+              style={({ pressed }) => [styles.genre, pressed && { opacity: 0.7 }]}
+              hitSlop={4}
+            >
               <Text style={styles.genreText}>{genreLabel(genres.data, g, i18n.language) ?? g}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       ) : null}

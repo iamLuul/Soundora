@@ -4,6 +4,7 @@ import {
   FEED_PAGE_SIZE,
   fetchFeed,
   fetchFollowingFeed,
+  fetchGenrePosts,
   fetchMyFollowingIds,
   fetchSuggestedAccounts,
   setFollowing,
@@ -29,6 +30,7 @@ import type { FeedItem } from './types';
 export const keys = {
   feed: ['feed'] as const,
   followingFeed: ['feed-following'] as const,
+  genrePosts: (slug: string) => ['genre-posts', slug] as const,
   followingIds: ['following-ids'] as const,
   suggested: ['suggested-accounts'] as const,
   profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
@@ -116,6 +118,34 @@ export function useFollowingFeed(enabled = true) {
     getNextPageParam: (last) => {
       const tail = last[last.length - 1];
       return last.length === FEED_PAGE_SIZE && tail ? { createdAt: tail.created_at, id: tail.id } : undefined;
+    },
+  });
+}
+
+/** Posts marcados com um gênero (Buscar › gênero). */
+export function useGenrePosts(slug: string) {
+  return useInfiniteQuery({
+    queryKey: keys.genrePosts(slug),
+    enabled: !!slug,
+    queryFn: ({ pageParam }) => fetchGenrePosts(slug, pageParam),
+    initialPageParam: null as PostCursor | null,
+    getNextPageParam: (last) => {
+      const tail = last[last.length - 1];
+      return last.length === FEED_PAGE_SIZE && tail ? { createdAt: tail.created_at, id: tail.id } : undefined;
+    },
+  });
+}
+
+/** Um gênero pelo slug (nome em português e inglês), para o título da tela. */
+export function useGenre(slug: string) {
+  return useQuery({
+    queryKey: ['genre', slug],
+    enabled: !!slug,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('genres').select('slug, name_pt, name_en').eq('slug', slug).maybeSingle();
+      if (error) throw error;
+      return data as GenreRow | null;
     },
   });
 }
@@ -208,7 +238,7 @@ export function useToggleLike() {
       await qc.cancelQueries({ queryKey: keys.feed });
       await qc.cancelQueries({ queryKey: ['profile-posts'] });
       await qc.cancelQueries({ queryKey: keys.followingFeed });
-      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'feed-following', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])) });
+      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'feed-following', 'genre-posts', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])) });
       for (const [key, data] of lists) qc.setQueryData(key, patchPostInCache(data, item.id, toggleLikePatch));
       // O post aberto em tela cheia.
       const single = qc.getQueryData<FeedItem | null>(keys.post(item.id));

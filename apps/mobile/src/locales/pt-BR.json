@@ -292,11 +292,18 @@
     "rowLabel": "{{position}}º, {{title}}, de {{artist}}"
   },
   "search": {
-    "placeholder": "Busque pessoas, músicas ou artistas",
+    "placeholder": "Busque pessoas, músicas, artistas ou gêneros",
     "people": "Pessoas",
     "tracks": "Músicas",
     "noResults": "Nada encontrado para “{{query}}”.",
-    "minChars": "Digite pelo menos 2 letras."
+    "minChars": "Digite pelo menos 2 letras.",
+    "genres": "Gêneros",
+    "browseGenres": "Buscar por gênero",
+    "genrePosts_zero": "nenhum post ainda",
+    "genrePosts_one": "{{count}} post",
+    "genrePosts_other": "{{count}} posts",
+    "genreTitle": "Posts de {{genre}}",
+    "genreEmpty": "Ninguém postou com esse gênero ainda."
   },
   "editProfile": {
     "title": "Editar perfil",

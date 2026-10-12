@@ -464,6 +464,32 @@ export async function searchTracks(query: string): Promise<TrackResult[]> {
   return data as TrackResult[];
 }
 
+/** Gêneros que batem com o texto, com quantos posts têm cada um (os com posts primeiro). */
+export interface GenreHit {
+  slug: string;
+  name_pt: string;
+  name_en: string;
+  post_count: number;
+}
+
+export async function searchPostGenres(query: string): Promise<GenreHit[]> {
+  const { data, error } = await supabase.rpc('search_post_genres', { p_query: query.toLowerCase(), p_limit: 8 });
+  if (error) throw error;
+  return data as GenreHit[];
+}
+
+/** Posts marcados com o gênero, do mais novo ao mais velho. */
+export async function fetchGenrePosts(genre: string, before: PostCursor | null): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('genre_posts', {
+    p_genre: genre,
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: FEED_PAGE_SIZE,
+  });
+  if (error) throw error;
+  return data as FeedItem[];
+}
+
 export const BIO_MAX = 160;
 
 export async function updateProfile(input: { displayName: string; bio: string }): Promise<void> {
