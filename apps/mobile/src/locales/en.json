@@ -256,7 +256,9 @@
     "pause": "Pause preview",
     "because": "Because you liked {{track}}",
     "becauseGenre": "Popular in {{genre}}",
-    "becausePopular": "Popular worldwide"
+    "becausePopular": "Popular worldwide",
+    "previewAt": "Preview: {{s}} of 30 seconds",
+    "previewUnavailable": "Preview unavailable for this song."
   },
   "trending": {
     "title": "Most played worldwide",

@@ -256,7 +256,9 @@
     "pause": "Pausar a prévia",
     "because": "Porque você curtiu {{track}}",
     "becauseGenre": "Em alta em {{genre}}",
-    "becausePopular": "Em alta no mundo"
+    "becausePopular": "Em alta no mundo",
+    "previewAt": "Prévia: {{s}} de 30 segundos",
+    "previewUnavailable": "Prévia indisponível para esta música."
   },
   "trending": {
     "title": "Mais tocadas no mundo",

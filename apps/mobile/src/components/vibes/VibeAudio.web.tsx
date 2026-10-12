@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { VibeAudioProps } from './VibeAudio';
 
 // O <audio> é um objeto do navegador (fora do React): estas funções só repassam a configuração.
 function load(audio: HTMLAudioElement, url: string) {
@@ -18,10 +19,30 @@ function configure(audio: HTMLAudioElement, opts: { loop: boolean; muted: boolea
 /**
  * Web: prévia de 30 s com o <audio> do navegador. O expo-audio na web chama play() e ignora a
  * promessa, então um link que o navegador não toca (prévia vencida, formato) virava erro solto.
- * Aqui o erro é tratado: a vibe/cartão segue, só sem som.
+ * Aqui o erro é tratado e avisado (onError), para o app renovar a prévia.
  */
-export function VibeAudio({ url, paused, muted, loop = false }: { url: string; paused: boolean; muted: boolean; loop?: boolean }) {
+export function VibeAudio({ url, paused, muted, loop = false, onProgress, onEnded, onError }: VibeAudioProps) {
   const [audio] = useState(() => (typeof Audio === 'undefined' ? null : new Audio()));
+  // Os avisos mais recentes, sem religar os eventos a cada render.
+  const handlers = useRef({ onProgress, onEnded, onError });
+  useEffect(() => {
+    handlers.current = { onProgress, onEnded, onError };
+  });
+
+  useEffect(() => {
+    if (!audio) return;
+    const time = () => handlers.current.onProgress?.(audio.currentTime, Number.isFinite(audio.duration) ? audio.duration : 0);
+    const ended = () => handlers.current.onEnded?.();
+    const failed = () => handlers.current.onError?.();
+    audio.addEventListener('timeupdate', time);
+    audio.addEventListener('ended', ended);
+    audio.addEventListener('error', failed);
+    return () => {
+      audio.removeEventListener('timeupdate', time);
+      audio.removeEventListener('ended', ended);
+      audio.removeEventListener('error', failed);
+    };
+  }, [audio]);
 
   // Troca de música: novo endereço; ao sair, para e solta o arquivo.
   useEffect(() => {
@@ -37,8 +58,11 @@ export function VibeAudio({ url, paused, muted, loop = false }: { url: string; p
   useEffect(() => {
     if (!audio) return;
     if (paused) audio.pause();
-    // Navegador recusou (autoplay bloqueado, link inválido): fica sem som.
-    else audio.play().catch(() => undefined);
+    else
+      audio.play().catch((err: unknown) => {
+        // Autoplay bloqueado pelo navegador (sem toque antes) não é link ruim: só não toca.
+        if ((err as { name?: string })?.name !== 'NotAllowedError' && (err as { name?: string })?.name !== 'AbortError') handlers.current.onError?.();
+      });
   }, [audio, paused, url]);
 
   return null;

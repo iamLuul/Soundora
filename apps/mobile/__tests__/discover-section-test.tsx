@@ -33,6 +33,7 @@ const mockRecs = jest.fn();
 const mockSwipe = jest.fn(async (_card: unknown, _liked: boolean) => undefined);
 const mockLink = jest.fn(async (_id: string, _platform: string) => 'https://open.spotify.com/track/abc');
 let mockLiked: LikedSong[] = [];
+const mockRefresh = jest.fn(async (id: string) => `https://cdnt-preview.dzcdn.net/${id}-nova.mp3`);
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
   fetchRecommendations: (genre: string | null) => mockRecs(genre),
@@ -40,6 +41,7 @@ jest.mock('../src/lib/api', () => ({
   fetchLikedSongs: async () => mockLiked,
   swipeDiscover: (card: unknown, liked: boolean) => mockSwipe(card, liked),
   trackLink: (id: string, platform: string) => mockLink(id, platform),
+  refreshDiscoverAudio: (id: string) => mockRefresh(id),
   getStreamingPlatform: async () => 'spotify',
 }));
 
@@ -134,5 +136,24 @@ describe('Descobrir', () => {
     const a = [rec('1', 'a'), rec('2', 'b'), rec('3', 'c')];
     const b = [{ ...rec('9', 'comunidade'), source: 'community' as const }, { ...rec('2', 'repetida'), source: 'community' as const }];
     expect(mergeDeck(a, b).map((c) => c.link_preview_id)).toEqual(['1', '2', '9', '3']);
+  });
+
+  test('curtir passa para a próxima já tocando; prévia vencida é renovada antes', async () => {
+    mockRecs.mockResolvedValue([
+      rec('31', 'Primeira'),
+      rec('32', 'Segunda', { audio_url: 'https://cdnt-preview.dzcdn.net/32.mp3?hdnea=exp=1700000000~hmac=1' }),
+    ]);
+    await wrap();
+    await waitFor(() => expect(screen.getByLabelText('Ouvir a prévia')).toBeTruthy());
+
+    jest.useFakeTimers();
+    await fireEvent.press(screen.getByTestId('discover-like'));
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    jest.useRealTimers();
+    await waitFor(() => expect(screen.getAllByText('Segunda').length).toBeGreaterThan(0));
+    expect(screen.getByLabelText('Pausar a prévia')).toBeTruthy();
+    await waitFor(() => expect(mockRefresh).toHaveBeenCalledWith('32'));
   });
 });

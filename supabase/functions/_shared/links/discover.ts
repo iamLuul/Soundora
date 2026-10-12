@@ -272,3 +272,20 @@ export async function recommend(
   }
   return mixCandidates({ similar, genre, popular }, new Set(seeds.seenKeys), opts.size);
 }
+
+/**
+ * Prévias da Deezer vêm assinadas com validade no próprio link (`hdnea=exp=<segundos>`).
+ * Vencido, o servidor da Deezer recusa e o player não toca. null = o link não diz.
+ */
+export function previewExpiresAt(url: string | null | undefined): number | null {
+  if (!url) return null;
+  const m = /[?&~](?:hdnea|hdnts)=(?:[^&]*?[~=])?exp=(\d{9,11})\b/.exec(url) ?? /[?&]exp=(\d{9,11})\b/.exec(url);
+  return m ? Number(m[1]) * 1000 : null;
+}
+
+/** A prévia ainda toca daqui a `marginMs`? Sem link, não; link sem validade, sim. */
+export function previewUsable(url: string | null | undefined, now: number = Date.now(), marginMs = 60_000): boolean {
+  if (!url) return false;
+  const exp = previewExpiresAt(url);
+  return exp == null || exp - marginMs > now;
+}

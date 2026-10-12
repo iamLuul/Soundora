@@ -3,9 +3,10 @@
 //
 // { action: 'deck', genre? }          → cartões sugeridos para a pessoa (ou só de um gênero)
 // { action: 'link', previewId, platform } → link da música na plataforma da pessoa (ou a busca)
+// { action: 'audio', previewId }          → prévia renovada (a da Deezer vence pelo próprio link)
 import { readJsonLimited } from '../_shared/body.ts';
 import { isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl } from '../_shared/links/charts.ts';
-import type { Candidate, DeezerTrack, Seeds, TrackRef } from '../_shared/links/discover.ts';
+import { previewUsable, type Candidate, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
@@ -13,11 +14,13 @@ export const MAX_BODY_BYTES = 2 * 1024;
 export const DECK_SIZE = 15;
 /** Sugestões pedidas ao Last.fm por pilha (algumas não estão na Deezer). */
 export const CANDIDATES = 40;
-/** A prévia da Deezer vence: renova depois de 6 h. */
+/** A prévia da Deezer vence: renova depois de 6 h, ou antes se o link já vence logo (exp). */
 export const AUDIO_TTL_MS = 6 * 3600_000;
+/** Renova a prévia que vence em menos que isso (a pessoa ainda vai ouvir). */
+export const AUDIO_MARGIN_MS = 10 * 60_000;
 export const LINKS_TTL_MS = 30 * 86_400_000;
 /** Pedidos por pessoa (por minuto). */
-export const RATE = { deck: 12, link: 30 } as const;
+export const RATE = { deck: 12, link: 30, audio: 30 } as const;
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -127,7 +130,9 @@ export function createHandler(deps: Deps) {
     await Promise.all(
       unique.map(async (c) => {
         const r = c.row;
-        const stale = !r.store_checked_at || now().getTime() - new Date(r.store_checked_at).getTime() > AUDIO_TTL_MS;
+        const t = now().getTime();
+        const stale =
+          !r.store_checked_at || t - new Date(r.store_checked_at).getTime() > AUDIO_TTL_MS || !previewUsable(r.audio_url, t, AUDIO_MARGIN_MS);
         if (r.platform !== 'deezer' || !r.provider_id || !stale) return;
         const fresh = await deps.trackById(r.provider_id).catch(() => null);
         if (!fresh) return;
@@ -153,6 +158,18 @@ export function createHandler(deps: Deps) {
         because: candidate.reason.kind === 'similar' ? `${candidate.reason.because.artist} – ${candidate.reason.because.title}` : null,
       })),
     });
+  }
+
+  /** Prévia nova de um cartão (o app pede quando a que tem venceu ou não tocou). */
+  async function audio(body: { previewId?: unknown }): Promise<Response> {
+    if (typeof body.previewId !== 'string' || !UUID_RE.test(body.previewId)) return json({ error: 'invalid_request' }, 400);
+    const track = await deps.getTrack(body.previewId);
+    if (!track) return json({ error: 'not_found' }, 404);
+    if (track.platform !== 'deezer' || !track.provider_id) return json({ audio_url: track.audio_url });
+    const fresh = await deps.trackById(track.provider_id).catch(() => null);
+    if (!fresh) return json({ audio_url: previewUsable(track.audio_url, now().getTime()) ? track.audio_url : null });
+    await deps.saveAudio(track.id, fresh.previewUrl).catch(() => undefined);
+    return json({ audio_url: fresh.previewUrl });
   }
 
   async function link(body: { previewId?: unknown; platform?: unknown }): Promise<Response> {
@@ -196,12 +213,13 @@ export function createHandler(deps: Deps) {
     const read = await readJsonLimited(req, MAX_BODY_BYTES);
     if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
     const body = (read.value ?? {}) as { action?: unknown; genre?: unknown; previewId?: unknown; platform?: unknown };
-    if (body.action !== 'deck' && body.action !== 'link') return json({ error: 'invalid_request' }, 400);
+    if (body.action !== 'deck' && body.action !== 'link' && body.action !== 'audio') return json({ error: 'invalid_request' }, 400);
     if (body.action === 'deck' && body.genre != null && !isGenre(body.genre)) return json({ error: 'invalid_request' }, 400);
 
     try {
       if (!(await deps.rateLimit(userId, body.action))) return json({ error: 'rate_limited' }, 429);
-      return body.action === 'deck' ? await deck(userId, isGenre(body.genre) ? body.genre : null) : await link(body);
+      if (body.action === 'deck') return await deck(userId, isGenre(body.genre) ? body.genre : null);
+      return body.action === 'audio' ? await audio(body) : await link(body);
     } catch (err) {
       log('discover: erro', err);
       return json({ error: 'internal', ...(deps.debug ? { detail: err instanceof Error ? err.message : String(err) } : {}) }, 500);

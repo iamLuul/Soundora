@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { previewUsable } from '@soundora/core';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { fetchDiscoverCards, fetchLikedSongs, fetchRecommendations, swipeDiscover, trackLink } from '../lib/api';
+import { fetchDiscoverCards, fetchLikedSongs, fetchRecommendations, refreshDiscoverAudio, swipeDiscover, trackLink } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
 import type { DiscoverCard, LikedSong } from '../lib/types';
@@ -74,10 +75,72 @@ export function DiscoverSection() {
   const top = deck[0];
   const playing = !!top && playingId === top.link_preview_id;
 
+  // Prévia: link renovado (a da Deezer vence), quanto já tocou e falhas.
+  const [freshAudio, setFreshAudio] = useState<Record<string, string | null>>({});
+  const [retried, setRetried] = useState<ReadonlySet<string>>(new Set());
+  const [progress, setProgress] = useState<{ id: string; position: number; duration: number } | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const audioOf = (card: DiscoverCard) => (card.link_preview_id in freshAudio ? freshAudio[card.link_preview_id] : card.audio_url) ?? null;
+  const topAudio = top ? audioOf(top) : null;
+
+  /** Pede ao servidor uma prévia nova; sem prévia, para e avisa. */
+  const renewAudio = (card: DiscoverCard) => {
+    refreshDiscoverAudio(card.link_preview_id)
+      .then((url) => {
+        setFreshAudio((m) => ({ ...m, [card.link_preview_id]: url }));
+        if (!url) {
+          setPlayingId((id) => (id === card.link_preview_id ? null : id));
+          setAudioError(t('discover.previewUnavailable'));
+        }
+      })
+      .catch(() => {
+        setPlayingId((id) => (id === card.link_preview_id ? null : id));
+        setAudioError(t('discover.previewUnavailable'));
+      });
+  };
+
+  /** Toca a prévia do cartão (renovando antes se o link já venceu). */
+  const play = (card: DiscoverCard | undefined) => {
+    setAudioError(null);
+    if (!card || (!card.audio_url && !(card.link_preview_id in freshAudio))) {
+      setPlayingId(null);
+      return;
+    }
+    setPlayingId(card.link_preview_id);
+    if (!previewUsable(audioOf(card))) renewAudio(card);
+  };
+
+  const topId = top?.link_preview_id;
+  const onAudioProgress = useCallback(
+    (position: number, duration: number) => {
+      if (topId) setProgress({ id: topId, position, duration: duration > 0 ? duration : 30 });
+    },
+    [topId],
+  );
+  const onAudioEnded = useCallback(() => {
+    setPlayingId(null);
+    setProgress(null);
+  }, []);
+  const onAudioError = useCallback(() => {
+    if (!top) return;
+    // Uma nova tentativa com link novo; falhou de novo, desiste desta prévia.
+    if (!retried.has(top.link_preview_id)) {
+      setRetried((r) => new Set(r).add(top.link_preview_id));
+      renewAudio(top);
+    } else {
+      setPlayingId(null);
+      setAudioError(t('discover.previewUnavailable'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [top, retried]);
+  const ringProgress = progress && top && progress.id === top.link_preview_id ? progress.position / progress.duration : 0;
+
   const reset = () => {
     setExtra([]);
     setGone(new Set());
     setPlayingId(null);
+    setProgress(null);
+    setAudioError(null);
   };
   const shuffle = () => {
     reset();
@@ -101,7 +164,9 @@ export function DiscoverSection() {
 
   const onSwipe = (card: DiscoverCard, isLike: boolean) => {
     setGone((g) => new Set(g).add(card.link_preview_id));
-    setPlayingId(null);
+    setProgress(null);
+    // A próxima já começa a tocar (o arrasto/toque conta como gesto, então o navegador deixa).
+    play(deck.find((c) => c.link_preview_id !== card.link_preview_id));
     if (deck.length - 1 <= REFILL_AT) refill();
     if (isLike) {
       // Aparece na hora em "Músicas curtidas".
@@ -196,11 +261,24 @@ export function DiscoverSection() {
             onOpen={openSong}
             platform={platform}
             playing={playing}
-            onTogglePlay={() => setPlayingId(playing ? null : top.link_preview_id)}
+            progress={ringProgress}
+            seconds={progress && progress.id === top.link_preview_id ? { position: progress.position, duration: progress.duration } : null}
+            onTogglePlay={() => (playing ? setPlayingId(null) : play(top))}
             height={stackHeight}
           />
           {/* Prévia de 30 s do cartão de cima (a key recomeça a música a cada cartão). */}
-          {top.audio_url ? <VibeAudio key={`discover-audio-${top.link_preview_id}`} url={top.audio_url} paused={!playing} muted={false} /> : null}
+          {topAudio && previewUsable(topAudio) ? (
+            <VibeAudio
+              key={`discover-audio-${top.link_preview_id}-${topAudio}`}
+              url={topAudio}
+              paused={!playing}
+              muted={false}
+              onProgress={onAudioProgress}
+              onEnded={onAudioEnded}
+              onError={onAudioError}
+            />
+          ) : null}
+          {audioError ? <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>{audioError}</Text> : null}
         </>
       ) : (
         <View style={[styles.center, { height: stackHeight }]}>

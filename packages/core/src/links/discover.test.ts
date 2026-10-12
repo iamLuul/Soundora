@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chartKey, LastfmKeyError } from './charts.ts';
-import { deezerTrackById, findDeezerTrack, mixCandidates, recommend, type Candidate } from './discover.ts';
+import { deezerTrackById, findDeezerTrack, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -111,5 +111,23 @@ describe('Deezer', () => {
     expect((await deezerTrackById('3135556', { fetch }))?.previewUrl).toBe(hit.preview);
     expect(await deezerTrackById('../x', { fetch })).toBeNull();
     expect(calls).toEqual(['https://api.deezer.com/track/3135556']);
+  });
+});
+
+describe('validade da prévia da Deezer', () => {
+  const at = (s: number) => `https://cdnt-preview.dzcdn.net/api/1/1/a/b/c/0/abc.mp3?hdnea=exp=${s}~acl=/api/1/1/a/b/c/0/abc.mp3*~data=user_id=0,application_id=42~hmac=ff`;
+  it('lê o exp do hdnea/hdnts', () => {
+    expect(previewExpiresAt(at(1760000000))).toBe(1760000000_000);
+    expect(previewExpiresAt('https://cdnt-preview.dzcdn.net/x.mp3?hdnts=exp=1760000000~hmac=1')).toBe(1760000000_000);
+    expect(previewExpiresAt('https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a')).toBeNull();
+    expect(previewExpiresAt(null)).toBeNull();
+  });
+  it('vencida (ou quase) não serve; sem validade serve; sem link não', () => {
+    const now = 1760000000_000;
+    expect(previewUsable(at(1760000000 + 3600), now)).toBe(true);
+    expect(previewUsable(at(1760000000 + 30), now)).toBe(false); // vence em 30 s (margem de 1 min)
+    expect(previewUsable(at(1760000000 - 10), now)).toBe(false);
+    expect(previewUsable('https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a', now)).toBe(true);
+    expect(previewUsable(null, now)).toBe(false);
   });
 });

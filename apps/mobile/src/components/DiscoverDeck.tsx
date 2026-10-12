@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
 import * as Linking from 'expo-linking';
 import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
+import Svg, { Circle, SvgXml } from 'react-native-svg';
 import { icons } from '../assets/icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -27,6 +27,8 @@ export function DiscoverDeck({
   onOpen,
   platform,
   playing = false,
+  progress = 0,
+  seconds = null,
   onTogglePlay,
   height,
 }: {
@@ -40,6 +42,10 @@ export function DiscoverDeck({
   platform?: StreamingChoice | null;
   /** A prévia de 30 s do cartão de cima está tocando. */
   playing?: boolean;
+  /** Quanto da prévia já tocou (0 a 1): o anel em volta do play. */
+  progress?: number;
+  /** Segundos já tocados e total da prévia (para o leitor de tela). */
+  seconds?: { position: number; duration: number } | null;
   onTogglePlay?: () => void;
   /** Altura da pilha (dentro de uma tela que rola, precisa ser fixa). */
   height?: number;
@@ -139,8 +145,13 @@ export function DiscoverDeck({
               : t('feed.listenOn', { platform: PLATFORM_LABELS[platform ?? top.platform] })
           }
           onPress={() => (top.audio_url && onTogglePlay ? onTogglePlay() : onOpen ? onOpen(top) : Linking.openURL(top.url))}
-          style={({ pressed }) => pressed && { opacity: 0.8 }}
+          accessibilityValue={
+            top.audio_url && seconds ? { min: 0, max: Math.round(seconds.duration), now: Math.round(seconds.position), text: t('discover.previewAt', { s: Math.round(seconds.position) }) } : undefined
+          }
+          style={({ pressed }) => [styles.play, pressed && { opacity: 0.8 }]}
         >
+          {/* Anel da prévia: mostra que é só um trecho (30 s) e quanto já tocou. */}
+          {top.audio_url ? <PreviewRing progress={progress} /> : null}
           <SvgXml xml={playing ? icons.pauseButton : icons.playButton} width={72} height={72} />
         </Pressable>
         <Pressable
@@ -167,7 +178,37 @@ export function DiscoverDeck({
   );
 }
 
+const RING = 86;
+const STROKE = 3;
+const R = (RING - STROKE) / 2;
+const CIRC = 2 * Math.PI * R;
+
+/** Anel em volta do play: trilho apagado e o trecho já tocado, começando do topo. */
+function PreviewRing({ progress }: { progress: number }) {
+  const p = Math.min(1, Math.max(0, progress));
+  return (
+    <Svg width={RING} height={RING} style={StyleSheet.absoluteFill} testID="preview-ring" pointerEvents="none">
+      <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={colors.text} strokeOpacity={0.18} strokeWidth={STROKE} fill="none" />
+      {p > 0 ? (
+        <Circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={R}
+          stroke={colors.text}
+          strokeWidth={STROKE}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${CIRC} ${CIRC}`}
+          strokeDashoffset={CIRC * (1 - p)}
+          transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+        />
+      ) : null}
+    </Svg>
+  );
+}
+
 const styles = StyleSheet.create({
+  play: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   wrap: { flex: 1, gap: space.lg },
   stack: { flex: 1, marginHorizontal: space.xl, marginTop: space.md },
   behind: { borderRadius: 10, backgroundColor: colors.tabBar, opacity: 0.7 },

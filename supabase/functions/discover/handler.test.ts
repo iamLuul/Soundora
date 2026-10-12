@@ -157,3 +157,24 @@ Deno.test('link: mesma plataforma direto; outra pelo song.link; sem achar, a bus
   assertEquals((await s.handler(post({ action: 'link', previewId: '00000000-0000-4000-8000-999999999999', platform: 'spotify' }))).status, 404);
   assertEquals((await s.handler(post({ action: 'link', previewId: 'nao-e-uuid', platform: 'spotify' }))).status, 400);
 });
+
+Deno.test('prévia: renova se o link da Deezer já vai vencer; ação audio devolve uma nova', async () => {
+  const s = setup();
+  await s.handler(post({ action: 'deck' }));
+  // Checada agora, mas o link vence em 2 min: renova no próximo deck.
+  const soon = Math.floor(NOW.getTime() / 1000) + 120;
+  for (const r of s.rows.values()) {
+    r.store_checked_at = NOW.toISOString();
+    r.audio_url = `https://cdnt-preview.dzcdn.net/x.mp3?hdnea=exp=${soon}~hmac=1`;
+  }
+  const body = await (await s.handler(post({ action: 'deck' }))).json();
+  assertEquals(s.calls.byId, 2);
+  assertEquals(body.cards[0].audio_url.endsWith('-novo.mp3'), true);
+
+  const id = body.cards[0].link_preview_id;
+  const res = await (await s.handler(post({ action: 'audio', previewId: id }))).json();
+  assertEquals(res.audio_url.endsWith('-novo.mp3'), true);
+  assertEquals(s.calls.byId, 3);
+  assertEquals((await s.handler(post({ action: 'audio', previewId: 'x' }))).status, 400);
+  assertEquals((await s.handler(post({ action: 'audio', previewId: '00000000-0000-4000-8000-999999999999' }))).status, 404);
+});

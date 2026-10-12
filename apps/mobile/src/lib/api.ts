@@ -331,6 +331,15 @@ export async function fetchLikedSongs(): Promise<LikedSong[]> {
   return data as LikedSong[];
 }
 
+/** Prévia renovada de um cartão do Descobrir (a da Deezer vence pelo próprio link). */
+export async function refreshDiscoverAudio(previewId: string): Promise<string | null> {
+  const { data, error } = await supabase.functions.invoke<{ audio_url: string | null }>('discover', { body: { action: 'audio', previewId } });
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  const url = data?.audio_url ?? null;
+  // Só https (em desenvolvimento, aceita http para servidores locais de teste).
+  return url && (url.startsWith('https://') || (__DEV__ && url.startsWith('http://'))) ? url : null;
+}
+
 /** Link de uma música (cartão) na plataforma escolhida: exato, ou a busca nela. */
 export async function trackLink(previewId: string, platform: StreamingChoice): Promise<string> {
   const { data, error } = await supabase.functions.invoke<{ url: string }>('discover', { body: { action: 'link', previewId, platform } });
