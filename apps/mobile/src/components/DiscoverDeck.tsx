@@ -5,7 +5,7 @@ import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'r
 import Svg, { Circle, SvgXml } from 'react-native-svg';
 import { icons } from '../assets/icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { DiscoverCard } from '../lib/types';
 import { colors, fonts, radius, space } from '../theme';
@@ -53,71 +53,78 @@ export function DiscoverDeck({
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const x = useSharedValue(0);
+  // Qual cartão está sendo arrastado/jogado. Só ele anda com x. Quando ele sai e a pilha anda,
+  // o novo cartão de cima tem outro id: fica no centro sem precisar zerar x antes da tela
+  // trocar (antes, x voltava a 0 um instante antes e o cartão antigo reaparecia: a "piscada").
+  const activeId = useSharedValue<string | null>(null);
   const top = cards[0];
   const next = cards[1];
+  const topId = top?.link_preview_id ?? null;
 
   const finish = (liked: boolean) => {
     if (top) onSwipe(top, liked);
-    x.value = 0;
   };
 
-  const fling = (liked: boolean) => {
-    x.value = withTiming((liked ? 1 : -1) * width * 1.4, { duration: 220 }, (done) => {
+  const throwCard = (liked: boolean, duration: number) => {
+    'worklet';
+    x.value = withTiming((liked ? 1 : -1) * width * 1.4, { duration }, (done) => {
       if (done) scheduleOnRN(finish, liked);
     });
   };
 
+  const fling = (liked: boolean) => {
+    if (!topId) return;
+    if (activeId.value !== topId) {
+      activeId.value = topId;
+      x.value = 0;
+    }
+    throwCard(liked, 220);
+  };
+
   const pan = Gesture.Pan()
     .activeOffsetX([-12, 12])
+    .onStart(() => {
+      activeId.value = topId;
+      x.value = 0;
+    })
     .onUpdate((e) => {
       x.value = e.translationX;
     })
     .onEnd((e) => {
       const passed = Math.abs(x.value) > width * SWIPE_THRESHOLD || Math.abs(e.velocityX) > 900;
-      if (passed) {
-        const liked = x.value > 0;
-        x.value = withTiming((liked ? 1 : -1) * width * 1.4, { duration: 180 }, (done) => {
-          if (done) scheduleOnRN(finish, liked);
-        });
-      } else {
-        x.value = withSpring(0);
-      }
+      if (passed) throwCard(x.value > 0, 180);
+      else x.value = withSpring(0);
     });
-
-  const topStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }, { rotate: `${interpolate(x.value, [-width, 0, width], [-12, 0, 12])}deg` }],
-  }));
-  const likeStyle = useAnimatedStyle(() => ({ opacity: interpolate(x.value, [0, width * SWIPE_THRESHOLD], [0, 1], 'clamp') }));
-  const skipStyle = useAnimatedStyle(() => ({ opacity: interpolate(x.value, [-width * SWIPE_THRESHOLD, 0], [1, 0], 'clamp') }));
-  const nextStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(Math.abs(x.value), [0, width * SWIPE_THRESHOLD], [0.95, 1], 'clamp') }],
-  }));
 
   if (!top) return null;
 
+  // Os dois cartões ficam lado a lado na mesma lista, com a key do cartão: quando o de baixo
+  // vira o de cima, é o mesmo componente (a capa não recarrega).
+  const visible = [next, top].filter((c): c is DiscoverCard => !!c);
+
   return (
     <View style={[styles.wrap, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' } : null]}>
-      <View style={[styles.stack, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', height } : null]}>
-        {/* Cartões inclinados atrás, como no Figma */}
-        {cards.length > 2 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '-6deg' }, { scale: 0.92 }] }]} /> : null}
-        {cards.length > 1 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '5deg' }, { scale: 0.94 }] }]} /> : null}
-        {next ? (
-          <Animated.View key={next.link_preview_id} style={[StyleSheet.absoluteFill, nextStyle]} pointerEvents="none">
-            <DiscoverCardView card={next} genreName={genreName(next.genre)} platform={platform} />
-          </Animated.View>
-        ) : null}
-        <GestureDetector gesture={pan}>
-          <Animated.View key={top.link_preview_id} style={[StyleSheet.absoluteFill, topStyle]}>
-            <DiscoverCardView card={top} genreName={genreName(top.genre)} platform={platform} onOpen={onOpen} />
-            <Animated.View style={[styles.stamp, styles.stampLike, likeStyle]} pointerEvents="none">
-              <Text style={styles.stampText}>{t('discover.like')}</Text>
-            </Animated.View>
-            <Animated.View style={[styles.stamp, styles.stampSkip, skipStyle]} pointerEvents="none">
-              <Text style={styles.stampText}>{t('discover.skip')}</Text>
-            </Animated.View>
-          </Animated.View>
-        </GestureDetector>
-      </View>
+      <GestureDetector gesture={pan}>
+        <View style={[styles.stack, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', height } : null]}>
+          {/* Cartões inclinados atrás, como no Figma */}
+          {cards.length > 2 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '-6deg' }, { scale: 0.92 }] }]} /> : null}
+          {cards.length > 1 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '5deg' }, { scale: 0.94 }] }]} /> : null}
+          {visible.map((card) => (
+            <DeckCard
+              key={card.link_preview_id}
+              card={card}
+              isTop={card.link_preview_id === topId}
+              topId={topId}
+              x={x}
+              activeId={activeId}
+              width={width}
+              genreName={genreName}
+              platform={platform}
+              onOpen={onOpen}
+            />
+          ))}
+        </View>
+      </GestureDetector>
 
       {/* Figma: trocar, pular (X), abrir (play), curtir (estrela), compartilhar */}
       <View style={styles.buttons}>
@@ -205,6 +212,61 @@ function PreviewRing({ progress }: { progress: number }) {
         />
       ) : null}
     </Svg>
+  );
+}
+
+/** Um cartão da pilha: o de cima anda com o dedo; o de baixo cresce enquanto o de cima sai. */
+function DeckCard({
+  card,
+  isTop,
+  topId,
+  x,
+  activeId,
+  width,
+  genreName,
+  platform,
+  onOpen,
+}: {
+  card: DiscoverCard;
+  isTop: boolean;
+  topId: string | null;
+  x: SharedValue<number>;
+  activeId: SharedValue<string | null>;
+  width: number;
+  genreName: (slug: string | null) => string | null;
+  platform?: StreamingChoice | null;
+  onOpen?: (card: DiscoverCard) => void;
+}) {
+  const { t } = useTranslation();
+  const id = card.link_preview_id;
+  const style = useAnimatedStyle(() => {
+    // O de cima só anda se for ele o cartão em movimento.
+    const moving = isTop && activeId.value === id ? x.value : 0;
+    if (isTop) return { transform: [{ translateX: moving }, { rotate: `${interpolate(moving, [-width, 0, width], [-12, 0, 12])}deg` }] };
+    // O de baixo cresce conforme o de cima (o atual) se afasta.
+    const away = activeId.value === topId ? Math.abs(x.value) : 0;
+    return { transform: [{ scale: interpolate(away, [0, width * SWIPE_THRESHOLD], [0.95, 1], 'clamp') }] };
+  });
+  const likeStyle = useAnimatedStyle(() => ({
+    opacity: isTop && activeId.value === id ? interpolate(x.value, [0, width * SWIPE_THRESHOLD], [0, 1], 'clamp') : 0,
+  }));
+  const skipStyle = useAnimatedStyle(() => ({
+    opacity: isTop && activeId.value === id ? interpolate(x.value, [-width * SWIPE_THRESHOLD, 0], [1, 0], 'clamp') : 0,
+  }));
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, style]} pointerEvents={isTop ? 'auto' : 'none'}>
+      <DiscoverCardView card={card} genreName={genreName(card.genre)} platform={platform} onOpen={isTop ? onOpen : undefined} />
+      {isTop ? (
+        <>
+          <Animated.View style={[styles.stamp, styles.stampLike, likeStyle]} pointerEvents="none">
+            <Text style={styles.stampText}>{t('discover.like')}</Text>
+          </Animated.View>
+          <Animated.View style={[styles.stamp, styles.stampSkip, skipStyle]} pointerEvents="none">
+            <Text style={styles.stampText}>{t('discover.skip')}</Text>
+          </Animated.View>
+        </>
+      ) : null}
+    </Animated.View>
   );
 }
 
