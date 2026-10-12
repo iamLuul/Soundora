@@ -20,6 +20,7 @@ import { Avatar } from './ui';
 import { ProfileSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
+import { Verified } from './Verified';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
@@ -196,9 +197,12 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
               </View>
             ) : null}
           </Pressable>
-          <Text style={styles.name} numberOfLines={1}>
-            {p.display_name}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
+              {p.display_name}
+            </Text>
+            <Verified username={p.username} size={18} />
+          </View>
           <Text style={styles.handle} numberOfLines={1}>
             @{p.username}
           </Text>

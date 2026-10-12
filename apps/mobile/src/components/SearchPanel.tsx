@@ -12,6 +12,7 @@ import { RingAvatar, SearchField } from './figma';
 import { TrendingRow } from './TrendingList';
 import { Button } from './ui';
 import { PeopleSkeleton, TrackListSkeleton } from './Skeleton';
+import { Verified } from './Verified';
 
 export const MIN_QUERY = 2;
 
@@ -84,7 +85,10 @@ export function SearchResults({
               >
                 <RingAvatar uri={p.avatar_url} name={p.display_name} size={44} />
                 <View>
-                  <Text style={styles.name}>{p.display_name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={styles.name}>{p.display_name}</Text>
+                    <Verified username={p.username} />
+                  </View>
                   <Text style={styles.handle}>@{p.username}</Text>
                 </View>
               </Pressable>
