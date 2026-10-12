@@ -65,6 +65,8 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm run typecheck:functions` | Confere as Edge Functions com Deno |
 | `npm run test:functions` | Testa as Edge Functions no Deno, com Spotify e Supabase simulados |
 | `npm run check:secrets` | Confere que nenhuma chave secreta está no Git ou no app |
+| `npm run demo` | Dados de demonstração no Supabase local (algumas contas, posts e vibes). `-- --remove` apaga |
+| `npm run load` | Carga para teste de desempenho no Supabase local: centenas de contas e milhares de posts, curtidas, comentários, seguidores e vibes (`-- --scale small\|large`, `-- --users N --posts N`; `-- --remove` apaga) |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
 ## Decisões importantes
