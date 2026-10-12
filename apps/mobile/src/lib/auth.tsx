@@ -1,7 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { getMyProfile } from './api';
 import i18n from './i18n';
@@ -27,6 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const qc = useQueryClient();
+  // Conta da sessão atual. Mudou (saiu, entrou, trocou de conta): apaga o cache das consultas,
+  // senão a conta nova veria dados da anterior (sugestões do Descobrir, curtidas, plataforma...).
+  const userRef = useRef<string | null | undefined>(undefined);
+  const switchUser = useCallback(
+    (s: Session | null) => {
+      const id = s?.user.id ?? null;
+      if (userRef.current !== undefined && userRef.current !== id) qc.clear();
+      userRef.current = id;
+    },
+    [qc],
+  );
 
   const loadProfile = useCallback(async (s: Session | null) => {
     if (!s) {
@@ -52,16 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session && (await accountGone())) {
         await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         if (!active) return;
+        switchUser(null);
         setSession(null);
         await loadProfile(null);
         setLoading(false);
         return;
       }
+      switchUser(data.session);
       setSession(data.session);
       await loadProfile(data.session);
       if (active) setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      switchUser(s);
       setSession(s);
       // Não chamar o Supabase direto dentro do callback (evita travas); agenda.
       setTimeout(() => loadProfile(s), 0);
@@ -70,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [loadProfile, switchUser]);
 
   const value = useMemo<AuthState>(
     () => ({
@@ -82,9 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Este aparelho para de receber push da conta que está saindo (precisa da sessão ainda).
         await disablePush().catch(() => undefined);
         await supabase.auth.signOut();
+        switchUser(null);
+        qc.clear();
       },
     }),
-    [loading, session, profile, loadProfile],
+    [loading, session, profile, loadProfile, switchUser, qc],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
