@@ -2,7 +2,7 @@ import { QueryClientContext, useQuery } from '@tanstack/react-query';
 import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Path, Polygon } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import { colors } from '../theme';
 
@@ -22,14 +22,17 @@ export function useVerifiedUsernames() {
   });
 }
 
-/** Selo: um círculo recortado (roseta) roxo com o check branco. */
+/**
+ * Selo de verificado (desenho do Raul): escudo roxo de topo reto e base arredondada, com o
+ * check branco de pontas retas. Coordenadas medidas no desenho original (218 × 224).
+ */
 export function VerifiedBadge({ size = 14, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
   const { t } = useTranslation();
   return (
     <View testID="verified-badge" accessible accessibilityRole="image" accessibilityLabel={t('profile.verified')} style={style}>
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Polygon points="12.00,1.00 14.41,3.02 17.50,2.47 18.58,5.42 21.53,6.50 20.98,9.59 23.00,12.00 20.98,14.41 21.53,17.50 18.58,18.58 17.50,21.53 14.41,20.98 12.00,23.00 9.59,20.98 6.50,21.53 5.42,18.58 2.47,17.50 3.02,14.41 1.00,12.00 3.02,9.59 2.47,6.50 5.42,5.42 6.50,2.47 9.59,3.02" fill={colors.primary} stroke={colors.primary} strokeWidth={1.6} strokeLinejoin="round" />
-        <Path d="M7.6 12.4l2.9 2.9 5.9-6.1" fill="none" stroke="#FFFFFF" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round" />
+      <Svg width={(size * 218) / 224} height={size} viewBox="6 7 218 224">
+        <Path d="M6 7H224V122A109 109 0 0 1 6 122Z" fill={colors.primary} />
+        <Path d="M66 117L92.8 143.8L161.5 85" fill="none" stroke="#FFFFFF" strokeWidth={17} strokeLinecap="butt" strokeLinejoin="miter" />
       </Svg>
     </View>
   );
