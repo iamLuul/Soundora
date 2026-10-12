@@ -13,6 +13,7 @@ import { PostActions, type PostAction } from './PostActions';
 import { PostCard } from './PostCard';
 import { uniqueBy } from '../lib/hooks';
 import { PostSkeleton } from './Skeleton';
+import { listPerf } from '../lib/list';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -86,6 +87,7 @@ export function PostList({
   return (
     <>
       <FlatList
+        {...listPerf}
         data={uniqueBy(items, (i) => i.id, 'posts')}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}

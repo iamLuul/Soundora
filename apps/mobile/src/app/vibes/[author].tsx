@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { reportReasonSchema } from '@soundora/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -19,6 +19,7 @@ import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { SheetBackdrop } from '../../components/ui';
+import { webTouch } from '../../lib/touch';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -251,15 +252,15 @@ export default function VibeViewerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={muted ? t('vibes.unmute') : t('vibes.mute')}
                   onPress={() => setMuted((m) => !m)}
-                  hitSlop={10}
+                  hitSlop={10} style={webTouch(10)}
                 >
                   <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={22} color={colors.text} />
                 </Pressable>
               ) : null}
-              <Pressable testID="vibe-menu" accessibilityRole="button" accessibilityLabel={t('vibes.options')} onPress={() => setMenu('options')} hitSlop={10}>
+              <Pressable testID="vibe-menu" accessibilityRole="button" accessibilityLabel={t('vibes.options')} onPress={() => setMenu('options')} hitSlop={10} style={webTouch(10)}>
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
               </Pressable>
-              <Pressable testID="vibe-close" accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={close} hitSlop={10}>
+              <Pressable testID="vibe-close" accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={close} hitSlop={10} style={webTouch(10)}>
                 <Ionicons name="close" size={26} color={colors.text} />
               </Pressable>
             </View>

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View, type TextInputProps } from 'react-native';
@@ -24,7 +24,7 @@ export function PasswordField({
         secureTextEntry={!visible}
         autoCapitalize="none"
         autoCorrect={false}
-        autoComplete={newPassword ? 'new-password' : 'password'}
+        autoComplete={newPassword ? 'new-password' : 'current-password'}
         textContentType={newPassword ? 'newPassword' : 'password'}
         {...props}
       />

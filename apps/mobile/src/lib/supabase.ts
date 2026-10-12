@@ -23,13 +23,15 @@ export const supabaseUrl = resolveServerUrl(configuredUrl, {
   hostUri: Constants.expoConfig?.hostUri,
 });
 
-if (__DEV__) console.log(`[Soundora] Supabase em ${supabaseUrl}`);
+const isTest = process.env.NODE_ENV === 'test';
+if (__DEV__ && !isTest) console.log(`[Soundora] Supabase em ${supabaseUrl}`);
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     // Celular: sessão criptografada (chave no Keychain/Keystore). Web: localStorage.
     storage: createSessionStorage(),
-    autoRefreshToken: true,
+    // Nos testes, sem o timer de renovação (ele deixava o Jest sem terminar).
+    autoRefreshToken: !isTest,
     persistSession: true,
     // Na Web a sessão do login social volta na URL; no celular, não.
     detectSessionInUrl: Platform.OS === 'web',

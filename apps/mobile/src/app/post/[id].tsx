@@ -17,6 +17,8 @@ import { formatError } from '../../lib/errors';
 import { keys, usePost, useToggleLike } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
+import { listPerf } from '../../lib/list';
+import { webTouch } from '../../lib/touch';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -152,6 +154,7 @@ export default function PostScreen() {
         <Text style={styles.gone}>{post.isError ? formatError(t, post.error) : t('post.gone')}</Text>
       ) : (
         <FlatList
+          {...listPerf}
           data={rows}
           keyExtractor={(r) => r.key}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xl }}
@@ -182,7 +185,7 @@ export default function PostScreen() {
                 testID="cancel-reply"
                 accessibilityRole="button"
                 accessibilityLabel={t('common.cancel')}
-                hitSlop={10}
+                hitSlop={10} style={webTouch(10)}
                 onPress={() => {
                   setReplyTo(null);
                   setBody((b) => b.replace(new RegExp(`^@${replyTo.username} `), ''));

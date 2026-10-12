@@ -4,15 +4,16 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { postMediaUrls } from '../lib/api';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
 import { colors, space } from '../theme';
+import { webTouch } from '../lib/touch';
 
-/** URLs assinadas (1 h) de todas as mídias do post, numa chamada só. */
+/** URLs assinadas (1 h) das mídias do post; os posts da mesma página assinam juntos (signPostMedia). */
 function useMediaUrls(media: Media[]) {
   const paths = media.map((m) => m.path);
-  return useQuery({ queryKey: ['post-media', ...paths], queryFn: () => postMediaUrls(paths), enabled: paths.length > 0, staleTime: 50 * 60_000 });
+  return useQuery({ queryKey: ['post-media', ...paths], queryFn: () => signPostMedia(paths), enabled: paths.length > 0, staleTime: 50 * 60_000 });
 }
 
 /** Proporção da primeira mídia, entre 4:5 (em pé) e 16:9 (deitada), como no X/Instagram. */
@@ -37,7 +38,8 @@ export function PostMedia({ media }: { media: Media[] }) {
     const uri = urls.data?.[m.path];
     return (
       <Pressable key={m.path} accessibilityRole="imagebutton" accessibilityLabel={t('post.openPhoto')} onPress={() => uri && setZoom(uri)} style={[styles.cell, style]}>
-        {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} /> : null}
+        {/* cacheKey = o arquivo (a URL assinada muda a cada hora; a foto não precisa baixar de novo). */}
+        {uri ? <Image source={{ uri, cacheKey: m.path }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} cachePolicy="memory-disk" /> : null}
       </Pressable>
     );
   };
@@ -62,7 +64,7 @@ export function PostMedia({ media }: { media: Media[] }) {
       <Modal visible={!!zoom} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
         <View style={styles.zoom}>
           {zoom ? <Image source={{ uri: zoom }} style={StyleSheet.absoluteFill} contentFit="contain" /> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={() => setZoom(null)} style={styles.close} hitSlop={12}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={() => setZoom(null)} style={[styles.close, webTouch(12)]} hitSlop={12}>
             <Ionicons name="close" size={28} color={colors.text} />
           </Pressable>
         </View>
@@ -72,9 +74,27 @@ export function PostMedia({ media }: { media: Media[] }) {
 }
 
 /** Vídeo do post: não toca sozinho; controles do sistema. */
+/**
+ * Vídeo do post: só cria o player (e começa a baixar) quando a pessoa toca. Antes, cada vídeo
+ * do feed abria um player e baixava sozinho, mesmo sem ninguém assistir.
+ */
 function PostVideo({ uri }: { uri: string }) {
+  const { t } = useTranslation();
+  const [started, setStarted] = useState(false);
+  if (!started) {
+    return (
+      <Pressable testID="post-video-play" accessibilityRole="button" accessibilityLabel={t('post.playVideo')} onPress={() => setStarted(true)} style={styles.videoCover}>
+        <Ionicons name="play-circle" size={56} color={colors.text} />
+      </Pressable>
+    );
+  }
+  return <PlayingVideo uri={uri} />;
+}
+
+function PlayingVideo({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
+    p.play();
   });
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />;
 }
@@ -85,5 +105,6 @@ const styles = StyleSheet.create({
   col: { flex: 1, gap: 2 },
   cell: { overflow: 'hidden', backgroundColor: colors.card },
   zoom: { flex: 1, backgroundColor: '#000' },
+  videoCover: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
   close: { position: 'absolute', top: space.xxl, right: space.lg },
 });

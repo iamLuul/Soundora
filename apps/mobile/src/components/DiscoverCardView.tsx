@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
@@ -8,6 +8,7 @@ import type { DiscoverCard } from '../lib/types';
 import { colors, fonts, space } from '../theme';
 import { PlatformLogo } from './figma';
 import { Avatar } from './ui';
+import { webTouch } from '../lib/touch';
 
 /**
  * Cartão do Descobrir no layout do Figma (Search page/Discover): capa grande com margem,
@@ -100,7 +101,7 @@ export function DiscoverCardView({
           </View>
           <View style={styles.right}>
             {genreName && card.source !== 'for_you' ? <Text style={styles.genre}>{genreName}</Text> : null}
-            <Pressable testID="discover-platform" accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform: label })} onPress={open} hitSlop={8}>
+            <Pressable testID="discover-platform" accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform: label })} onPress={open} hitSlop={8} style={webTouch(8)}>
               <PlatformLogo platform={target} size={24} />
             </Pressable>
           </View>
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   album: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
   artist: { fontFamily: fonts.bold, fontSize: 12, color: colors.text, marginTop: space.sm },
-  reason: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  reason: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMutedOnSurface, marginTop: 2 },
   note: { fontFamily: fonts.regular, fontSize: 12, color: colors.text, marginTop: 4 },
   footer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: space.sm, gap: space.sm },
   source: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexShrink: 1 },

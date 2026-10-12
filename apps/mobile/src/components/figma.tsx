@@ -1,6 +1,6 @@
 // Peças visuais tiradas do Figma (Case Study UI/UX): ícones, logo, logos das plataformas,
 // abas do topo com o sino e cabeçalho com a seta de voltar.
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Platform as StreamingPlatform } from '@soundora/core';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useId, useMemo, type ReactNode } from 'react';
@@ -12,6 +12,7 @@ import { icons, type IconName } from '../assets/icons';
 import { colors, fonts, space } from '../theme';
 import { useUnreadNotifications } from '../lib/queries';
 import { Avatar } from './ui';
+import { webTouch } from '../lib/touch';
 
 /** Tamanho natural de cada SVG (do viewBox), para manter a proporção. */
 function svgSize(xml: string): { w: number; h: number } {
@@ -124,7 +125,7 @@ export function TopTabs<T extends string>({
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => onChange?.(tab.value)}
-              hitSlop={8}
+              hitSlop={8} style={webTouch(8)}
             >
               <Text style={[styles.tabText, active && styles.tabActive]}>{tab.label}</Text>
             </Pressable>
@@ -138,7 +139,7 @@ export function TopTabs<T extends string>({
           accessibilityLabel={t('notifications.title')}
           onPress={() => router.push('/notifications')}
           hitSlop={12}
-          style={styles.bell}
+          style={[styles.bell, webTouch(12)]}
         >
           <Bell />
         </Pressable>
@@ -159,7 +160,7 @@ export function BackHeader({ title, onBack, right }: { title?: string; onBack?: 
           accessibilityLabel={t('common.back')}
           onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/')))}
           hitSlop={16}
-          style={{ paddingVertical: 4, paddingRight: space.md }}
+          style={[{ paddingVertical: 4, paddingRight: space.md }, webTouch(16, { vertical: 4, right: space.md })]}
         >
           <Icon name="back" size={18} />
         </Pressable>

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, space } from '../theme';
@@ -65,5 +65,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, minHeight: 56, paddingVertical: space.sm },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   label: { fontFamily: fonts.semibold, fontSize: 15 },
-  value: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  value: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMutedOnSurface, marginTop: 2 },
 });

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -18,6 +18,7 @@ import { OptionsSheet, type SheetOption } from './OptionsSheet';
 import { PostList } from './PostList';
 import { Avatar } from './ui';
 import { ProfileSkeleton } from './Skeleton';
+import { webTouch } from '../lib/touch';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
@@ -158,7 +159,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         accessibilityRole="button"
         accessibilityLabel={t('profile.options')}
         hitSlop={12}
-        style={[styles.menuButton, { top: topInset + space.sm }]}
+        style={[styles.menuButton, { top: topInset + space.sm }, webTouch(12)]}
       >
         <Ionicons name="ellipsis-vertical" size={14} color={colors.text} />
       </Pressable>

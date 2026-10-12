@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PLATFORM_LABELS, STREAMING_CHOICES, type StreamingChoice } from '@soundora/core';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, space } from '../theme';

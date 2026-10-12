@@ -1,9 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LikedSong } from '../lib/types';
 import { colors, fonts, space } from '../theme';
+import { webTouch } from '../lib/touch';
 
 /** Figma: estrela verde-clara das músicas curtidas. */
 export const STAR = '#B7FF95';
@@ -48,7 +49,7 @@ export function LikedSongRow({ song, onOpen, onUnlike }: { song: LikedSong; onOp
         </View>
       </Pressable>
       {onUnlike ? (
-        <Pressable testID={`unlike-${s.link_preview_id}`} accessibilityRole="button" accessibilityLabel={t('discover.unlike')} onPress={() => onUnlike(s)} hitSlop={10}>
+        <Pressable testID={`unlike-${s.link_preview_id}`} accessibilityRole="button" accessibilityLabel={t('discover.unlike')} onPress={() => onUnlike(s)} hitSlop={10} style={webTouch(10)}>
           <Ionicons name="star" size={26} color={STAR} />
         </Pressable>
       ) : (

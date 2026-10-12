@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PLATFORM_LABELS } from '@soundora/core';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.sm,
     paddingVertical: 2,
   },
-  link: { color: colors.primary, fontFamily: fonts.semibold },
+  link: { color: colors.muted, fontFamily: fonts.semibold },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.background,

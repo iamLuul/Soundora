@@ -6,6 +6,7 @@ import type { CommentRow } from '../lib/types';
 import { colors, fonts, space } from '../theme';
 import { Icon, RingAvatar } from './figma';
 import { MentionText } from './MentionText';
+import { webTouch } from '../lib/touch';
 
 /** Avatar do comentário (34) e da resposta (28). */
 const ROOT_AVATAR = 34;
@@ -45,7 +46,7 @@ export function CommentItem({
         </Text>
         <MentionText style={styles.body}>{item.body}</MentionText>
         <View style={styles.actions}>
-          <Pressable testID={`comment-reply-${item.id}`} accessibilityRole="button" onPress={() => onReply(item)} hitSlop={8}>
+          <Pressable testID={`comment-reply-${item.id}`} accessibilityRole="button" onPress={() => onReply(item)} hitSlop={8} style={webTouch(8)}>
             <Text style={styles.action}>{t('post.reply')}</Text>
           </Pressable>
         </View>
@@ -57,7 +58,7 @@ export function CommentItem({
         accessibilityState={{ selected: item.liked_by_me }}
         onPress={() => onToggleLike(item)}
         hitSlop={10}
-        style={styles.like}
+        style={[styles.like, webTouch(10, { top: 2 })]}
       >
         <Icon name={item.liked_by_me ? 'heartFilled' : 'heart'} size={14} color={item.liked_by_me ? colors.primary : colors.textMuted} />
         {item.like_count > 0 ? <Text style={styles.count}>{item.like_count}</Text> : null}
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
   threadEnd: { borderBottomWidth: 1, borderBottomColor: colors.tabBar },
   threadOpen: { paddingBottom: space.sm },
   toggleRow: { paddingLeft: 46, paddingTop: space.sm, paddingBottom: space.md },
-  toggle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.primary },
+  toggle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.muted },
   // Centro do avatar do comentário (34 / 2) menos metade da largura da linha.
   line: { position: 'absolute', left: ROOT_AVATAR / 2 - 1, width: 2, borderRadius: 1, backgroundColor: colors.surface },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
@@ -91,7 +92,7 @@ export function RepliesToggle({ rootId, hidden, expanded, onPress }: { rootId: s
   return (
     <View style={[styles.toggleRow, styles.threadEnd]}>
       <View style={[styles.line, { top: 0, height: space.sm + 9 }]} />
-      <Pressable testID={`replies-toggle-${rootId}`} accessibilityRole="button" accessibilityState={{ expanded }} onPress={onPress} hitSlop={8}>
+      <Pressable testID={`replies-toggle-${rootId}`} accessibilityRole="button" accessibilityState={{ expanded }} onPress={onPress} hitSlop={8} style={webTouch(8)}>
         <Text style={styles.toggle}>{expanded ? t('post.showLess') : t('post.showMoreReplies', { count: hidden })}</Text>
       </Pressable>
     </View>

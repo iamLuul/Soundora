@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';

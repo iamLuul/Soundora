@@ -1,22 +1,21 @@
-import { z } from 'zod';
+import { list, matches, maxLength, minLength, oneOf, rule, text } from './schema.ts';
 
 /** Nome de usuário: 3 a 20 caracteres, letras minúsculas, números, "_" e ".". */
-export const usernameSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(3, 'username_too_short')
-  .max(20, 'username_too_long')
-  .regex(/^[a-z0-9_.]+$/, 'username_invalid_chars')
-  .refine((v) => !v.startsWith('.') && !v.endsWith('.') && !v.includes('..'), 'username_invalid_dots');
+export const usernameSchema = text(
+  { trim: true, lowercase: true },
+  minLength(3, 'username_too_short'),
+  maxLength(20, 'username_too_long'),
+  matches(/^[a-z0-9_.]+$/, 'username_invalid_chars'),
+  rule<string>((v) => !v.startsWith('.') && !v.endsWith('.') && !v.includes('..'), 'username_invalid_dots'),
+);
 
-export const displayNameSchema = z.string().trim().min(1, 'display_name_required').max(50, 'display_name_too_long');
+export const displayNameSchema = text({ trim: true }, minLength(1, 'display_name_required'), maxLength(50, 'display_name_too_long'));
 
 export const POST_TEXT_MAX = 500;
-export const postTextSchema = z.string().trim().max(POST_TEXT_MAX, 'post_text_too_long');
+export const postTextSchema = text({ trim: true }, maxLength(POST_TEXT_MAX, 'post_text_too_long'));
 
 export const COMMENT_MAX = 300;
-export const commentSchema = z.string().trim().min(1, 'comment_required').max(COMMENT_MAX, 'comment_too_long');
+export const commentSchema = text({ trim: true }, minLength(1, 'comment_required'), maxLength(COMMENT_MAX, 'comment_too_long'));
 
 /** Gêneros do onboarding (mesmos slugs da tabela `genres`). */
 export const GENRES = [
@@ -63,23 +62,21 @@ export type Genre = (typeof GENRES)[number];
 export const MIN_GENRES = 3;
 /** Slug de gênero (o catálogo tem milhares; a existência é conferida no banco). */
 export const GENRE_SLUG_RE = /^[a-z0-9_]{1,80}$/;
-export const genresSchema = z
-  .array(z.string().regex(GENRE_SLUG_RE, 'genre_invalid'))
-  .min(MIN_GENRES, 'genres_too_few')
-  .max(10, 'genres_too_many');
+export const genresSchema = list(text({}, matches(GENRE_SLUG_RE, 'genre_invalid')), minLength(MIN_GENRES, 'genres_too_few'), maxLength(10, 'genres_too_many'));
 
-export const birthdateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'birthdate_invalid');
+export const birthdateSchema = text({}, matches(/^\d{4}-\d{2}-\d{2}$/, 'birthdate_invalid'));
 
-export const reportReasonSchema = z.enum(['spam', 'harassment', 'hate', 'sexual', 'violence', 'copyright', 'other']);
-export type ReportReason = z.infer<typeof reportReasonSchema>;
+export const reportReasonSchema = oneOf(['spam', 'harassment', 'hate', 'sexual', 'violence', 'copyright', 'other'] as const);
+export type ReportReason = (typeof reportReasonSchema.options)[number];
 
 /** Senha: 8 a 72 caracteres (72 é o limite do bcrypt usado pelo Supabase Auth). */
 // Igual ao supabase/config.toml (minimum_password_length e password_requirements = "letters_digits").
 // 72 é o limite do bcrypt, o algoritmo com que o Supabase guarda o hash da senha.
 export const PASSWORD_MIN = 10;
 export const PASSWORD_MAX = 72;
-export const passwordSchema = z
-  .string()
-  .min(PASSWORD_MIN, 'password_too_short')
-  .max(PASSWORD_MAX, 'password_too_long')
-  .refine((p) => /\p{L}/u.test(p) && /\d/.test(p), 'password_needs_letters_digits');
+export const passwordSchema = text(
+  {},
+  minLength(PASSWORD_MIN, 'password_too_short'),
+  maxLength(PASSWORD_MAX, 'password_too_long'),
+  rule<string>((p) => /\p{L}/u.test(p) && /\d/.test(p), 'password_needs_letters_digits'),
+);

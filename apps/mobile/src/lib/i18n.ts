@@ -1,6 +1,7 @@
 import { getLocales } from 'expo-localization';
 import { createInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { Platform } from 'react-native';
 import en from '../locales/en.json';
 import ptBR from '../locales/pt-BR.json';
 
@@ -23,6 +24,13 @@ void i18n.use(initReactI18next).init({
   returnNull: false,
   initAsync: false, // recursos já estão no bundle: inicia na hora
 });
+
+// Web: o <html lang> acompanha o idioma do app (leitores de tela leem com a pronúncia certa).
+function syncDocumentLang(lng: string) {
+  if (Platform.OS === 'web' && typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = lng;
+}
+syncDocumentLang(i18n.language);
+i18n.on('languageChanged', syncDocumentLang);
 
 /** "agora", "5 min", "3 h", "2 d" */
 export function relativeTime(iso: string, now: Date = new Date()): string {

@@ -199,7 +199,8 @@
     "replyingTo": "Respondendo @{{username}}",
     "showMoreReplies_one": "Ver mais {{count}} resposta",
     "showMoreReplies_other": "Ver mais {{count}} respostas",
-    "showLess": "Mostrar menos"
+    "showLess": "Mostrar menos",
+    "playVideo": "Assistir ao vídeo"
   },
   "profile": {
     "followers": "Seguidores",

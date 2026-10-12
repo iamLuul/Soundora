@@ -44,7 +44,9 @@ export function TabBar({ state, navigation }: TabBarProps) {
             <View key={route.key} style={styles.slot}>
               <Pressable
                 testID="tab-compose"
-                accessibilityRole="button"
+                // Dentro da barra de abas (tablist), cada item é uma aba, inclusive o +.
+                accessibilityRole="tab"
+                accessibilityState={{ selected: focused }}
                 accessibilityLabel={focused ? t('common.close') : label}
                 onPress={onPress}
                 style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}

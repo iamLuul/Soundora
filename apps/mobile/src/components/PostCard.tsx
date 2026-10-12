@@ -9,6 +9,7 @@ import { Icon, RingAvatar } from './figma';
 import { MentionText } from './MentionText';
 import { MusicCard } from './MusicCard';
 import { PostMedia } from './PostMedia';
+import { webTouch } from '../lib/touch';
 
 export interface PostCardProps {
   item: FeedItem;
@@ -57,7 +58,7 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
           </Pressable>
         </Link>
         {onMore ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={t('feed.postOptions')} hitSlop={12} onPress={() => onMore(item)} style={styles.more}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('feed.postOptions')} hitSlop={12} onPress={() => onMore(item)} style={[styles.more, webTouch(12, { vertical: 2, horizontal: space.sm })]}>
             <View style={styles.dot} />
             <View style={styles.dot} />
             <View style={styles.dot} />
@@ -102,17 +103,17 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
           accessibilityLabel={item.liked_by_me ? t('feed.unlike') : t('feed.like')}
           accessibilityState={{ selected: item.liked_by_me }}
           onPress={() => onToggleLike(item)}
-          style={styles.action}
+          style={[styles.action, webTouch(10)]}
           hitSlop={10}
         >
           <Icon name={item.liked_by_me ? 'heartFilled' : 'heart'} size={14} color={item.liked_by_me ? colors.primary : colors.text} />
           <Text style={styles.count}>{item.like_count}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('feed.comments')} onPress={() => onOpenComments?.(item)} style={styles.action} hitSlop={10}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('feed.comments')} onPress={() => onOpenComments?.(item)} style={[styles.action, webTouch(10)]} hitSlop={10}>
           <Icon name="comment" size={13} />
           <Text style={styles.count}>{item.comment_count}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('feed.share')} onPress={share} style={styles.action} hitSlop={10}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('feed.share')} onPress={share} style={[styles.action, webTouch(10)]} hitSlop={10}>
           <Icon name="share" size={13} />
         </Pressable>
         <Text style={styles.time}>{relativeTime(item.created_at)}</Text>

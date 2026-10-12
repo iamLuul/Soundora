@@ -12,8 +12,5 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
-  },
-  "dependencies": {
-    "zod": "^4.6.5"
   }
 }

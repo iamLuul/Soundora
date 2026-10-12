@@ -3,6 +3,7 @@ import { Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, useF
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -96,6 +97,10 @@ function Navigator({ signedIn, onboarded }: { signedIn: boolean; onboarded: bool
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* Web: título da aba do navegador (as telas sem título deixavam a página sem <title>). */}
+      <Head>
+        <title>Soundora</title>
+      </Head>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <StatusBar style="light" />

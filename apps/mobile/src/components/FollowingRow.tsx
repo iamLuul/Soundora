@@ -12,6 +12,7 @@ import { Icon } from './figma';
 import { Avatar } from './ui';
 import { uniqueBy } from '../lib/hooks';
 import { VibesRowSkeleton } from './Skeleton';
+import { webTouch } from '../lib/touch';
 
 const SIZE = 62;
 
@@ -62,7 +63,7 @@ export function FollowingRow() {
           >
             <VibeRing uri={profile.avatar_url} name={profile.display_name} state={mine ? 'seen' : 'none'} />
           </Pressable>
-          <Pressable testID="vibe-new" accessibilityRole="button" accessibilityLabel={t('vibes.new')} onPress={() => router.push('/vibes/new')} style={styles.plus} hitSlop={8}>
+          <Pressable testID="vibe-new" accessibilityRole="button" accessibilityLabel={t('vibes.new')} onPress={() => router.push('/vibes/new')} style={[styles.plus, webTouch(8)]} hitSlop={8}>
             <Icon name="plus" size={8} />
           </Pressable>
           <Text style={styles.name} numberOfLines={1}>

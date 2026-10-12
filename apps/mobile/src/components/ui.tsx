@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   segmentText: {
     fontFamily: fonts.semibold,
     fontSize: 13,
-    color: colors.textMuted,
+    color: colors.textMutedOnSurface,
   },
   avatarFallback: {
     backgroundColor: colors.surface,

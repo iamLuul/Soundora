@@ -11,6 +11,7 @@ import { keys, usePeople } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
+import { listPerf } from '../../lib/list';
 
 type List = 'followers' | 'following';
 
@@ -42,6 +43,7 @@ export default function PeopleScreen() {
         ]}
       />
       <FlatList
+        {...listPerf}
         data={items}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => <PersonItem person={item} username={username} list={list} />}

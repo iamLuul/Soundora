@@ -10,6 +10,7 @@ import { fetchLikedTracks, fetchMyTracks, trackLink } from '../../lib/api';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { TrackListSkeleton } from '../../components/Skeleton';
+import { listPerf } from '../../lib/list';
 
 type Tab = 'liked' | 'mine';
 
@@ -40,6 +41,7 @@ export default function MusicScreen() {
         ]}
       />
       <FlatList
+        {...listPerf}
         data={items}
         keyExtractor={(i) => i.link_preview_id}
         contentContainerStyle={{ paddingBottom: space.xxl }}

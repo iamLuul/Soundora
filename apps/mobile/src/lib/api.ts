@@ -173,6 +173,38 @@ export async function postMediaUrls(paths: string[]): Promise<Record<string, str
   return out;
 }
 
+/**
+ * Assina mídias em lote: os posts que aparecem juntos (uma página do feed) pedem as URLs no
+ * mesmo instante, e isto junta tudo numa chamada só ao Storage (em vez de uma por post).
+ */
+const MEDIA_BATCH_MS = 16;
+const MEDIA_BATCH_MAX = 100;
+let mediaQueue: { paths: string[]; resolve: (urls: Record<string, string>) => void; reject: (err: unknown) => void }[] = [];
+let mediaTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushMediaQueue() {
+  const batch = mediaQueue;
+  mediaQueue = [];
+  mediaTimer = null;
+  const all = [...new Set(batch.flatMap((b) => b.paths))];
+  const chunks: string[][] = [];
+  for (let i = 0; i < all.length; i += MEDIA_BATCH_MAX) chunks.push(all.slice(i, i + MEDIA_BATCH_MAX));
+  Promise.all(chunks.map((c) => postMediaUrls(c)))
+    .then((parts) => {
+      const urls = Object.assign({}, ...parts) as Record<string, string>;
+      for (const b of batch) b.resolve(Object.fromEntries(b.paths.filter((p) => urls[p]).map((p) => [p, urls[p]!])));
+    })
+    .catch((err: unknown) => batch.forEach((b) => b.reject(err)));
+}
+
+export function signPostMedia(paths: string[]): Promise<Record<string, string>> {
+  if (!paths.length) return Promise.resolve({});
+  return new Promise((resolve, reject) => {
+    mediaQueue.push({ paths, resolve, reject });
+    mediaTimer ??= setTimeout(flushMediaQueue, MEDIA_BATCH_MS);
+  });
+}
+
 export async function deletePost(postId: string): Promise<void> {
   const { error } = await supabase.from('posts').delete().eq('id', postId);
   if (error) throw error;

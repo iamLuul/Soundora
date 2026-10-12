@@ -14,6 +14,7 @@ import { bannerUrl } from '../../lib/avatar';
 import { formatError } from '../../lib/errors';
 import { pickAndUploadProfileImage } from '../../lib/pick-image';
 import { colors, fonts, space } from '../../theme';
+import { webTouch } from '../../lib/touch';
 
 /** Editar perfil: banner, foto (centralizada sobre o banner, como no perfil), nome e bio. */
 export default function EditProfileScreen() {
@@ -129,7 +130,7 @@ export default function EditProfileScreen() {
 
 function Link({ label, onPress, danger, disabled }: { label: string; onPress: () => void; danger?: boolean; disabled?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled} hitSlop={8}>
+    <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled} hitSlop={8} style={webTouch(8)}>
       <Text style={[styles.link, danger && { color: colors.danger }]}>{label}</Text>
     </Pressable>
   );

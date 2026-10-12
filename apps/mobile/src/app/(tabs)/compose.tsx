@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   MAX_POST_GENRES,
   POST_TEXT_MAX,
@@ -47,6 +47,7 @@ import { convertPostPhoto } from "../../lib/image-convert";
 import { keys } from "../../lib/queries";
 import type { LinkPreviewRow } from "../../lib/types";
 import { colors, fonts, space } from "../../theme";
+import { webTouch } from '../../lib/touch';
 
 interface Picked {
   type: "photo" | "video";
@@ -363,7 +364,7 @@ export default function ComposeScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={t("compose.removeMedia")}
                     onPress={() => setMedia(media.filter((_, j) => j !== i))}
-                    style={styles.remove}
+                    style={[styles.remove, webTouch(8)]}
                     hitSlop={8}
                   >
                     <Ionicons name="close" size={14} color={colors.text} />
@@ -392,7 +393,7 @@ export default function ComposeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t("compose.removeMusic")}
                 onPress={removeMusic}
-                style={styles.removeMusic}
+                style={[styles.removeMusic, webTouch(8)]}
                 hitSlop={8}
               >
                 <Ionicons name="close" size={14} color={colors.text} />

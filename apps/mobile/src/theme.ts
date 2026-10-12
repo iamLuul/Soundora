@@ -3,20 +3,21 @@
  * Montserrat, roxo "Blue Genie" #6C62FF e tema escuro.
  */
 export const colors = {
-  primary: '#6C62FF', // Blue Genie
+  primary: '#685EFF', // Blue Genie (um tom mais escuro: texto branco nos botões com contraste 4.5:1)
   background: '#3A374C', // Plush
   surface: '#5A5577', // The Fang
   card: '#322F42', // cartões do perfil (Figma: Profile page)
-  handle: '#857EAE', // @usuário, placeholder da busca
-  placeholder: '#878787', // texto de exemplo nos campos (Figma)
+  handle: '#A49FC3', // @usuário, placeholder da busca (clareado para contraste 4.5:1)
+  placeholder: '#A3A3A3', // texto de exemplo nos campos (clareado para contraste 4.5:1)
   field: '#FFFFFF', // borda dos campos (Figma: 1 px branco, raio 10)
   tabBar: '#5A5577', // barra inferior (Figma: Rectangle 8)
   muted: '#B3A9EB', // Maximum Blue Purple
   text: '#FFFFFF',
   textMuted: '#B3A9EB',
+  textMutedOnSurface: '#D9D3FA', // texto secundário sobre surface/cartões claros (contraste 4.5:1)
   border: 'rgba(179, 169, 235, 0.25)',
-  badge: '#6C62FF', // bolinha de notificações não lidas (roxo do app)
-  danger: '#FF6B81',
+  badge: '#685EFF', // bolinha de notificações não lidas (roxo do app)
+  danger: '#FF788C', // contraste 4.5:1 no fundo
   success: '#5BD69A',
   warning: '#FFC266',
   overlay: 'rgba(0, 0, 0, 0.4)',

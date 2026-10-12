@@ -15,6 +15,8 @@ import { keys, useNotifications } from '../lib/queries';
 import { colors, fonts, space, text } from '../theme';
 import { uniqueBy } from '../lib/hooks';
 import { PeopleSkeleton } from '../components/Skeleton';
+import { listPerf } from '../lib/list';
+import { webTouch } from '../lib/touch';
 
 /** Notificações (Figma: Notifications page): Todas e Respostas, com push opcional no celular. */
 export default function NotificationsScreen() {
@@ -59,6 +61,7 @@ export default function NotificationsScreen() {
         ]}
       />
       <FlatList
+        {...listPerf}
         data={items}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => <NotificationRow item={item} onPress={() => open(item)} />}
@@ -88,17 +91,20 @@ function NotificationRow({ item, onPress }: { item: NotificationItem; onPress: (
   const { t } = useTranslation();
   const action = t(`notifications.${item.kind}`);
   const label = `@${item.actor_username} ${action}${item.comment_body ? `: ${item.comment_body}` : ''}`;
+  // Foto (abre o perfil) e o resto (abre a notificação) lado a lado: um link dentro de um
+  // botão não funciona com teclado/leitor de tela (e na web vira <button> dentro de <button>).
   return (
-    <Pressable
-      testID={`notification-${item.id}`}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, !item.read && styles.unread, pressed && { opacity: 0.8 }]}
-    >
-      <Pressable accessibilityRole="link" accessibilityLabel={`@${item.actor_username}`} onPress={() => router.push(`/u/${item.actor_username}`)} hitSlop={6}>
+    <View style={[styles.row, !item.read && styles.unread]}>
+      <Pressable accessibilityRole="link" accessibilityLabel={`@${item.actor_username}`} onPress={() => router.push(`/u/${item.actor_username}`)} hitSlop={6} style={webTouch(6)}>
         <RingAvatar uri={item.actor_avatar_url} name={item.actor_display_name} size={44} />
       </Pressable>
+      <Pressable
+        testID={`notification-${item.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.8 }]}
+      >
       <View style={styles.rowText}>
         <Text style={styles.line} numberOfLines={3}>
           <Text style={styles.bold}>@{item.actor_username}</Text> {action}
@@ -110,7 +116,8 @@ function NotificationRow({ item, onPress }: { item: NotificationItem; onPress: (
         <Image source={{ uri: item.preview_image_url }} style={styles.cover} accessibilityLabel={item.preview_title ?? undefined} />
       ) : null}
       {!item.read ? <View style={styles.dot} /> : null}
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
@@ -159,6 +166,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.tabBar,
   },
   unread: { backgroundColor: 'rgba(108, 98, 255, 0.10)', borderRadius: 10 },
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md },
   rowText: { flex: 1, gap: 2 },
   line: { fontFamily: fonts.regular, fontSize: 13, color: colors.text, lineHeight: 18 },
   bold: { fontFamily: fonts.bold },

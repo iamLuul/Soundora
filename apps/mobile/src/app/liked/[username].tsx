@@ -14,6 +14,7 @@ import type { LikedSong } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { TrackListSkeleton } from '../../components/Skeleton';
+import { listPerf } from '../../lib/list';
 
 /** Perfil › Curtidas: as músicas que a pessoa curtiu no Descobrir (a mais recente primeiro). */
 export default function LikedSongsScreen() {
@@ -54,6 +55,7 @@ export default function LikedSongsScreen() {
       </View>
       {message ? <Text style={[text.small, styles.message]}>{message}</Text> : null}
       <FlatList
+        {...listPerf}
         data={items}
         keyExtractor={(s) => s.link_preview_id}
         renderItem={({ item }) => <LikedSongRow song={item} onOpen={openSong} onUnlike={isMe ? unlike : undefined} />}
