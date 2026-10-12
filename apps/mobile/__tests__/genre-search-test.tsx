@@ -143,12 +143,22 @@ test('o botão "Procurar nos posts" faz o mesmo que pesquisar', async () => {
   expect(await screen.findByText('Nenhum post com “zzz”.')).toBeTruthy();
 });
 
-test('se a palavra acha uma pessoa, pesquisar não troca para posts', async () => {
+test('mesmo achando pessoa, Enter vai direto para os posts com o termo (e o botão também)', async () => {
   mockPeople = [{ id: 'u1', username: 'incrivel', display_name: 'Incrível', avatar_url: null }];
+  mockSearchPosts.mockResolvedValue([post('p7')]);
   await wrap(<SearchPanel />);
   await fireEvent.changeText(screen.getByTestId('search-input'), 'incrivel');
   expect(await screen.findByText('Pessoas')).toBeTruthy();
   await fireEvent(screen.getByTestId('search-input'), 'submitEditing');
-  expect(screen.getByText('Pessoas')).toBeTruthy();
-  expect(mockSearchPosts).not.toHaveBeenCalled();
+  expect(await screen.findByText('post p7')).toBeTruthy();
+  expect(screen.queryByText('Pessoas')).toBeNull();
+  expect(mockSearchPosts).toHaveBeenCalledWith('incrivel', null);
+  // Voltando a digitar, a busca normal; o botão abaixo dos resultados também leva aos posts.
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'incriveis');
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'incrivel');
+  expect(await screen.findByText('Pessoas')).toBeTruthy();
+  await fireEvent.press(screen.getByTestId('search-posts'));
+  expect(await screen.findByText('post p7')).toBeTruthy();
+  mockSearchPosts.mockReset();
+  mockSearchPosts.mockImplementation(async () => []);
 });

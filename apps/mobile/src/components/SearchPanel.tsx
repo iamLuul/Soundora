@@ -151,6 +151,11 @@ export function SearchResults({
           ))}
         </View>
       ) : null}
+      {onSearchPosts ? (
+        <View style={{ alignItems: 'center' }}>
+          <Button testID="search-posts" size="sm" variant="ghost" title={t('search.searchPosts', { query: query.trim() })} onPress={onSearchPosts} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -174,13 +179,13 @@ export function SearchPanel() {
   const [unblocking, setUnblocking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Ao apertar "pesquisar": se o texto não é pessoa, música nem gênero, mostra os posts com a palavra.
+  // Ao apertar "pesquisar" (Enter): vai direto para os posts que contêm o termo, mesmo que
+  // ele também ache pessoas, músicas ou gêneros. Mudou o texto, volta para a busca normal.
   const [postsFor, setPostsFor] = useState<string | null>(null);
   const loading = enabled && (people.isLoading || tracks.isLoading || genres.isLoading);
   const shownGenres = relevantGenres(genres.data ?? []);
-  const nothingElse = enabled && !loading && !people.data?.length && !tracks.data?.length && !shownGenres.length;
-  const showPosts = postsFor !== null && postsFor === q && postsFor === query.trim() && nothingElse;
-  const posts = useSearchPosts(showPosts ? q : '');
+  const showPosts = postsFor !== null;
+  const posts = useSearchPosts(showPosts ? postsFor : '');
   const submit = () => {
     const word = query.trim();
     if (word.length >= MIN_QUERY) setPostsFor(word);
@@ -207,19 +212,22 @@ export function SearchPanel() {
       <SearchField
         testID="search-input"
         value={query}
-        onChangeText={setQuery}
+        onChangeText={(v) => {
+          setQuery(v);
+          setPostsFor(null);
+        }}
         onSubmitEditing={submit}
         placeholder={t('search.placeholder')}
       />
       {showPosts ? (
         <PostList
-          header={<Text style={[styles.section, { paddingBottom: space.sm }]}>{t('search.postsWith', { query: q })}</Text>}
+          header={<Text style={[styles.section, { paddingBottom: space.sm }]}>{t('search.postsWith', { query: postsFor })}</Text>}
           items={uniqueBy(posts.data?.pages.flat() ?? [], (p) => p.id, 'busca de posts')}
           loading={posts.isLoading}
           onRefresh={() => posts.refetch()}
           onEndReached={() => posts.hasNextPage && !posts.isFetchingNextPage && posts.fetchNextPage()}
           loadingMore={posts.isFetchingNextPage}
-          emptyText={posts.isError ? formatError(t, posts.error) : t('search.noPosts', { query: q })}
+          emptyText={posts.isError ? formatError(t, posts.error) : t('search.noPosts', { query: postsFor })}
           followable
         />
       ) : (
@@ -235,7 +243,7 @@ export function SearchPanel() {
             onOpenGenre={openGenre}
             onUnblock={unblock}
             unblocking={unblocking}
-            onSearchPosts={() => setPostsFor(q)}
+            onSearchPosts={() => setPostsFor(query.trim())}
           />
           {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
         </ScrollView>
