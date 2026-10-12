@@ -107,6 +107,25 @@ describe('<PostCard />', () => {
   });
 });
 
+describe('verificado', () => {
+  test('a insígnia aparece só em perfil verificado', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, enabled: false } } });
+    qc.setQueryData(['verified-usernames'], new Set(['luul']));
+    const view = await render(
+      <QueryClientProvider client={qc}>
+        <PostCard item={post} onToggleLike={jest.fn()} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByLabelText('Verificado')).toBeTruthy();
+    await view.rerender(
+      <QueryClientProvider client={qc}>
+        <PostCard item={{ ...post, author_username: 'outra' }} onToggleLike={jest.fn()} />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByLabelText('Verificado')).toBeNull();
+  });
+});
+
 describe('<PostCard /> sem música', () => {
   test('post só de texto: sem cartão de música; tocar abre o post', async () => {
     const onOpen = jest.fn();

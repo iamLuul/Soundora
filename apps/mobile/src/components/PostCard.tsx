@@ -10,6 +10,7 @@ import { MentionText } from './MentionText';
 import { MusicCard } from './MusicCard';
 import { PostMedia } from './PostMedia';
 import { webTouch } from '../lib/touch';
+import { Verified } from './Verified';
 
 export interface PostCardProps {
   item: FeedItem;
@@ -50,9 +51,12 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
           <Pressable style={styles.author} accessibilityRole="link">
             <RingAvatar uri={item.author_avatar_url} name={item.author_display_name} size={38} />
             <View style={{ flexShrink: 1 }}>
-              <Text style={styles.name} numberOfLines={1}>
-                {item.author_display_name}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
+                  {item.author_display_name}
+                </Text>
+                <Verified username={item.author_username} />
+              </View>
               <Text style={styles.handle} numberOfLines={1}>
                 @{item.author_username}
               </Text>

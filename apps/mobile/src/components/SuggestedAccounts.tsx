@@ -7,6 +7,7 @@ import type { SuggestedAccount } from '../lib/api';
 import { genreLabel, useFollow, useFollowingIds, useGenres, useSuggestedAccounts } from '../lib/queries';
 import { colors, fonts, space } from '../theme';
 import { RingAvatar } from './figma';
+import { Verified } from './Verified';
 
 /**
  * "Contas para seguir": carrossel de pessoas com o seu gosto (gêneros dos posts que você
@@ -42,9 +43,12 @@ export function SuggestedAccounts({ testID = 'suggested-accounts' }: { testID?: 
             <View key={a.id} style={styles.card}>
               <Pressable accessibilityRole="link" accessibilityLabel={`@${a.username}`} onPress={() => router.push(`/u/${a.username}`)} style={styles.who}>
                 <RingAvatar uri={a.avatar_url} name={a.display_name} size={56} />
-                <Text style={styles.name} numberOfLines={1}>
-                  {a.display_name}
-                </Text>
+                <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 4 }, { maxWidth: '100%' }]}>
+                  <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
+                    {a.display_name}
+                  </Text>
+                  <Verified username={a.username} />
+                </View>
                 <Text style={styles.handle} numberOfLines={1}>
                   @{a.username}
                 </Text>

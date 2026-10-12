@@ -22,6 +22,7 @@ import { PeopleSkeleton } from '../../components/Skeleton';
 import { Spinner } from '../../components/Spinner';
 import { SheetBackdrop } from '../../components/ui';
 import { webTouch } from '../../lib/touch';
+import { Verified } from '../../components/Verified';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -311,6 +312,7 @@ function AuthorVibes({
               <Pressable accessibilityRole="link" onPress={() => router.push(`/u/${username}`)} style={styles.whoLeft}>
                 <RingAvatar uri={avatar} name={username} size={34} />
                 <Text style={styles.username}>@{username}</Text>
+                <Verified username={username} />
                 <Text style={styles.time}>{relativeTime(current.created_at)}</Text>
               </Pressable>
               {audioUrl ? (

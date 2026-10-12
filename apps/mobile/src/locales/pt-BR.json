@@ -225,7 +225,8 @@
     "changeBanner": "Trocar banner",
     "banner": "Banner do perfil",
     "options": "Opções do perfil",
-    "followingButton": "Seguindo"
+    "followingButton": "Seguindo",
+    "verified": "Verificado"
   },
   "report": {
     "title": "Por que você está denunciando?",

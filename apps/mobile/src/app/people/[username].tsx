@@ -12,6 +12,7 @@ import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
+import { Verified } from '../../components/Verified';
 
 type List = 'followers' | 'following';
 
@@ -89,9 +90,12 @@ function PersonItem({ person, username, list }: { person: PersonRow; username: s
     <Pressable testID={`person-${person.username}`} accessibilityRole="link" onPress={() => router.push(`/u/${person.username}`)} style={styles.row}>
       <RingAvatar uri={person.avatar_url} name={person.display_name} size={44} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.name} numberOfLines={1}>
-          {person.display_name}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
+            {person.display_name}
+          </Text>
+          <Verified username={person.username} />
+        </View>
         <Text style={styles.handle} numberOfLines={1}>
           @{person.username}
         </Text>

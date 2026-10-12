@@ -7,6 +7,7 @@ import { colors, fonts, space } from '../theme';
 import { Icon, RingAvatar } from './figma';
 import { MentionText } from './MentionText';
 import { webTouch } from '../lib/touch';
+import { Verified } from './Verified';
 
 /** Avatar do comentário (34) e da resposta (28). */
 const ROOT_AVATAR = 34;
@@ -42,7 +43,7 @@ export function CommentItem({
       </Pressable>
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={styles.name} numberOfLines={1}>
-          {item.author_display_name} <Text style={styles.handle}>@{item.author_username} · {relativeTime(item.created_at)}</Text>
+          {item.author_display_name} <Verified username={item.author_username} size={12} /> <Text style={styles.handle}>@{item.author_username} · {relativeTime(item.created_at)}</Text>
         </Text>
         <MentionText style={styles.body}>{item.body}</MentionText>
         <View style={styles.actions}>

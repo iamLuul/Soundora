@@ -225,7 +225,8 @@
     "changeBanner": "Change banner",
     "banner": "Profile banner",
     "options": "Profile options",
-    "followingButton": "Following"
+    "followingButton": "Following",
+    "verified": "Verified"
   },
   "report": {
     "title": "Why are you reporting this?",

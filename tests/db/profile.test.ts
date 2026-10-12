@@ -77,3 +77,18 @@ describe('profile_summary', () => {
     expect(g).toEqual({ likes: 1 });
   });
 });
+
+describe('verificado', () => {
+  it('só o banco verifica; o app lê, mas não consegue se verificar', async () => {
+    const vdb = await connect();
+    const id = await createUser(vdb, 'verif_eu');
+    await expect(vdb.as(id, `update public.profiles set verified = true where id = $1`, [id])).rejects.toThrow(/permission denied/);
+    expect((await vdb.sql<{ verified: boolean }>(`select verified from public.profiles where id = $1`, [id]))[0]!.verified).toBe(false);
+
+    await vdb.sql(`update public.profiles set verified = true where id = $1`, [id]);
+    const other = await createUser(vdb, 'verif_outro');
+    const rows = await vdb.as<{ username: string }>(other, `select username from public.profiles where verified`);
+    expect(rows.map((r) => r.username)).toContain('verif_eu');
+    await vdb.close();
+  });
+});
