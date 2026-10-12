@@ -15,6 +15,7 @@ export const colors = {
   text: '#FFFFFF',
   textMuted: '#B3A9EB',
   border: 'rgba(179, 169, 235, 0.25)',
+  badge: '#6C62FF', // bolinha de notificações não lidas (roxo do app)
   danger: '#FF6B81',
   success: '#5BD69A',
   warning: '#FFC266',
