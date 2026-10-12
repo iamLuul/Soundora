@@ -1,7 +1,6 @@
 import { Image } from "expo-image";
 import { type ReactNode, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { avatarUrl } from "../lib/avatar";
 import { colors, fonts, radius, space, text } from "../theme";
+import { Spinner } from "./Spinner";
 
 /**
  * Teclado: a tela encolhe o tamanho dele, para o campo de texto ficar logo acima.
@@ -132,7 +132,8 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator
+        <Spinner
+          size={20}
           color={variant === "secondary" ? colors.background : colors.text}
         />
       ) : (

@@ -3,12 +3,13 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
 import { colors, space } from '../theme';
 import { webTouch } from '../lib/touch';
+import { Spinner } from './Spinner';
 
 /** URLs assinadas (1 h) das mídias do post; os posts da mesma página assinam juntos (signPostMedia). */
 function useMediaUrls(media: Media[]) {
@@ -31,7 +32,7 @@ export function PostMedia({ media }: { media: Media[] }) {
   const first = media[0]!;
   if (first.kind === 'video') {
     const uri = urls.data?.[first.path];
-    return <View style={[styles.box, { aspectRatio: ratio(first) }]}>{uri ? <PostVideo uri={uri} /> : <ActivityIndicator color={colors.muted} style={{ flex: 1 }} />}</View>;
+    return <View style={[styles.box, { aspectRatio: ratio(first) }]}>{uri ? <PostVideo uri={uri} /> : <Spinner color={colors.muted} style={{ flex: 1 }} />}</View>;
   }
 
   const photo = (m: Media, style: object) => {

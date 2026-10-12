@@ -586,25 +586,6 @@ export async function fetchMyTracks(): Promise<TrackItem[]> {
   });
 }
 
-export interface FollowedProfile {
-  username: string;
-  display_name: string;
-  avatar_url: string | null;
-}
-
-/** Quem a pessoa segue, para a fila de avatares do topo do feed. */
-export async function fetchFollowing(): Promise<FollowedProfile[]> {
-  const userId = await currentUserId();
-  const { data, error } = await supabase
-    .from('follows')
-    .select('created_at, profile:profiles!follows_followee_id_fkey(username, display_name, avatar_url)')
-    .eq('follower_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(30);
-  if (error) throw error;
-  return (data as unknown as { profile: FollowedProfile | null }[]).flatMap((r) => (r.profile ? [r.profile] : []));
-}
-
 // ---------- Notificações ----------
 
 export type NotificationKind = 'like' | 'comment' | 'reply' | 'follow' | 'comment_reply' | 'comment_like';

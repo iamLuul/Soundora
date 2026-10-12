@@ -1,7 +1,7 @@
 import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../../components/figma';
 import { LikedSongRow } from '../../components/LikedSongRow';
@@ -15,6 +15,8 @@ import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { TrackListSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
+import { PullToRefresh } from '../../components/PullToRefresh';
+import { Spinner } from '../../components/Spinner';
 
 /** Perfil › Curtidas: as músicas que a pessoa curtiu no Descobrir (a mais recente primeiro). */
 export default function LikedSongsScreen() {
@@ -54,25 +56,26 @@ export default function LikedSongsScreen() {
         </Text>
       </View>
       {message ? <Text style={[text.small, styles.message]}>{message}</Text> : null}
-      <FlatList
-        {...listPerf}
-        data={items}
-        keyExtractor={(s) => s.link_preview_id}
-        renderItem={({ item }) => <LikedSongRow song={item} onOpen={openSong} onUnlike={isMe ? unlike : undefined} />}
-        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + space.xxl }]}
-        ItemSeparatorComponent={() => <View style={{ height: space.md }} />}
-        refreshControl={<RefreshControl refreshing={liked.isRefetching} onRefresh={() => liked.refetch()} tintColor={colors.primary} />}
-        onEndReached={() => liked.hasNextPage && !liked.isFetchingNextPage && liked.fetchNextPage()}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={
-          liked.isLoading ? (
-            <TrackListSkeleton count={8} cover={56} />
-          ) : (
-            <Text style={[text.body, styles.empty]}>{liked.isError ? formatError(t, liked.error) : t(isMe ? 'liked.emptyMine' : 'liked.empty')}</Text>
-          )
-        }
-        ListFooterComponent={liked.isFetchingNextPage || opening ? <ActivityIndicator color={colors.primary} style={{ marginTop: space.md }} /> : null}
-      />
+      <PullToRefresh onRefresh={() => liked.refetch()}>
+        <FlatList
+          {...listPerf}
+          data={items}
+          keyExtractor={(s) => s.link_preview_id}
+          renderItem={({ item }) => <LikedSongRow song={item} onOpen={openSong} onUnlike={isMe ? unlike : undefined} />}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + space.xxl }]}
+          ItemSeparatorComponent={() => <View style={{ height: space.md }} />}
+          onEndReached={() => liked.hasNextPage && !liked.isFetchingNextPage && liked.fetchNextPage()}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={
+            liked.isLoading ? (
+              <TrackListSkeleton count={8} cover={56} />
+            ) : (
+              <Text style={[text.body, styles.empty]}>{liked.isError ? formatError(t, liked.error) : t(isMe ? 'liked.emptyMine' : 'liked.empty')}</Text>
+            )
+          }
+          ListFooterComponent={liked.isFetchingNextPage || opening ? <Spinner style={{ marginTop: space.md }} /> : null}
+        />
+      </PullToRefresh>
       {chooser}
     </View>
   );

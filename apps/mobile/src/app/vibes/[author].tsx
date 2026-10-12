@@ -1,16 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { reportReasonSchema } from '@soundora/core';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar } from '../../components/figma';
 import { OptionsSheet, type SheetOption } from '../../components/OptionsSheet';
 import { VibeAudio } from '../../components/vibes/VibeAudio';
 import { VibeContent } from '../../components/vibes/VibeContent';
-import { deleteVibe, fetchVibeViewers, markVibeSeen, report, type Vibe } from '../../lib/api';
+import { deleteVibe, fetchVibesOf, fetchVibeViewers, markVibeSeen, report, vibeMediaUrl, type Vibe } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
@@ -18,6 +19,7 @@ import { keys, useVibeMedia, useVibesOf, useVibesTray } from '../../lib/queries'
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
+import { Spinner } from '../../components/Spinner';
 import { SheetBackdrop } from '../../components/ui';
 import { webTouch } from '../../lib/touch';
 
@@ -35,12 +37,92 @@ function notify(message: string) {
 type Params = { author: string; queue?: string; username?: string; avatar?: string };
 
 /**
- * Ver as vibes de uma pessoa em tela cheia. Toque à direita avança, à esquerda volta,
- * segurar pausa. No fim, passa para a próxima pessoa da fila (queue) ou fecha.
+ * Ver vibes em tela cheia. Toque à direita avança, à esquerda volta, segurar pausa.
+ * A tela abre uma vez para a fila toda (a pessoa tocada e as seguintes): quando as vibes de
+ * alguém acabam, as da próxima pessoa entram na hora, sem fechar e abrir de novo. Voltar na
+ * primeira vibe de alguém leva à pessoa anterior. No fim da fila, fecha.
  */
 export default function VibeViewerScreen() {
+  const { author, queue, username, avatar } = useLocalSearchParams<Params>();
+  const qc = useQueryClient();
+  const [authors] = useState(() => [...new Set([author, ...(queue ?? '').split(',')].filter(Boolean))]);
+  const [pos, setPos] = useState(0);
+  // Sem som vale para a fila toda, não só para a pessoa atual.
+  const [muted, setMuted] = useState(false);
+
+  const close = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: keys.vibesTray });
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }, [qc]);
+
+  const next = useCallback(() => {
+    if (pos >= authors.length - 1) close();
+    else setPos(pos + 1);
+  }, [pos, authors.length, close]);
+  const previous = useCallback(() => setPos((p) => Math.max(0, p - 1)), []);
+
+  // Já busca as vibes (e a primeira mídia) da próxima pessoa, para a troca ser imediata.
+  const upcoming = authors[pos + 1];
+  useEffect(() => {
+    if (upcoming) void prefetchAuthor(qc, upcoming);
+  }, [qc, upcoming]);
+
+  const current = authors[pos]!;
+  return (
+    <View style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
+      <AuthorVibes
+        key={current}
+        author={current}
+        // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
+        fallbackUsername={pos === 0 ? username : undefined}
+        fallbackAvatar={pos === 0 ? avatar : undefined}
+        hasPrevious={pos > 0}
+        muted={muted}
+        onToggleMute={() => setMuted((m) => !m)}
+        onDone={next}
+        onPrevious={previous}
+        onClose={close}
+      />
+    </View>
+  );
+}
+
+async function prefetchAuthor(qc: QueryClient, authorId: string) {
+  const list = await qc.fetchQuery({ queryKey: keys.vibesOf(authorId), queryFn: () => fetchVibesOf(authorId), staleTime: 30_000 }).catch(() => null);
+  const first = list?.find((v) => !v.seen) ?? list?.[0];
+  if (!first?.media_path) return;
+  const path = first.media_path;
+  const url = await qc
+    .fetchQuery({ queryKey: ['vibe-media', path], queryFn: () => vibeMediaUrl(path), staleTime: 50 * 60_000 })
+    .catch(() => null);
+  if (url && first.kind === 'photo') void Image.prefetch(url).catch(() => undefined);
+}
+
+/** As vibes de uma pessoa. Muda de pessoa trocando a key (o resto da tela continua aberto). */
+function AuthorVibes({
+  author,
+  fallbackUsername,
+  fallbackAvatar,
+  hasPrevious,
+  muted,
+  onToggleMute,
+  onDone,
+  onPrevious,
+  onClose: close,
+}: {
+  author: string;
+  fallbackUsername?: string;
+  fallbackAvatar?: string;
+  hasPrevious: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
+  onDone: () => void;
+  onPrevious: () => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
-  const { author, queue, username: paramUsername, avatar: paramAvatar } = useLocalSearchParams<Params>();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { profile } = useAuth();
@@ -49,22 +131,22 @@ export default function VibeViewerScreen() {
   const list = useMemo(() => uniqueBy(vibes.data ?? [], (v) => v.id, 'vibes'), [vibes.data]);
   const isMine = profile?.id === author;
   const who = tray.data?.find((x) => x.author_id === author);
-  const username = who?.username ?? (isMine ? profile?.username : paramUsername) ?? '';
-  const avatar = who?.avatar_url ?? (isMine ? profile?.avatar_url : paramAvatar) ?? null;
+  const username = who?.username ?? (isMine ? profile?.username : fallbackUsername) ?? '';
+  const avatar = who?.avatar_url ?? (isMine ? profile?.avatar_url : fallbackAvatar) ?? null;
 
-  // Começa na primeira que eu ainda não vi (as minhas: do começo).
-  const startIndex = useMemo(() => {
-    if (!vibes.data) return null;
-    const firstUnseen = isMine ? -1 : vibes.data.findIndex((v) => !v.seen);
-    return firstUnseen >= 0 ? firstUnseen : 0;
-  }, [vibes.data, isMine]);
+  // Começa na primeira que eu ainda não vi (as minhas: do começo). Fica fixo depois de calculado,
+  // para uma nova busca (com as vistas já marcadas) não pular a vibe que está na tela.
+  const [frozenStart, setFrozenStart] = useState<number | null>(null);
+  const firstUnseen = vibes.data ? (isMine ? -1 : vibes.data.findIndex((v) => !v.seen)) : null;
+  const computedStart = firstUnseen === null ? null : Math.max(0, firstUnseen);
+  if (frozenStart === null && computedStart !== null) setFrozenStart(computedStart);
+  const startIndex = frozenStart ?? computedStart;
   const [chosen, setChosen] = useState<number | null>(null);
   const index = chosen ?? startIndex;
   const setIndex = (update: (i: number | null) => number | null) => setChosen((c) => update(c ?? startIndex));
   const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
   const [holding, setHolding] = useState(false);
-  const [muted, setMuted] = useState(false);
   const [menu, setMenu] = useState<null | 'options' | 'report'>(null);
   const [viewersFor, setViewersFor] = useState<string | null>(null);
 
@@ -74,20 +156,6 @@ export default function VibeViewerScreen() {
   const audioUrl = current?.kind === 'music' ? current.preview_audio_url : null;
   const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : audioUrl ? MUSIC_MS : STILL_MS;
   const paused = holding || !!menu || !!viewersFor || !mediaReady;
-
-  const close = useCallback(() => {
-    void qc.invalidateQueries({ queryKey: keys.vibesTray });
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
-  }, [qc]);
-
-  const nextAuthor = useCallback(() => {
-    const rest = (queue ?? '').split(',').filter(Boolean);
-    if (!rest.length) return close();
-    const [next, ...others] = rest;
-    void qc.invalidateQueries({ queryKey: keys.vibesTray });
-    router.replace({ pathname: '/vibes/[author]', params: { author: next!, queue: others.join(',') } });
-  }, [queue, close, qc]);
 
   const resetClock = () => {
     elapsedRef.current = 0;
@@ -100,11 +168,12 @@ export default function VibeViewerScreen() {
     const i = chosen ?? startIndex;
     if (i === null) return;
     if (i < list.length - 1) setChosen(i + 1);
-    else nextAuthor();
-  }, [chosen, startIndex, list.length, nextAuthor]);
+    else onDone();
+  }, [chosen, startIndex, list.length, onDone]);
 
   const goPrev = () => {
     resetClock();
+    if ((index ?? 0) === 0 && hasPrevious) return onPrevious();
     setIndex((i) => (i === null ? i : Math.max(0, i - 1)));
   };
 
@@ -133,9 +202,9 @@ export default function VibeViewerScreen() {
   const empty = vibes.isSuccess && list.length === 0;
   useEffect(() => {
     if (!empty) return;
-    const id = setTimeout(nextAuthor, 0);
+    const id = setTimeout(onDone, 0);
     return () => clearTimeout(id);
-  }, [empty, nextAuthor]);
+  }, [empty, onDone]);
 
   // Toque curto navega (onPress); segurar pausa (onLongPress cancela o onPress).
   const hold = {
@@ -184,11 +253,9 @@ export default function VibeViewerScreen() {
   }));
 
   return (
-    <View style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
-
+    <>
       {!current ? (
-        <ActivityIndicator color={colors.text} style={{ flex: 1 }} />
+        <Spinner color={colors.text} style={{ flex: 1 }} />
       ) : (
         <>
           <VibeContent
@@ -251,7 +318,7 @@ export default function VibeViewerScreen() {
                   testID="vibe-mute"
                   accessibilityRole="button"
                   accessibilityLabel={muted ? t('vibes.unmute') : t('vibes.mute')}
-                  onPress={() => setMuted((m) => !m)}
+                  onPress={onToggleMute}
                   hitSlop={10} style={webTouch(10)}
                 >
                   <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={22} color={colors.text} />
@@ -283,7 +350,7 @@ export default function VibeViewerScreen() {
       <OptionsSheet visible={menu === 'options'} options={options} onClose={() => setMenu(null)} />
       <OptionsSheet visible={menu === 'report'} title={t('report.title')} options={reasons} onClose={() => setMenu(null)} />
       <ViewersSheet vibeId={viewersFor} onClose={() => setViewersFor(null)} />
-    </View>
+    </>
   );
 }
 

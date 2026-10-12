@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { useLiveNotifications } from '../lib/live';
 import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 import { AppSkeleton } from '../components/Skeleton';
@@ -42,12 +43,14 @@ function RootNavigator() {
 
   const signedIn = !!session;
   const onboarded = signedIn && !!profile;
-  return <Navigator signedIn={signedIn} onboarded={onboarded} />;
+  return <Navigator signedIn={signedIn} onboarded={onboarded} me={onboarded && profile ? { id: profile.id, username: profile.username } : null} />;
 }
 
-function Navigator({ signedIn, onboarded }: { signedIn: boolean; onboarded: boolean }) {
+function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: boolean; me: { id: string; username: string } | null }) {
   // Tocar num push abre a tela dele (só depois do login e do onboarding).
   usePushNavigation(onboarded);
+  // Curtidas, comentários, respostas e seguidores chegam na hora, sem puxar para atualizar.
+  useLiveNotifications(me);
 
   return (
     <Stack

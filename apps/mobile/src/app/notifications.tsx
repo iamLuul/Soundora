@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader, RingAvatar, TopTabs } from '../components/figma';
 import { Button } from '../components/ui';
@@ -17,6 +17,8 @@ import { uniqueBy } from '../lib/hooks';
 import { PeopleSkeleton } from '../components/Skeleton';
 import { listPerf } from '../lib/list';
 import { webTouch } from '../lib/touch';
+import { PullToRefresh } from '../components/PullToRefresh';
+import { Spinner } from '../components/Spinner';
 
 /** Notificações (Figma: Notifications page): Todas e Respostas, com push opcional no celular. */
 export default function NotificationsScreen() {
@@ -60,29 +62,30 @@ export default function NotificationsScreen() {
           { value: 'replies', label: t('notifications.replies') },
         ]}
       />
-      <FlatList
-        {...listPerf}
-        data={items}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => <NotificationRow item={item} onPress={() => open(item)} />}
-        ListHeaderComponent={<PushCard />}
-        ListEmptyComponent={
-          query.isLoading ? (
-            <View style={{ paddingHorizontal: space.lg }}>
-              <PeopleSkeleton count={8} avatar={40} />
-            </View>
-          ) : query.isError ? (
-            <Text style={[text.body, styles.empty]}>{formatError(t, query.error)}</Text>
-          ) : (
-            <Text style={[text.body, styles.empty]}>{t(tab === 'replies' ? 'notifications.emptyReplies' : 'notifications.empty')}</Text>
-          )
-        }
-        onEndReached={() => query.hasNextPage && !query.isFetchingNextPage && query.fetchNextPage()}
-        onEndReachedThreshold={0.4}
-        ListFooterComponent={query.isFetchingNextPage ? <ActivityIndicator color={colors.muted} style={{ margin: space.lg }} /> : null}
-        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor={colors.muted} />}
-        contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
-      />
+      <PullToRefresh onRefresh={() => query.refetch()}>
+        <FlatList
+          {...listPerf}
+          data={items}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => <NotificationRow item={item} onPress={() => open(item)} />}
+          ListHeaderComponent={<PushCard />}
+          ListEmptyComponent={
+            query.isLoading ? (
+              <View style={{ paddingHorizontal: space.lg }}>
+                <PeopleSkeleton count={8} avatar={40} />
+              </View>
+            ) : query.isError ? (
+              <Text style={[text.body, styles.empty]}>{formatError(t, query.error)}</Text>
+            ) : (
+              <Text style={[text.body, styles.empty]}>{t(tab === 'replies' ? 'notifications.emptyReplies' : 'notifications.empty')}</Text>
+            )
+          }
+          onEndReached={() => query.hasNextPage && !query.isFetchingNextPage && query.fetchNextPage()}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={query.isFetchingNextPage ? <Spinner style={{ margin: space.lg }} /> : null}
+          contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
+        />
+      </PullToRefresh>
     </View>
   );
 }

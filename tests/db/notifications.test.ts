@@ -207,3 +207,64 @@ describe('envio do push (pg_net simulado)', () => {
     expect(await db.sql(`select * from net.sent`)).toHaveLength(0);
   });
 });
+
+describe('notificações ao vivo (Realtime, canal privado)', () => {
+  /**
+   * O que chega para quem ouve `topic`: o servidor do Realtime só deixa entrar no canal se a
+   * policy de realtime.messages permitir (com o canal em realtime.topic()) e entrega as
+   * mensagens daquele canal.
+   */
+  async function listen(user: string, topic: string) {
+    await db.sql('begin');
+    try {
+      await db.sql('set local role authenticated');
+      await db.sql(`select set_config('request.jwt.claims', $1, true), set_config('realtime.topic', $2, true)`, [
+        JSON.stringify({ sub: user, role: 'authenticated' }),
+        topic,
+      ]);
+      return await db.sql<{ payload: Record<string, unknown>; event: string }>(`select payload, event from realtime.messages where topic = realtime.topic() order by inserted_at`);
+    } finally {
+      await db.sql('rollback');
+    }
+  }
+
+  it('curtir avisa só o dono do post, sem dizer quem foi', async () => {
+    await db.sql(`delete from realtime.messages`);
+    const p = await post(ana);
+    await db.as(caio, `insert into public.likes (user_id, post_id) values ($1, $2)`, [caio, p]);
+
+    const forAna = await listen(ana, `user:${ana}`);
+    expect(forAna).toEqual([{ event: 'notification', payload: { kind: 'like', post_id: p, removed: false } }]);
+    expect(JSON.stringify(forAna)).not.toContain(caio);
+
+    // Outra pessoa não ouve o canal da Ana, nem pedindo por ele.
+    expect(await listen(bia, `user:${ana}`)).toEqual([]);
+    expect(await listen(bia, `user:${bia}`)).toEqual([]);
+
+    // Descurtir também avisa (o sino diminui).
+    await db.as(caio, `delete from public.likes where user_id = $1 and post_id = $2`, [caio, p]);
+    expect((await listen(ana, `user:${ana}`)).map((m) => m.payload.removed)).toEqual([false, true]);
+  });
+
+  it('seguir e comentar também avisam', async () => {
+    await db.sql(`delete from realtime.messages`);
+    await db.as(duda, `insert into public.follows (follower_id, followee_id) values ($1, $2) on conflict do nothing`, [duda, caio]);
+    const p = await post(caio);
+    await db.as(ana, `insert into public.comments (post_id, author_id, body) values ($1, $2, 'boa')`, [p, ana]);
+    const kinds = (await listen(caio, `user:${caio}`)).map((m) => m.payload.kind);
+    expect(kinds).toEqual(expect.arrayContaining(['follow', 'comment']));
+  });
+
+  it('ninguém publica no canal de outra pessoa pelo app', async () => {
+    await expect(
+      db.as(bia, `insert into realtime.messages (topic, extension, event, payload, private) values ($1, 'broadcast', 'notification', '{}', true)`, [`user:${ana}`]),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('scripts com a chave secreta (sem login) não geram aviso ao vivo', async () => {
+    await db.sql(`delete from realtime.messages`);
+    const p = await post(ana);
+    await db.sql(`insert into public.likes (user_id, post_id) values ($1, $2)`, [duda, p]);
+    expect(await listen(ana, `user:${ana}`)).toEqual([]);
+  });
+});

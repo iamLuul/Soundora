@@ -21,7 +21,6 @@ export default function FeedScreen() {
         header={<FollowingRow />}
         items={items}
         loading={feed.isLoading}
-        refreshing={feed.isRefetching && !feed.isFetchingNextPage}
         onRefresh={() => feed.refetch()}
         onEndReached={() => feed.hasNextPage && !feed.isFetchingNextPage && feed.fetchNextPage()}
         loadingMore={feed.isFetchingNextPage}

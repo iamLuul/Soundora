@@ -1,17 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import NewVibeScreen from '../src/app/vibes/new';
+import VibeViewerScreen from '../src/app/vibes/[author]';
 import { FollowingRow } from '../src/components/FollowingRow';
 import i18n from '../src/lib/i18n';
 
 const mockPush = jest.fn();
+const mockBack = jest.fn();
+const mockReplace = jest.fn();
 const mockCreate = jest.fn(async () => 'v1');
 const mockPreviewLink = jest.fn();
 const mockParams: Record<string, string> = {};
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
-  router: { push: (...a: unknown[]) => mockPush(...a), back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+  router: { push: (...a: unknown[]) => mockPush(...a), back: () => mockBack(), canGoBack: () => true, replace: (...a: unknown[]) => mockReplace(...a) },
   useLocalSearchParams: () => mockParams,
 }));
 jest.mock('expo', () => ({ ...jest.requireActual('expo'), useEvent: () => ({ isPlaying: false }) }));
@@ -26,16 +29,27 @@ jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
   createVibe: (...a: unknown[]) => mockCreate(...(a as [])),
   previewLink: (...a: unknown[]) => mockPreviewLink(...a),
-  fetchFollowing: async () => [
-    { username: 'bia', display_name: 'Bia', avatar_url: null },
-    { username: 'caio', display_name: 'Caio', avatar_url: null },
-  ],
   fetchVibesTray: async () => [
     { author_id: 'me', username: 'raul', display_name: 'Raul', avatar_url: null, vibe_count: 1, unseen: false, latest_at: '', is_me: true },
     { author_id: 'b', username: 'bia', display_name: 'Bia', avatar_url: null, vibe_count: 2, unseen: true, latest_at: '', is_me: false },
+    { author_id: 'c', username: 'caio', display_name: 'Caio', avatar_url: null, vibe_count: 1, unseen: true, latest_at: '', is_me: false },
   ],
+  fetchVibesOf: async (author: string) => mockVibesOf[author] ?? [],
+  markVibeSeen: async () => undefined,
   fetchUnreadNotifications: async () => 0,
 }));
+
+function textVibe(id: string, text: string, seen = false) {
+  return {
+    id, kind: 'text', media_path: null, duration_ms: null, text, style: 'violet', created_at: new Date().toISOString(), seen, view_count: null,
+    preview_url: null, preview_platform: null, preview_title: null, preview_artist: null, preview_image_url: null, post_id: null, post_body: null,
+    post_author_username: null, post_author_avatar_url: null, text_x: null, text_y: null, preview_audio_url: null,
+  };
+}
+const mockVibesOf: Record<string, ReturnType<typeof textVibe>[]> = {
+  b: [textVibe('b1', 'oi da bia'), textVibe('b2', 'tchau da bia')],
+  c: [textVibe('c1', 'oi do caio')],
+};
 
 function wrap(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
@@ -75,14 +89,45 @@ describe('Nova vibe', () => {
 });
 
 describe('Fila de Vibes na Home', () => {
-  test('eu primeiro, depois quem tem vibe, depois quem não tem; abrir leva a fila', async () => {
+  test('eu primeiro e depois só quem tem vibe; abrir leva a fila', async () => {
     await wrap(<FollowingRow />);
     await waitFor(() => expect(screen.getByTestId('vibe-bia')).toBeTruthy());
-    expect(screen.getByLabelText('@caio')).toBeTruthy();
+    expect(screen.getByTestId('vibe-caio')).toBeTruthy();
+    // Quem eu sigo e não postou vibe não aparece (antes aparecia e abria o perfil).
+    expect(screen.queryByLabelText('@dani')).toBeNull();
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
     await fireEvent.press(screen.getByTestId('vibe-bia'));
-    expect(mockPush).toHaveBeenCalledWith({ pathname: '/vibes/[author]', params: { author: 'b', queue: '' } });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/vibes/[author]', params: { author: 'b', queue: 'c' } });
     await fireEvent.press(screen.getByTestId('vibe-new'));
     expect(mockPush).toHaveBeenCalledWith('/vibes/new');
+  });
+});
+
+describe('Ver vibes em sequência', () => {
+  test('acabou uma pessoa, a próxima entra na mesma tela (sem fechar e abrir)', async () => {
+    Object.assign(mockParams, { author: 'b', queue: 'c' });
+    await wrap(<VibeViewerScreen />);
+    await waitFor(() => expect(screen.getByText('oi da bia')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('vibe-next'));
+    expect(screen.getByText('tchau da bia')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('vibe-next'));
+    await waitFor(() => expect(screen.getByText('oi do caio')).toBeTruthy());
+    expect(screen.getByText('@caio')).toBeTruthy();
+    // Nada de navegar: a tela continuou aberta.
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+
+    // Voltar na primeira vibe do Caio leva de volta à Bia.
+    await fireEvent.press(screen.getByTestId('vibe-prev'));
+    await waitFor(() => expect(screen.getByText('@bia')).toBeTruthy());
+
+    // No fim da fila, fecha.
+    await fireEvent.press(screen.getByTestId('vibe-next'));
+    await fireEvent.press(screen.getByTestId('vibe-next'));
+    await waitFor(() => expect(screen.getByText('oi do caio')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('vibe-next'));
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -2,10 +2,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ChartTrack } from '../lib/api';
 import { colors, fonts, space, text } from '../theme';
 import { TrackListSkeleton } from './Skeleton';
+import { PullToRefresh } from './PullToRefresh';
+import { Spinner } from './Spinner';
 
 /** Cores do Figma (Trending Page): selo NEW amarelo, seta verde (subiu) e vermelha (caiu). */
 const MOVE = { up: '#4E9A51', down: '#C44545', new: '#FFD43B' };
@@ -69,7 +71,7 @@ export function ChartRow({ item, onPress, opening }: { item: ChartTrack; onPress
           </Text>
         ) : null}
       </View>
-      {opening ? <ActivityIndicator color={colors.primary} style={styles.arrowSpace} /> : <MoveBadge move={item.move} previous={item.previous_position} />}
+      {opening ? <Spinner size={20} style={styles.arrowSpace} /> : <MoveBadge move={item.move} previous={item.previous_position} />}
     </Pressable>
   );
 }
@@ -78,7 +80,6 @@ export function WorldChartList({
   items,
   loading,
   error,
-  refreshing,
   onRefresh,
   onPress,
   openingKey,
@@ -87,28 +88,28 @@ export function WorldChartList({
   items: ChartTrack[];
   loading: boolean;
   error: string | null;
-  refreshing: boolean;
-  onRefresh: () => void;
+  onRefresh: () => unknown;
   onPress: (item: ChartTrack) => void;
   openingKey: string | null;
   header: ReactElement;
 }) {
   return (
-    <FlatList
-      data={items}
-      keyExtractor={(i) => i.key}
-      ListHeaderComponent={header}
-      renderItem={({ item }) => <ChartRow item={item} onPress={onPress} opening={openingKey === item.key} />}
-      contentContainerStyle={{ paddingBottom: space.xxl }}
-      ListEmptyComponent={
-        loading ? (
-          <TrackListSkeleton count={8} rank />
-        ) : (
-          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>{error}</Text>
-        )
-      }
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-    />
+    <PullToRefresh onRefresh={onRefresh}>
+      <FlatList
+        data={items}
+        keyExtractor={(i) => i.key}
+        ListHeaderComponent={header}
+        renderItem={({ item }) => <ChartRow item={item} onPress={onPress} opening={openingKey === item.key} />}
+        contentContainerStyle={{ paddingBottom: space.xxl }}
+        ListEmptyComponent={
+          loading ? (
+            <TrackListSkeleton count={8} rank />
+          ) : (
+            <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>{error}</Text>
+          )
+        }
+      />
+    </PullToRefresh>
   );
 }
 

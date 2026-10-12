@@ -49,7 +49,6 @@ export function TrendingSection() {
         items={chart.data?.entries ?? []}
         loading={chart.isLoading}
         error={chart.isError ? formatError(t, chart.error) : t('trending.empty')}
-        refreshing={chart.isRefetching}
         onRefresh={() => chart.refetch()}
         onPress={onPress}
         openingKey={opening}

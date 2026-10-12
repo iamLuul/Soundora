@@ -15,7 +15,8 @@ export default function Root({ children }: PropsWithChildren) {
         <title>Soundora</title>
         <meta name="description" content="Soundora: a rede social da música." />
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: 'body{background-color:#3A374C;}' }} />
+        {/* overscroll-behavior: puxar a lista para baixo não recarrega a página (o app atualiza os dados). */}
+        <style dangerouslySetInnerHTML={{ __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}' }} />
       </head>
       <body>{children}</body>
     </html>

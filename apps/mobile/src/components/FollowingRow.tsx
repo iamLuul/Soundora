@@ -1,10 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 // ScrollView do gesture-handler: rolar a fila de vibes não troca de aba.
 import { ScrollView } from 'react-native-gesture-handler';
-import { fetchFollowing, type VibeTrayItem } from '../lib/api';
+import type { VibeTrayItem } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useVibesTray } from '../lib/queries';
 import { colors, fonts, space } from '../theme';
@@ -28,22 +27,19 @@ function VibeRing({ uri, name, state }: { uri: string | null; name: string; stat
 
 /**
  * Fila do topo da Home (Figma: Home page, "Stories" → Vibes). Primeiro você, com o "+" para
- * criar uma vibe; depois quem você segue com vibe ativa (não vistas primeiro) e, por fim,
- * quem você segue sem vibe (abre o perfil).
+ * criar uma vibe; depois só quem você segue e tem vibe ativa (não vistas primeiro). Quem não
+ * postou nada não aparece aqui.
  */
 export function FollowingRow() {
   const { t } = useTranslation();
   const { profile } = useAuth();
-  const following = useQuery({ queryKey: ['following'], queryFn: fetchFollowing });
   const tray = useVibesTray(!!profile);
   if (!profile) return null;
-  if (tray.isLoading && following.isLoading) return <VibesRowSkeleton />;
+  if (tray.isLoading) return <VibesRowSkeleton />;
 
   const items = tray.data ?? [];
   const mine = items.find((x) => x.is_me);
   const others = uniqueBy(items.filter((x) => !x.is_me), (x) => x.author_id, 'fila de vibes');
-  const withVibes = new Set(others.map((x) => x.username));
-  const rest = uniqueBy((following.data ?? []).filter((p) => !withVibes.has(p.username)), (p) => p.username, 'seguindo');
 
   /** Abre as vibes de alguém e deixa na fila as pessoas seguintes. */
   const open = (item: VibeTrayItem, list: VibeTrayItem[]) => {
@@ -80,14 +76,6 @@ export function FollowingRow() {
           </Pressable>
         ))}
 
-        {rest.map((p) => (
-          <Pressable key={p.username} accessibilityRole="link" accessibilityLabel={`@${p.username}`} onPress={() => router.push(`/u/${p.username}`)} style={styles.item}>
-            <VibeRing uri={p.avatar_url} name={p.display_name} state="none" />
-            <Text style={styles.name} numberOfLines={1}>
-              {p.username}
-            </Text>
-          </Pressable>
-        ))}
       </ScrollView>
     </View>
   );

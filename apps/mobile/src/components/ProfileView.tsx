@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockUser, fetchProfileSummary, setFollowing, type ProfileImageKind } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -19,6 +19,7 @@ import { PostList } from './PostList';
 import { Avatar } from './ui';
 import { ProfileSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
+import { Spinner } from './Spinner';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
@@ -56,11 +57,7 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
       header={<ProfileHeader profile={p} underStatusBar={underStatusBar} />}
       items={posts.data?.pages.flat() ?? []}
       loading={false}
-      refreshing={posts.isRefetching}
-      onRefresh={() => {
-        summary.refetch();
-        posts.refetch();
-      }}
+      onRefresh={() => Promise.all([summary.refetch(), posts.refetch()])}
       onEndReached={() => posts.hasNextPage && !posts.isFetchingNextPage && posts.fetchNextPage()}
       loadingMore={posts.isFetchingNextPage}
       emptyText={t('profile.noPosts')}
@@ -150,7 +147,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         style={[styles.banner, { height: bannerHeight }]}
       >
         {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityIgnoresInvertColors /> : <BannerPlaceholder />}
-        {uploading === 'banner' ? <ActivityIndicator color={colors.text} style={StyleSheet.absoluteFill} /> : null}
+        {uploading === 'banner' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
       </Pressable>
 
       <Pressable
@@ -192,7 +189,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
             style={styles.avatarRing}
           >
             <Avatar uri={p.avatar_url} name={p.display_name} size={PROFILE_LAYOUT.avatar} />
-            {uploading === 'avatar' ? <ActivityIndicator color={colors.text} style={StyleSheet.absoluteFill} /> : null}
+            {uploading === 'avatar' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
             {p.is_me ? (
               <View style={styles.avatarEdit} pointerEvents="none">
                 <Ionicons name="camera" size={12} color={colors.text} />

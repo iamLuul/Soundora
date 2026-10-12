@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../../components/figma';
 import { PostActions, type PostAction } from '../../components/PostActions';
@@ -19,6 +19,7 @@ import { colors, fonts, space } from '../../theme';
 import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { webTouch } from '../../lib/touch';
+import { Spinner } from '../../components/Spinner';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -215,7 +216,7 @@ export default function PostScreen() {
               disabled={sending || !body.trim()}
               style={[styles.send, (sending || !body.trim()) && { opacity: 0.5 }]}
             >
-              {sending ? <ActivityIndicator color={colors.text} /> : <Text style={styles.sendText}>{t('post.send')}</Text>}
+              {sending ? <Spinner size={18} color={colors.text} /> : <Text style={styles.sendText}>{t('post.send')}</Text>}
             </Pressable>
           </View>
         </View>

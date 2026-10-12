@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, Text } from 'react-native';
+import { Alert, FlatList, Platform, Text } from 'react-native';
 import { blockUser, deletePost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -14,6 +14,8 @@ import { PostCard } from './PostCard';
 import { uniqueBy } from '../lib/hooks';
 import { PostSkeleton } from './Skeleton';
 import { listPerf } from '../lib/list';
+import { PullToRefresh } from './PullToRefresh';
+import { Spinner } from './Spinner';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -24,7 +26,6 @@ function notify(message: string) {
 export function PostList({
   items,
   loading,
-  refreshing,
   onRefresh,
   onEndReached,
   loadingMore,
@@ -33,8 +34,8 @@ export function PostList({
 }: {
   items: FeedItem[];
   loading: boolean;
-  refreshing: boolean;
-  onRefresh: () => void;
+  /** Puxar para atualizar (o spinner fica até a promessa terminar). */
+  onRefresh: () => unknown;
   onEndReached?: () => void;
   loadingMore?: boolean;
   header?: ReactElement;
@@ -86,29 +87,30 @@ export function PostList({
 
   return (
     <>
-      <FlatList
-        {...listPerf}
-        data={uniqueBy(items, (i) => i.id, 'posts')}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={header}
-        contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
-        renderItem={({ item }) => (
-          <PostCard
-            item={item}
-            onToggleLike={(p) => toggleLike.mutate(p)}
-            onMore={setMenuFor}
-            onOpenComments={(p) => router.push(`/post/${p.id}`)}
-            onOpen={(p) => router.push(`/post/${p.id}`)}
-          />
-        )}
-        ListEmptyComponent={
-          loading ? <PostSkeleton /> : <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
-        }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.primary} style={{ margin: space.lg }} /> : null}
-      />
+      <PullToRefresh onRefresh={onRefresh}>
+        <FlatList
+          {...listPerf}
+          data={uniqueBy(items, (i) => i.id, 'posts')}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={header}
+          contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
+          renderItem={({ item }) => (
+            <PostCard
+              item={item}
+              onToggleLike={(p) => toggleLike.mutate(p)}
+              onMore={setMenuFor}
+              onOpenComments={(p) => router.push(`/post/${p.id}`)}
+              onOpen={(p) => router.push(`/post/${p.id}`)}
+            />
+          )}
+          ListEmptyComponent={
+            loading ? <PostSkeleton /> : <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
+          }
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? <Spinner style={{ margin: space.lg }} /> : null}
+        />
+      </PullToRefresh>
       <PostActions
         visible={!!menuFor}
         username={menuFor?.author_username ?? ''}

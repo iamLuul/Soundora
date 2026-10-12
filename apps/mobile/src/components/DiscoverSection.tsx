@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { previewUsable } from '@soundora/core';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { fetchDiscoverCards, fetchLikedSongs, fetchRecommendations, refreshDiscoverAudio, swipeDiscover, trackLink } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
@@ -19,6 +19,7 @@ import { VibeAudio } from './vibes/VibeAudio';
 import { uniqueBy } from '../lib/hooks';
 import { DeckSkeleton, TrackListSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
+import { Spinner } from './Spinner';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -287,7 +288,7 @@ export function DiscoverSection() {
           <Button testID="discover-reload" title={t('discover.reload')} variant="ghost" onPress={shuffle} />
         </View>
       )}
-      {opening ? <ActivityIndicator color={colors.primary} /> : null}
+      {opening ? <Spinner /> : null}
       {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
 
       {/* Figma: "Liked songs" — tocar abre na plataforma; a estrela descurte. */}

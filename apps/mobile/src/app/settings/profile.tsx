@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GenrePicker } from '../../components/GenrePicker';
 import { Avatar, Button, ErrorText, Screen, TextField } from '../../components/ui';
 import { BIO_MAX, getMyGenres, removeProfileImage, setMyGenres, updateProfile, type ProfileImageKind } from '../../lib/api';
@@ -15,6 +15,7 @@ import { formatError } from '../../lib/errors';
 import { pickAndUploadProfileImage } from '../../lib/pick-image';
 import { colors, fonts, space } from '../../theme';
 import { webTouch } from '../../lib/touch';
+import { Spinner } from '../../components/Spinner';
 
 /** Editar perfil: banner, foto (centralizada sobre o banner, como no perfil), nome e bio. */
 export default function EditProfileScreen() {
@@ -86,12 +87,12 @@ export default function EditProfileScreen() {
       <View>
         <Pressable testID="change-banner" onPress={() => change('banner')} disabled={!!busy} accessibilityRole="button" accessibilityLabel={t('profile.changeBanner')} style={styles.banner}>
           {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
-          {busy === 'banner' ? <ActivityIndicator color={colors.text} /> : <Text style={styles.bannerLabel}>{t('profile.changeBanner')}</Text>}
+          {busy === 'banner' ? <Spinner color={colors.text} /> : <Text style={styles.bannerLabel}>{t('profile.changeBanner')}</Text>}
         </Pressable>
         <View style={styles.avatarWrap}>
           <Pressable testID="change-photo" onPress={() => change('avatar')} disabled={!!busy} accessibilityRole="button" accessibilityLabel={t('profile.changePhoto')} style={styles.avatarRing}>
             <Avatar uri={profile.avatar_url} name={profile.display_name} size={72} />
-            {busy === 'avatar' ? <ActivityIndicator color={colors.text} style={StyleSheet.absoluteFill} /> : null}
+            {busy === 'avatar' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
           </Pressable>
         </View>
       </View>

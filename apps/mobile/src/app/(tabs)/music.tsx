@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchField, TopTabs } from '../../components/figma';
 import { TrackRow } from '../../components/TrackRow';
@@ -11,6 +11,8 @@ import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { TrackListSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
+import { PullToRefresh } from '../../components/PullToRefresh';
+import { Spinner } from '../../components/Spinner';
 
 type Tab = 'liked' | 'mine';
 
@@ -40,36 +42,37 @@ export default function MusicScreen() {
           { value: 'mine', label: t('music.mine') },
         ]}
       />
-      <FlatList
-        {...listPerf}
-        data={items}
-        keyExtractor={(i) => i.link_preview_id}
-        contentContainerStyle={{ paddingBottom: space.xxl }}
-        ListHeaderComponent={
-          <View style={{ gap: space.md, paddingVertical: space.md }}>
-            <Text style={styles.title}>{tab === 'liked' ? t('music.likedTitle') : t('music.mineTitle')}</Text>
-            <SearchField placeholder={t('music.search')} value={query} onChangeText={setQuery} />
-          </View>
-        }
-        renderItem={({ item }) => (
-          <TrackRow
-            item={item}
-            platform={platform}
-            onPress={(x) => open({ key: x.link_preview_id, title: x.title, artist: x.artist ?? '' })}
-          />
-        )}
-        ListEmptyComponent={
-          tracks.isLoading ? (
-            <TrackListSkeleton count={8} />
-          ) : (
-            <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>
-              {tracks.isError ? t('common.error') : t('music.empty')}
-            </Text>
-          )
-        }
-        refreshControl={<RefreshControl refreshing={tracks.isRefetching} onRefresh={() => tracks.refetch()} tintColor={colors.primary} />}
-        ListFooterComponent={opening ? <ActivityIndicator color={colors.primary} style={{ marginTop: space.md }} /> : null}
-      />
+      <PullToRefresh onRefresh={() => tracks.refetch()}>
+        <FlatList
+          {...listPerf}
+          data={items}
+          keyExtractor={(i) => i.link_preview_id}
+          contentContainerStyle={{ paddingBottom: space.xxl }}
+          ListHeaderComponent={
+            <View style={{ gap: space.md, paddingVertical: space.md }}>
+              <Text style={styles.title}>{tab === 'liked' ? t('music.likedTitle') : t('music.mineTitle')}</Text>
+              <SearchField placeholder={t('music.search')} value={query} onChangeText={setQuery} />
+            </View>
+          }
+          renderItem={({ item }) => (
+            <TrackRow
+              item={item}
+              platform={platform}
+              onPress={(x) => open({ key: x.link_preview_id, title: x.title, artist: x.artist ?? '' })}
+            />
+          )}
+          ListEmptyComponent={
+            tracks.isLoading ? (
+              <TrackListSkeleton count={8} />
+            ) : (
+              <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>
+                {tracks.isError ? t('common.error') : t('music.empty')}
+              </Text>
+            )
+          }
+          ListFooterComponent={opening ? <Spinner style={{ marginTop: space.md }} /> : null}
+        />
+      </PullToRefresh>
       {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center', paddingVertical: space.sm }]}>{message}</Text> : null}
       {chooser}
     </View>
