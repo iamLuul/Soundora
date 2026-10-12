@@ -380,13 +380,16 @@ async function removeUserMedia(userIds) {
 // ---------------------------------------------------------------- etapas
 
 async function listUsers(filter) {
-  const out = [];
-  for (let page = 1; ; page++) {
+  const out = new Map();
+  for (let page = 1; page <= 1000; page++) {
     const { users } = must('listar usuários')(await admin.auth.admin.listUsers({ page, perPage: 1000 }));
-    out.push(...users.filter(filter));
-    if (users.length < 1000) break;
+    const seen = new Set(out.keys());
+    for (const u of users) if (filter(u)) out.set(u.id, u);
+    // Fim da lista, ou uma página só com contas já vistas (servidor que ignora a paginação): para.
+    const repeated = page > 1 && users.length > 0 && users.every((u) => seen.has(u.id) || !filter(u));
+    if (users.length < 1000 || repeated) break;
   }
-  return out;
+  return [...out.values()];
 }
 
 async function removeLoadUsers() {
@@ -395,11 +398,45 @@ async function removeLoadUsers() {
     const files = await removeUserMedia(users.map((u) => u.id));
     if (files) console.log(`  (${files} fotos e vídeos de carga apagados)`);
   }
-  await pool(users, 8, async (u, i) => {
-    must('apagar usuário')(await admin.auth.admin.deleteUser(u.id));
-    progress('apagando contas', i + 1, users.length);
+  await removeUserRows(users.map((u) => u.id));
+  // Contas já sem conteúdo: apagam rápido. Poucas por vez, com nova tentativa se o Auth reclamar.
+  let k = 0;
+  await pool(users, 4, async (u) => {
+    for (let attempt = 1; ; attempt++) {
+      const { error } = await admin.auth.admin.deleteUser(u.id);
+      if (!error || /not.?found/i.test(error.message ?? '')) break;
+      if (attempt >= 5) throw new Error(`apagar usuário: ${error.message}`);
+      await new Promise((r) => setTimeout(r, 300 * attempt));
+    }
+    progress('apagando contas', ++k, users.length);
   });
   return users.length;
+}
+
+/**
+ * Apaga em massa, tabela por tabela, o que as contas de carga criaram. Apagar 1.000 contas
+ * direto (cada uma levando milhares de curtidas, seguidores e comentários em cascata) fazia
+ * as exclusões travarem umas nas outras no Postgres ("Database error deleting user").
+ */
+async function removeUserRows(ids) {
+  const steps = [
+    ['posts', 'author_id'], // leva junto curtidas, comentários e mídia dos posts
+    ['comments', 'author_id'],
+    ['likes', 'user_id'],
+    ['comment_likes', 'user_id'],
+    ['follows', 'follower_id'],
+    ['follows', 'followee_id'],
+    ['vibes', 'author_id'],
+    ['discover_swipes', 'user_id'],
+    ['notifications', 'user_id'],
+    ['notifications', 'actor_id'],
+  ];
+  for (const [table, column] of steps) {
+    for (let i = 0; i < ids.length; i += 50) {
+      must(`limpar ${table}`)(await admin.from(table).delete().in(column, ids.slice(i, i + 50)));
+      progress(`limpando ${table}`, Math.min(i + 50, ids.length), ids.length);
+    }
+  }
 }
 
 /** Guarda e tira os tokens de push das contas de verdade (devolve uma função que restaura). */
