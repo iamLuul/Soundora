@@ -490,6 +490,18 @@ export async function fetchGenrePosts(genre: string, before: PostCursor | null):
   return data as FeedItem[];
 }
 
+/** Posts cujo texto contém a palavra, do mais novo ao mais velho. */
+export async function searchPosts(query: string, before: PostCursor | null): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('search_posts', {
+    p_query: query,
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: FEED_PAGE_SIZE,
+  });
+  if (error) throw error;
+  return data as FeedItem[];
+}
+
 export const BIO_MAX = 160;
 
 export async function updateProfile(input: { displayName: string; bio: string }): Promise<void> {

@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import GenrePostsScreen from '../src/app/genre/[slug]';
-import { GenreBrowser, relevantGenres, SearchResults } from '../src/components/SearchPanel';
+import { relevantGenres, SearchPanel, SearchResults } from '../src/components/SearchPanel';
 import type { GenreHit } from '../src/lib/api';
 import i18n from '../src/lib/i18n';
 import type { FeedItem } from '../src/lib/types';
@@ -36,9 +36,15 @@ jest.mock('../src/lib/supabase', () => {
 });
 
 const mockGenrePosts = jest.fn(async (_genre: string, _before: unknown): Promise<FeedItem[]> => []);
+const mockSearchPosts = jest.fn(async (_q: string, _before: unknown): Promise<FeedItem[]> => []);
+let mockPeople: unknown[] = [];
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
   fetchGenrePosts: (genre: string, before: unknown) => mockGenrePosts(genre, before),
+  searchPosts: (q: string, before: unknown) => mockSearchPosts(q, before),
+  searchProfiles: async () => mockPeople,
+  searchTracks: async () => [],
+  searchPostGenres: async () => [],
   fetchMyFollowingIds: async () => [],
 }));
 
@@ -64,6 +70,8 @@ const hits: GenreHit[] = [
 beforeEach(async () => {
   await i18n.changeLanguage('pt-BR');
   mockGenrePosts.mockClear();
+  mockSearchPosts.mockClear();
+  mockPeople = [];
 });
 
 test('a busca mostra os gêneros com quantos posts têm; tocar abre o gênero', async () => {
@@ -81,13 +89,6 @@ test('só gêneros com posts; se nenhum tiver, até 3 sem posts', () => {
   expect(relevantGenres([hits[0]!, zero('a'), hits[1]!]).map((g) => g.slug)).toEqual(['shoegaze', 'nu_gaze']);
   expect(relevantGenres([zero('a'), zero('b'), zero('c'), zero('d')]).map((g) => g.slug)).toEqual(['a', 'b', 'c']);
   expect(i18n.t('search.genrePosts', { count: 0 })).toBe('nenhum post ainda');
-});
-
-test('sem texto: os gêneros em destaque para tocar', async () => {
-  const onOpenGenre = jest.fn();
-  await wrap(<GenreBrowser onOpenGenre={onOpenGenre} />);
-  await fireEvent.press(await screen.findByTestId('browse-genre-mpb'));
-  expect(onOpenGenre).toHaveBeenCalledWith('mpb');
 });
 
 test('a tela do gênero lista os posts com ele e tem o título do gênero', async () => {
@@ -112,4 +113,42 @@ test('tocar no gênero do post abre a tela do gênero', async () => {
   await wrap(<GenrePostsScreen />);
   await fireEvent.press(await screen.findByTestId('post-genre-dream_pop'));
   expect(router.push).toHaveBeenCalledWith('/genre/dream_pop');
+});
+
+test('sem texto, a busca não mostra nada (nem lista de gêneros)', async () => {
+  await wrap(<SearchPanel />);
+  expect(screen.queryByText('Gêneros')).toBeNull();
+  expect(screen.queryByText('Digite pelo menos 2 letras.')).toBeNull();
+});
+
+test('palavra que não é pessoa, música nem gênero: ao pesquisar, mostra os posts com ela', async () => {
+  mockSearchPosts.mockResolvedValueOnce([post('p9')]);
+  await wrap(<SearchPanel />);
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'incrivel');
+  expect(await screen.findByText('Nada encontrado para “incrivel”.')).toBeTruthy();
+  expect(mockSearchPosts).not.toHaveBeenCalled();
+  await fireEvent(screen.getByTestId('search-input'), 'submitEditing');
+  expect(await screen.findByText('post p9')).toBeTruthy();
+  expect(screen.getByText('Posts com “incrivel”')).toBeTruthy();
+  expect(mockSearchPosts).toHaveBeenCalledWith('incrivel', null);
+  // Mudou o texto: volta para a busca normal.
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'incrive');
+  await waitFor(() => expect(screen.queryByText('post p9')).toBeNull());
+});
+
+test('o botão "Procurar nos posts" faz o mesmo que pesquisar', async () => {
+  await wrap(<SearchPanel />);
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'zzz');
+  await fireEvent.press(await screen.findByTestId('search-posts'));
+  expect(await screen.findByText('Nenhum post com “zzz”.')).toBeTruthy();
+});
+
+test('se a palavra acha uma pessoa, pesquisar não troca para posts', async () => {
+  mockPeople = [{ id: 'u1', username: 'incrivel', display_name: 'Incrível', avatar_url: null }];
+  await wrap(<SearchPanel />);
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'incrivel');
+  expect(await screen.findByText('Pessoas')).toBeTruthy();
+  await fireEvent(screen.getByTestId('search-input'), 'submitEditing');
+  expect(screen.getByText('Pessoas')).toBeTruthy();
+  expect(mockSearchPosts).not.toHaveBeenCalled();
 });

@@ -63,3 +63,31 @@ describe('buscar por gênero', () => {
     expect(await db.as(me, `select * from public.search_post_genres('', 10)`)).toEqual([]);
   });
 });
+
+describe('buscar posts pela palavra', () => {
+  it('acha posts com a palavra no texto (sem maiúsculas), mais novo primeiro, sem bloqueados', async () => {
+    const a = await post(ana, [], 3);
+    await db.sql(`update public.posts set body = 'Que show INCRIVEL ontem' where id = $1`, [a]);
+    const b = await post(me, [], 2);
+    await db.sql(`update public.posts set body = 'incrível não, incrivel mesmo' where id = $1`, [b]);
+    const c = await post(chato, [], 1); // bloqueado (do teste acima)
+    await db.sql(`update public.posts set body = 'post incrivel do chato' where id = $1`, [c]);
+    const d = await post(ana, [], 1);
+    await db.sql(`update public.posts set body = '100% puro_suco' where id = $1`, [d]);
+
+    const rows = await db.as<{ id: string }>(me, `select id from public.search_posts('incrivel')`);
+    expect(rows.map((r) => r.id)).toEqual([b, a]);
+    // Sem acento: "incrível" acha "INCRIVEL" também.
+    expect((await db.as<{ id: string }>(me, `select id from public.search_posts('Incrível')`)).map((r) => r.id)).toEqual([b, a]);
+    const page2 = await db.as<{ id: string }>(me, `select id from public.search_posts('incrivel', now() - interval '150 minutes', null, 20)`);
+    expect(page2.map((r) => r.id)).toEqual([a]);
+
+    // % e _ são letras, não curingas.
+    expect((await db.as<{ id: string }>(me, `select id from public.search_posts('0% p')`)).map((r) => r.id)).toEqual([d]);
+    expect((await db.as<{ id: string }>(me, `select id from public.search_posts('o_s')`)).map((r) => r.id)).toEqual([d]);
+    expect(await db.as(me, `select id from public.search_posts('r%c')`)).toEqual([]); // como curinga acharia "puro_suco"
+    expect(await db.as(me, `select id from public.search_posts('pur_x')`)).toEqual([]);
+    expect(await db.as(me, `select id from public.search_posts('i')`)).toEqual([]);
+    await expect(db.anon(`select * from public.search_posts('incrivel')`)).rejects.toThrow(/permission denied/);
+  });
+});

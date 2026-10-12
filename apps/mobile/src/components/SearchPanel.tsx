@@ -6,7 +6,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type GenreHit, searchPostGenres, searchProfiles, searchTracks, unblockUser } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { uniqueBy, useDebouncedValue } from '../lib/hooks';
-import { useGenres } from '../lib/queries';
+import { useSearchPosts } from '../lib/queries';
+import { PostList } from './PostList';
 import type { PersonCard, TrackResult } from '../lib/types';
 import { colors, fonts, space, text } from '../theme';
 import { RingAvatar, SearchField } from './figma';
@@ -22,32 +23,6 @@ function genreName(g: { name_pt: string; name_en: string }, locale: string) {
   return locale === 'pt-BR' ? g.name_pt : g.name_en;
 }
 
-/** Sem texto: os gêneros em destaque, para tocar e ver os posts. */
-export function GenreBrowser({ onOpenGenre }: { onOpenGenre: (slug: string) => void }) {
-  const { t, i18n } = useTranslation();
-  const genres = useGenres();
-  if (!genres.data?.length) return null;
-  return (
-    <View style={{ gap: space.sm }}>
-      <Text style={styles.section}>{t('search.browseGenres')}</Text>
-      <View style={styles.chips}>
-        {genres.data.map((g) => (
-          <Pressable
-            key={g.slug}
-            testID={`browse-genre-${g.slug}`}
-            accessibilityRole="link"
-            onPress={() => onOpenGenre(g.slug)}
-            style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}
-          >
-            <Text style={styles.chipText}>{genreName(g, i18n.language)}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-
 export function SearchResults({
   query,
   people,
@@ -58,6 +33,7 @@ export function SearchResults({
   onOpenGenre,
   onUnblock,
   unblocking,
+  onSearchPosts,
 }: {
   query: string;
   people: PersonCard[];
@@ -70,6 +46,8 @@ export function SearchResults({
   /** Desbloquear quem eu bloqueei (aparece marcado na busca). */
   onUnblock?: (person: PersonCard) => void;
   unblocking?: string | null;
+  /** Nada achado: procurar a palavra no texto dos posts. */
+  onSearchPosts?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   // Vazio: só a lista de gêneros (abaixo); com 1 letra, o aviso.
@@ -83,7 +61,14 @@ export function SearchResults({
       </View>
     );
   if (!people.length && !tracks.length && !genres.length) {
-    return <Text style={[text.body, styles.hint]}>{t('search.noResults', { query: query.trim() })}</Text>;
+    return (
+      <View style={{ alignItems: 'center', gap: space.md }}>
+        <Text style={[text.body, styles.hint]}>{t('search.noResults', { query: query.trim() })}</Text>
+        {onSearchPosts ? (
+          <Button testID="search-posts" size="sm" variant="ghost" title={t('search.searchPosts', { query: query.trim() })} onPress={onSearchPosts} />
+        ) : null}
+      </View>
+    );
   }
   return (
     <View style={{ gap: space.lg }}>
@@ -189,6 +174,18 @@ export function SearchPanel() {
   const [unblocking, setUnblocking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Ao apertar "pesquisar": se o texto não é pessoa, música nem gênero, mostra os posts com a palavra.
+  const [postsFor, setPostsFor] = useState<string | null>(null);
+  const loading = enabled && (people.isLoading || tracks.isLoading || genres.isLoading);
+  const shownGenres = relevantGenres(genres.data ?? []);
+  const nothingElse = enabled && !loading && !people.data?.length && !tracks.data?.length && !shownGenres.length;
+  const showPosts = postsFor !== null && postsFor === q && postsFor === query.trim() && nothingElse;
+  const posts = useSearchPosts(showPosts ? q : '');
+  const submit = () => {
+    const word = query.trim();
+    if (word.length >= MIN_QUERY) setPostsFor(word);
+  };
+
   const unblock = async (person: PersonCard) => {
     setUnblocking(person.id);
     setMessage(null);
@@ -206,23 +203,44 @@ export function SearchPanel() {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ gap: space.lg, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
-      <SearchField testID="search-input" value={query} onChangeText={setQuery} placeholder={t('search.placeholder')} />
-      <SearchResults
-        query={q}
-        people={people.data ?? []}
-        tracks={tracks.data ?? []}
-        // Só os gêneros que têm posts (ou todos, se nenhum tiver): é para achar posts.
-        genres={relevantGenres(genres.data ?? [])}
-        loading={enabled && (people.isLoading || tracks.isLoading || genres.isLoading)}
-        onOpenProfile={(username) => router.push(`/u/${username}`)}
-        onOpenGenre={openGenre}
-        onUnblock={unblock}
-        unblocking={unblocking}
+    <View style={{ flex: 1, gap: space.lg }}>
+      <SearchField
+        testID="search-input"
+        value={query}
+        onChangeText={setQuery}
+        onSubmitEditing={submit}
+        placeholder={t('search.placeholder')}
       />
-      {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
-      {!enabled ? <GenreBrowser onOpenGenre={openGenre} /> : null}
-    </ScrollView>
+      {showPosts ? (
+        <PostList
+          header={<Text style={[styles.section, { paddingBottom: space.sm }]}>{t('search.postsWith', { query: q })}</Text>}
+          items={uniqueBy(posts.data?.pages.flat() ?? [], (p) => p.id, 'busca de posts')}
+          loading={posts.isLoading}
+          onRefresh={() => posts.refetch()}
+          onEndReached={() => posts.hasNextPage && !posts.isFetchingNextPage && posts.fetchNextPage()}
+          loadingMore={posts.isFetchingNextPage}
+          emptyText={posts.isError ? formatError(t, posts.error) : t('search.noPosts', { query: q })}
+          followable
+        />
+      ) : (
+        <ScrollView contentContainerStyle={{ gap: space.lg, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
+          <SearchResults
+            query={q}
+            people={people.data ?? []}
+            tracks={tracks.data ?? []}
+            // Gêneros no topo: só os que têm posts (ou alguns, se nenhum tiver).
+            genres={shownGenres}
+            loading={loading}
+            onOpenProfile={(username) => router.push(`/u/${username}`)}
+            onOpenGenre={openGenre}
+            onUnblock={unblock}
+            unblocking={unblocking}
+            onSearchPosts={() => setPostsFor(q)}
+          />
+          {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
@@ -235,7 +253,4 @@ const styles = StyleSheet.create({
   blockedTag: { fontFamily: fonts.semibold, color: colors.danger },
   genreIcon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.handle, alignItems: 'center', justifyContent: 'center' },
   genreHash: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { borderRadius: 14, borderWidth: 1, borderColor: colors.handle, paddingHorizontal: space.md, paddingVertical: 6 },
-  chipText: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
 });
