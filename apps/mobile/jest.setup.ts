@@ -34,3 +34,9 @@ jest.mock('expo-audio', () => ({
   useAudioPlayer: () => ({ play: jest.fn(), pause: jest.fn(), loop: false, muted: false }),
   useAudioPlayerStatus: () => ({ currentTime: 0, duration: 0, playing: false, didJustFinish: false, playbackState: 'idle' }),
 }));
+
+// Reanimated/Worklets dependem do módulo nativo: no Jest, as versões de mentira das bibliotecas.
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
+// Gesture Handler: o módulo nativo de mentira da própria biblioteca (gestos testáveis com jest-utils).
+require('react-native-gesture-handler/jestSetup');

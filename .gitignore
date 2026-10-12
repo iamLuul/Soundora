@@ -5,6 +5,7 @@ web-build/
 *.log
 .DS_Store
 Thumbs.db
+docs/
 
 # Segredos
 .env

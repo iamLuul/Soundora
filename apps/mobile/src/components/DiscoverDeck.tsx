@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.sm, paddingBottom: space.md },
   side: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stamp: { position: 'absolute', top: space.xl, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 3 },
-  stampLike: { left: space.xl, borderColor: colors.primary, transform: [{ rotate: '-12deg' }] },
+  stampLike: { left: space.xl, borderColor: colors.success, transform: [{ rotate: '-12deg' }] },
   stampSkip: { right: space.xl, borderColor: colors.danger, transform: [{ rotate: '12deg' }] },
   stampText: { fontFamily: fonts.bold, fontSize: 22, color: colors.text, textTransform: 'uppercase' },
 });
