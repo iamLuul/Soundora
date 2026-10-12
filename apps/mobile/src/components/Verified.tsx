@@ -25,8 +25,9 @@ export function useVerifiedUsernames() {
 /**
  * Selo de verificado (desenho do Raul): escudo roxo de topo reto e base arredondada, com o
  * check branco de pontas retas. Coordenadas medidas no desenho original (218 × 224).
+ * Tamanho: a altura das maiúsculas do nome ao lado (~75% da fonte): 10 para nomes em 13–14 px.
  */
-export function VerifiedBadge({ size = 14, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
+export function VerifiedBadge({ size = 10, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
   const { t } = useTranslation();
   return (
     <View testID="verified-badge" accessible accessibilityRole="image" accessibilityLabel={t('profile.verified')} style={style}>
@@ -45,7 +46,7 @@ export function Verified(props: VerifiedProps) {
   return useContext(QueryClientContext) ? <VerifiedIfListed {...props} /> : null;
 }
 
-function VerifiedIfListed({ username, size = 14, style }: VerifiedProps) {
+function VerifiedIfListed({ username, size = 10, style }: VerifiedProps) {
   const verified = useVerifiedUsernames();
   if (!username || !verified.data?.has(username)) return null;
   return <VerifiedBadge size={size} style={style} />;

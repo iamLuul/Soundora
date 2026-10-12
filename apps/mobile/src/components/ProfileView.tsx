@@ -201,7 +201,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
             <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
               {p.display_name}
             </Text>
-            <Verified username={p.username} size={18} />
+            <Verified username={p.username} size={12} />
           </View>
           <Text style={styles.handle} numberOfLines={1}>
             @{p.username}
