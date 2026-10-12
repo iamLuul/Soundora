@@ -493,6 +493,21 @@
     "suspendedBanner": "Sua conta está suspensa até {{date}}. Você pode ver o app, mas não pode postar, comentar, curtir ou seguir.",
     "suspendedBannerForever": "Sua conta está suspensa. Você pode ver o app, mas não pode postar, comentar, curtir ou seguir.",
     "posts_zero": "nenhum post",
-    "openReports_zero": "nenhuma denúncia aberta"
+    "openReports_zero": "nenhuma denúncia aberta",
+    "filter_all": "Todos",
+    "filter_verified": "Verificados",
+    "filter_regular": "Comuns",
+    "filter_admin": "Admins",
+    "filter_suspended": "Suspensos",
+    "filter_reported": "Com denúncias",
+    "sortBy": "Ordenar por",
+    "sort_relevance": "Relevância",
+    "sort_followers_desc": "Mais seguidores",
+    "sort_followers_asc": "Menos seguidores",
+    "sort_name_asc": "A a Z",
+    "sort_name_desc": "Z a A",
+    "followers_zero": "nenhum seguidor",
+    "followers_one": "{{count}} seguidor",
+    "followers_other": "{{count}} seguidores"
   }
 }

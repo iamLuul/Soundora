@@ -493,6 +493,21 @@
     "suspendedBanner": "Your account is suspended until {{date}}. You can browse, but you can't post, comment, like or follow.",
     "suspendedBannerForever": "Your account is suspended. You can browse, but you can't post, comment, like or follow.",
     "posts_zero": "no posts",
-    "openReports_zero": "no open reports"
+    "openReports_zero": "no open reports",
+    "filter_all": "All",
+    "filter_verified": "Verified",
+    "filter_regular": "Regular",
+    "filter_admin": "Admins",
+    "filter_suspended": "Suspended",
+    "filter_reported": "Reported",
+    "sortBy": "Sort by",
+    "sort_relevance": "Relevance",
+    "sort_followers_desc": "Most followers",
+    "sort_followers_asc": "Fewest followers",
+    "sort_name_asc": "A to Z",
+    "sort_name_desc": "Z to A",
+    "followers_zero": "no followers",
+    "followers_one": "{{count}} follower",
+    "followers_other": "{{count}} followers"
   }
 }

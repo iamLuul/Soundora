@@ -39,7 +39,12 @@ export interface AdminUser {
   created_at: string;
   post_count: number;
   open_reports: number;
+  follower_count: number;
 }
+
+/** Filtros e ordenação da aba Usuários (os mesmos nomes do banco). */
+export type UserFilter = 'all' | 'verified' | 'regular' | 'admin' | 'suspended' | 'reported';
+export type UserSort = 'relevance' | 'followers_desc' | 'followers_asc' | 'name_asc' | 'name_desc';
 
 export interface AdminOverview {
   open_reports: number;
@@ -70,7 +75,7 @@ export const adminKeys = {
   isAdmin: ['is-admin'] as const,
   overview: ['admin', 'overview'] as const,
   reports: (status: ReportStatus) => ['admin', 'reports', status] as const,
-  users: (q: string) => ['admin', 'users', q] as const,
+  users: (q: string, filter: UserFilter, sort: UserSort) => ['admin', 'users', q, filter, sort] as const,
   featured: ['admin', 'featured'] as const,
 };
 
@@ -109,11 +114,11 @@ export function useAdminReports(status: ReportStatus) {
   });
 }
 
-export function useAdminUsers(query: string) {
+export function useAdminUsers(query: string, filter: UserFilter = 'all', sort: UserSort = 'relevance') {
   return useQuery({
-    queryKey: adminKeys.users(query),
+    queryKey: adminKeys.users(query, filter, sort),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('admin_users', { p_query: query, p_limit: 50 });
+      const { data, error } = await supabase.rpc('admin_users', { p_query: query, p_filter: filter, p_sort: sort, p_limit: 100 });
       if (error) throw error;
       return data as AdminUser[];
     },

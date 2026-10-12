@@ -112,6 +112,39 @@ describe('painel admin: usuários', () => {
     await db.as(admin, `select public.admin_suspend($1, 0)`, [troll]);
   });
 
+  it('filtros (verificados, comuns, admin, suspensos, com denúncia) e ordenação', async () => {
+    const famosa = await createUser(db, 'adm_famosa');
+    const fa1 = await createUser(db, 'adm_fa1');
+    const fa2 = await createUser(db, 'adm_fa2');
+    for (const f of [fa1, fa2]) await db.as(f, `insert into public.follows (follower_id, followee_id) values ($1, $2)`, [f, famosa]);
+    await db.as(admin, `select public.admin_set_verified($1, true)`, [famosa]);
+    await db.as(admin, `select public.admin_suspend($1, 7)`, [fa2]);
+
+    type U = { username: string; follower_count: number };
+    const list = async (filter: string, sort = 'relevance') =>
+      (await db.as<U>(admin, `select username, follower_count from public.admin_users('adm_', $1, $2, 100)`, [filter, sort])).map((u) => u.username);
+
+    expect(await list('verified')).toEqual(['adm_famosa']);
+    expect(await list('admin')).toEqual(['adm_chefe']);
+    expect(await list('suspended')).toEqual(['adm_fa2']);
+    expect(await list('reported')).toContain('adm_troll');
+    expect(await list('reported')).not.toContain('adm_fa1');
+    const regular = await list('regular');
+    expect(regular).toContain('adm_fa1');
+    expect(regular).not.toEqual(expect.arrayContaining(['adm_famosa', 'adm_chefe', 'adm_fa2']));
+
+    const byFollowers = await db.as<U>(admin, `select username, follower_count from public.admin_users('adm_', 'all', 'followers_desc', 100)`);
+    expect(byFollowers[0]).toEqual({ username: 'adm_famosa', follower_count: 2 });
+    const fewest = await list('all', 'followers_asc');
+    expect(fewest.at(-1)).toBe('adm_famosa');
+    const az = await list('all', 'name_asc');
+    expect(az).toEqual([...az].sort());
+    expect(await list('all', 'name_desc')).toEqual([...az].reverse());
+
+    await expect(db.as(admin, `select * from public.admin_users('', 'hackers')`)).rejects.toThrow(/invalid_request/);
+    await db.as(admin, `select public.admin_suspend($1, 0)`, [fa2]);
+  });
+
   it('admin não suspende a si mesmo nem outro admin', async () => {
     await expect(db.as(admin, `select public.admin_suspend($1, 7)`, [admin])).rejects.toThrow(/cannot_suspend_admin/);
   });

@@ -3,6 +3,9 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+// ScrollView do gesture-handler: rolar os filtros não troca de aba.
+import { ScrollView } from 'react-native-gesture-handler';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar, SearchField, TopTabs } from '../components/figma';
 import { OptionsSheet, type SheetOption } from '../components/OptionsSheet';
@@ -21,6 +24,8 @@ import {
   type AdminReport,
   type AdminUser,
   type ReportStatus,
+  type UserFilter,
+  type UserSort,
 } from '../lib/admin';
 import { formatError } from '../lib/errors';
 import { useDebouncedValue } from '../lib/hooks';
@@ -215,14 +220,53 @@ function SuspendSheet({ visible, username, onClose, onPick }: { visible: boolean
 
 // ---------------------------------------------------------------- usuários
 
+const USER_FILTERS: UserFilter[] = ['all', 'verified', 'regular', 'admin', 'suspended', 'reported'];
+const USER_SORTS: UserSort[] = ['relevance', 'followers_desc', 'followers_asc', 'name_asc', 'name_desc'];
+
 function UsersTab() {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<UserFilter>('all');
+  const [sort, setSort] = useState<UserSort>('relevance');
+  const [sortMenu, setSortMenu] = useState(false);
   const q = useDebouncedValue(query.trim(), 300);
-  const users = useAdminUsers(q);
+  const users = useAdminUsers(q, filter, sort);
+  const sortOptions: SheetOption[] = USER_SORTS.map((s) => ({
+    key: `sort-${s}`,
+    label: t(`admin.sort_${s}`),
+    icon: s === sort ? 'checkmark' : s.startsWith('followers') ? 'people-outline' : s.startsWith('name') ? 'text-outline' : 'flame-outline',
+    onPress: () => {
+      setSortMenu(false);
+      setSort(s);
+    },
+  }));
   return (
     <View style={{ flex: 1, gap: space.md }}>
       <SearchField testID="admin-user-search" placeholder={t('admin.searchUsers')} value={query} onChangeText={setQuery} autoCapitalize="none" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }} accessibilityRole="tablist">
+        {USER_FILTERS.map((f) => {
+          const on = f === filter;
+          return (
+            <Pressable
+              key={f}
+              testID={`admin-filter-${f}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              onPress={() => setFilter(f)}
+              style={[styles.chip, on && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>{t(`admin.filter_${f}`)}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <Pressable testID="admin-sort" accessibilityRole="button" onPress={() => setSortMenu(true)} style={styles.sortButton}>
+        <Ionicons name="swap-vertical" size={16} color={colors.textMuted} />
+        <Text style={styles.sortText}>
+          {t('admin.sortBy')}: <Text style={{ color: colors.text }}>{t(`admin.sort_${sort}`)}</Text>
+        </Text>
+      </Pressable>
+      <OptionsSheet visible={sortMenu} title={t('admin.sortBy')} options={sortOptions} onClose={() => setSortMenu(false)} />
       <FlatList
         {...listPerf}
         data={users.data ?? []}
@@ -262,7 +306,7 @@ function UserRow({ user: u }: { user: AdminUser }) {
         </View>
       </Pressable>
       <Text style={text.small}>
-        {t('admin.posts', { count: u.post_count })} · {t('admin.openReports', { count: u.open_reports })}
+        {t('admin.followers', { count: u.follower_count ?? 0 })} · {t('admin.posts', { count: u.post_count })} · {t('admin.openReports', { count: u.open_reports })}
       </Text>
       {suspended ? (
         <Text style={[text.small, { color: colors.danger }]}>
@@ -371,5 +415,11 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 14, color: colors.text, flexShrink: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.xs },
   empty: { color: colors.textMuted, textAlign: 'center', marginTop: space.xl },
+  chip: { borderRadius: radius.pill, borderWidth: 1, borderColor: colors.surface, paddingHorizontal: space.md, paddingVertical: 6 },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted },
+  chipTextOn: { color: colors.text },
+  sortButton: { flexDirection: 'row', alignItems: 'center', gap: space.xs, alignSelf: 'flex-start' },
+  sortText: { fontFamily: fonts.regular, fontSize: 13, color: colors.textMuted },
   cover: { width: 48, height: 48, borderRadius: 6, backgroundColor: colors.surface },
 });

@@ -31,7 +31,7 @@ const mockRpc = jest.fn(async (name: string, _args?: unknown) => {
       };
     case 'admin_users':
       return {
-        data: [{ id: 'u9', username: 'troll', display_name: 'Troll', avatar_url: null, verified: false, suspended_until: null, is_admin: false, created_at: '', post_count: 3, open_reports: 2 }],
+        data: [{ id: 'u9', username: 'troll', display_name: 'Troll', avatar_url: null, verified: false, suspended_until: null, is_admin: false, created_at: '', post_count: 3, open_reports: 2, follower_count: 12 }],
         error: null,
       };
     default:
@@ -85,6 +85,18 @@ test('usuários: verificar e suspender', async () => {
   await fireEvent.press(screen.getByTestId('admin-suspend-troll'));
   await fireEvent.press(await screen.findByTestId('option-suspend-7'));
   await waitFor(() => expect(mockRpc).toHaveBeenCalledWith('admin_suspend', { p_user: 'u9', p_days: 7 }));
+});
+
+test('usuários: filtros e ordenação vão para o banco', async () => {
+  await wrap(<AdminScreen />);
+  await fireEvent.press(await screen.findByTestId('tab-users'));
+  expect(await screen.findByText(/12 seguidores/)).toBeTruthy();
+  await fireEvent.press(screen.getByTestId('admin-filter-verified'));
+  await waitFor(() => expect(mockRpc).toHaveBeenCalledWith('admin_users', expect.objectContaining({ p_filter: 'verified', p_sort: 'relevance' })));
+  await fireEvent.press(screen.getByTestId('admin-sort'));
+  await fireEvent.press(await screen.findByTestId('option-sort-name_desc'));
+  await waitFor(() => expect(mockRpc).toHaveBeenCalledWith('admin_users', expect.objectContaining({ p_filter: 'verified', p_sort: 'name_desc' })));
+  expect(screen.getByTestId('admin-sort')).toHaveTextContent(/Z a A/);
 });
 
 test('aviso de conta suspensa', async () => {
