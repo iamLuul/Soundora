@@ -5,6 +5,7 @@ import { relativeTime } from '../lib/i18n';
 import type { CommentRow } from '../lib/types';
 import { colors, fonts, space } from '../theme';
 import { Icon, RingAvatar } from './figma';
+import { MentionText } from './MentionText';
 
 /** Avatar do comentário (34) e da resposta (28). */
 const ROOT_AVATAR = 34;
@@ -42,7 +43,7 @@ export function CommentItem({
         <Text style={styles.name} numberOfLines={1}>
           {item.author_display_name} <Text style={styles.handle}>@{item.author_username} · {relativeTime(item.created_at)}</Text>
         </Text>
-        <Text style={styles.body}>{item.body}</Text>
+        <MentionText style={styles.body}>{item.body}</MentionText>
         <View style={styles.actions}>
           <Pressable testID={`comment-reply-${item.id}`} accessibilityRole="button" onPress={() => onReply(item)} hitSlop={8}>
             <Text style={styles.action}>{t('post.reply')}</Text>

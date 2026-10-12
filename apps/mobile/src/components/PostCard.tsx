@@ -6,6 +6,7 @@ import { genreLabel, useGenres } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
 import { colors, fonts, space } from '../theme';
 import { Icon, RingAvatar } from './figma';
+import { MentionText } from './MentionText';
 import { MusicCard } from './MusicCard';
 import { PostMedia } from './PostMedia';
 
@@ -65,9 +66,9 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
       </View>
 
       {item.body ? (
-        <Text style={[styles.body, expanded && styles.bodyBig]} numberOfLines={expanded ? undefined : 8}>
+        <MentionText style={[styles.body, expanded && styles.bodyBig]} numberOfLines={expanded ? undefined : 8}>
           {item.body}
-        </Text>
+        </MentionText>
       ) : null}
 
       <PostMedia media={item.media ?? []} />
