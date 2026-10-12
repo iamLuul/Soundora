@@ -14,6 +14,7 @@ import { enablePush, pushAvailability, pushEnabled } from '../lib/push';
 import { keys, useNotifications } from '../lib/queries';
 import { colors, fonts, space, text } from '../theme';
 import { uniqueBy } from '../lib/hooks';
+import { PeopleSkeleton } from '../components/Skeleton';
 
 /** Notificações (Figma: Notifications page): Todas e Respostas, com push opcional no celular. */
 export default function NotificationsScreen() {
@@ -64,7 +65,9 @@ export default function NotificationsScreen() {
         ListHeaderComponent={<PushCard />}
         ListEmptyComponent={
           query.isLoading ? (
-            <ActivityIndicator color={colors.muted} style={{ marginTop: space.xl }} />
+            <View style={{ paddingHorizontal: space.lg }}>
+              <PeopleSkeleton count={8} avatar={40} />
+            </View>
           ) : query.isError ? (
             <Text style={[text.body, styles.empty]}>{formatError(t, query.error)}</Text>
           ) : (

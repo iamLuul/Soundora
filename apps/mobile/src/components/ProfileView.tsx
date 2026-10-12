@@ -17,6 +17,7 @@ import { colors, fonts, space, text } from '../theme';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
 import { PostList } from './PostList';
 import { Avatar } from './ui';
+import { ProfileSkeleton } from './Skeleton';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
@@ -45,7 +46,7 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
   const summary = useQuery({ queryKey: keys.profile(username), queryFn: () => fetchProfileSummary(username) });
   const posts = useProfilePosts(summary.data?.id);
 
-  if (summary.isLoading) return <ActivityIndicator color={colors.primary} style={{ marginTop: space.xxl }} />;
+  if (summary.isLoading) return <ProfileSkeleton />;
   const p = summary.data;
   if (!p) return <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl }]}>{t('common.error')}</Text>;
 

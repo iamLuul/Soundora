@@ -16,6 +16,7 @@ import { useStreamingOpener } from './StreamingOpener';
 import { Button } from './ui';
 import { VibeAudio } from './vibes/VibeAudio';
 import { uniqueBy } from '../lib/hooks';
+import { DeckSkeleton, TrackListSkeleton } from './Skeleton';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -180,9 +181,9 @@ export function DiscoverSection() {
       ) : null}
 
       {base.isLoading || base.isRefetching ? (
-        <View style={[styles.center, { height: stackHeight + 96 }]}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={text.small}>{t('discover.loading')}</Text>
+        <View style={{ gap: space.sm }}>
+          <DeckSkeleton height={stackHeight} />
+          <Text style={[text.small, { textAlign: 'center' }]}>{t('discover.loading')}</Text>
         </View>
       ) : top ? (
         <>
@@ -217,7 +218,7 @@ export function DiscoverSection() {
         </Text>
       </View>
       {liked.isLoading ? (
-        <ActivityIndicator color={colors.primary} />
+        <TrackListSkeleton count={3} cover={56} />
       ) : !liked.data?.length ? (
         <Text style={[text.small, { color: colors.textMuted }]}>{t('discover.likedEmpty')}</Text>
       ) : (

@@ -17,6 +17,7 @@ import { relativeTime } from '../../lib/i18n';
 import { keys, useVibeMedia, useVibesOf, useVibesTray } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
+import { PeopleSkeleton } from '../../components/Skeleton';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -293,7 +294,7 @@ function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () 
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.sheetTitle}>{t('vibes.viewersTitle')}</Text>
           {viewers.isLoading ? (
-            <ActivityIndicator color={colors.muted} />
+            <PeopleSkeleton count={4} avatar={36} />
           ) : (
             <FlatList
               data={viewers.data ?? []}

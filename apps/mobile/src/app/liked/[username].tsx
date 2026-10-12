@@ -13,6 +13,7 @@ import { keys, useProfileLikedSongs } from '../../lib/queries';
 import type { LikedSong } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
+import { TrackListSkeleton } from '../../components/Skeleton';
 
 /** Perfil › Curtidas: as músicas que a pessoa curtiu no Descobrir (a mais recente primeiro). */
 export default function LikedSongsScreen() {
@@ -63,7 +64,7 @@ export default function LikedSongsScreen() {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           liked.isLoading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />
+            <TrackListSkeleton count={8} cover={56} />
           ) : (
             <Text style={[text.body, styles.empty]}>{liked.isError ? formatError(t, liked.error) : t(isMe ? 'liked.emptyMine' : 'liked.empty')}</Text>
           )

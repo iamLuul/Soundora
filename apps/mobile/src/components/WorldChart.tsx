@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import type { ChartTrack } from '../lib/api';
 import { colors, fonts, space, text } from '../theme';
+import { TrackListSkeleton } from './Skeleton';
 
 /** Cores do Figma (Trending Page): selo NEW amarelo, seta verde (subiu) e vermelha (caiu). */
 const MOVE = { up: '#4E9A51', down: '#C44545', new: '#FFD43B' };
@@ -101,7 +102,7 @@ export function WorldChartList({
       contentContainerStyle={{ paddingBottom: space.xxl }}
       ListEmptyComponent={
         loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />
+          <TrackListSkeleton count={8} rank />
         ) : (
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>{error}</Text>
         )

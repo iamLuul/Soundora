@@ -16,6 +16,7 @@ import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
 import { keys, usePost, useToggleLike } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
+import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -143,7 +144,10 @@ export default function PostScreen() {
       </View>
 
       {post.isLoading ? (
-        <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
+        <View style={{ paddingHorizontal: space.lg }}>
+          <PostSkeleton count={1} />
+          <CommentsSkeleton />
+        </View>
       ) : !post.data ? (
         <Text style={styles.gone}>{post.isError ? formatError(t, post.error) : t('post.gone')}</Text>
       ) : (
@@ -157,7 +161,7 @@ export default function PostScreen() {
               <Text style={styles.section}>{t('post.comments', { count: post.data.comment_count })}</Text>
             </>
           }
-          ListEmptyComponent={comments.isLoading ? <ActivityIndicator color={colors.muted} /> : <Text style={styles.empty}>{t('post.noComments')}</Text>}
+          ListEmptyComponent={comments.isLoading ? <CommentsSkeleton /> : <Text style={styles.empty}>{t('post.noComments')}</Text>}
           renderItem={({ item: row }) =>
             row.kind === 'toggle' ? (
               <RepliesToggle rootId={row.rootId} hidden={row.hidden} expanded={row.expanded} onPress={() => toggleThread(row.rootId)} />

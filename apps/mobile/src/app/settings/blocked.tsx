@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { RingAvatar } from '../../components/figma';
 import { Button, ErrorText, Screen } from '../../components/ui';
 import { fetchBlockedProfiles, unblockUser } from '../../lib/api';
@@ -10,6 +10,7 @@ import { formatError } from '../../lib/errors';
 import type { PersonCard } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
+import { PeopleSkeleton } from '../../components/Skeleton';
 
 /** Quem eu bloqueei, com a opção de desbloquear. */
 export default function BlockedScreen() {
@@ -40,7 +41,7 @@ export default function BlockedScreen() {
       <Text style={text.small}>{t('blocked.hint')}</Text>
       <ErrorText>{error}</ErrorText>
       {blocked.isLoading ? (
-        <ActivityIndicator color={colors.primary} />
+        <PeopleSkeleton count={4} action />
       ) : blocked.isError ? (
         <Text style={[text.body, styles.empty]}>{formatError(t, blocked.error)}</Text>
       ) : !blocked.data?.length ? (

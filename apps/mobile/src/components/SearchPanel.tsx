@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { searchProfiles, searchTracks, unblockUser } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { uniqueBy, useDebouncedValue } from '../lib/hooks';
@@ -11,6 +11,7 @@ import { colors, fonts, space, text } from '../theme';
 import { RingAvatar, SearchField } from './figma';
 import { TrendingRow } from './TrendingList';
 import { Button } from './ui';
+import { PeopleSkeleton, TrackListSkeleton } from './Skeleton';
 
 export const MIN_QUERY = 2;
 
@@ -35,7 +36,13 @@ export function SearchResults({
 }) {
   const { t } = useTranslation();
   if (query.trim().length < MIN_QUERY) return <Text style={[text.small, styles.hint]}>{t('search.minChars')}</Text>;
-  if (loading) return <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />;
+  if (loading)
+    return (
+      <View style={{ gap: space.lg }}>
+        <PeopleSkeleton count={3} />
+        <TrackListSkeleton count={3} cover={44} trailing={false} />
+      </View>
+    );
   if (!people.length && !tracks.length) {
     return <Text style={[text.body, styles.hint]}>{t('search.noResults', { query: query.trim() })}</Text>;
   }

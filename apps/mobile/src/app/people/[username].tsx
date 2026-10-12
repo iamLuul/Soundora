@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader, RingAvatar, TopTabs } from '../../components/figma';
 import { setFollowing, type PersonRow } from '../../lib/api';
@@ -10,6 +10,7 @@ import { formatError } from '../../lib/errors';
 import { keys, usePeople } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
+import { PeopleSkeleton } from '../../components/Skeleton';
 
 type List = 'followers' | 'following';
 
@@ -46,7 +47,9 @@ export default function PeopleScreen() {
         renderItem={({ item }) => <PersonItem person={item} username={username} list={list} />}
         ListEmptyComponent={
           people.isLoading ? (
-            <ActivityIndicator color={colors.muted} style={{ marginTop: space.xl }} />
+            <View style={{ paddingHorizontal: space.lg }}>
+              <PeopleSkeleton count={8} action />
+            </View>
           ) : (
             <Text style={styles.empty}>{people.isError ? formatError(t, people.error) : t(list === 'followers' ? 'people.noFollowers' : 'people.noFollowing')}</Text>
           )

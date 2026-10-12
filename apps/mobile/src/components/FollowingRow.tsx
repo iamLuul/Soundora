@@ -11,6 +11,7 @@ import { colors, fonts, space } from '../theme';
 import { Icon } from './figma';
 import { Avatar } from './ui';
 import { uniqueBy } from '../lib/hooks';
+import { VibesRowSkeleton } from './Skeleton';
 
 const SIZE = 62;
 
@@ -35,6 +36,7 @@ export function FollowingRow() {
   const following = useQuery({ queryKey: ['following'], queryFn: fetchFollowing });
   const tray = useVibesTray(!!profile);
   if (!profile) return null;
+  if (tray.isLoading && following.isLoading) return <VibesRowSkeleton />;
 
   const items = tray.data ?? [];
   const mine = items.find((x) => x.is_me);

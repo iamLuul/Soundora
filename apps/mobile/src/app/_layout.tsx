@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
+import { AppSkeleton } from '../components/Skeleton';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,7 +36,8 @@ function RootNavigator() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
-  if (!ready) return null;
+  // Abrindo (fontes e sessão): o esqueleto do app. Na web ele já vem no HTML, antes do JavaScript.
+  if (!ready) return <AppSkeleton />;
 
   const signedIn = !!session;
   const onboarded = signedIn && !!profile;

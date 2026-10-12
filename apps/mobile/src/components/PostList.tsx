@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, Text } from 'react-native';
 import { blockUser, deletePost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -12,6 +12,7 @@ import { colors, space, text } from '../theme';
 import { PostActions, type PostAction } from './PostActions';
 import { PostCard } from './PostCard';
 import { uniqueBy } from '../lib/hooks';
+import { PostSkeleton } from './Skeleton';
 
 function notify(message: string) {
   if (Platform.OS === 'web') window.alert(message);
@@ -82,14 +83,6 @@ export function PostList({
     }
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <>
       <FlatList
@@ -106,7 +99,9 @@ export function PostList({
             onOpen={(p) => router.push(`/post/${p.id}`)}
           />
         )}
-        ListEmptyComponent={<Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>}
+        ListEmptyComponent={
+          loading ? <PostSkeleton /> : <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
+        }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}

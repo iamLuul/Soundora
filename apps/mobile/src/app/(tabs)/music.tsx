@@ -9,6 +9,7 @@ import { useStreamingOpener } from '../../components/StreamingOpener';
 import { fetchLikedTracks, fetchMyTracks, trackLink } from '../../lib/api';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
+import { TrackListSkeleton } from '../../components/Skeleton';
 
 type Tab = 'liked' | 'mine';
 
@@ -57,7 +58,7 @@ export default function MusicScreen() {
         )}
         ListEmptyComponent={
           tracks.isLoading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />
+            <TrackListSkeleton count={8} />
           ) : (
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>
               {tracks.isError ? t('common.error') : t('music.empty')}
