@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
-import { relativeTime } from '../lib/i18n';
+import { exactTime, relativeTime } from '../lib/i18n';
 import { genreLabel, useGenres } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
 import { colors, fonts, space } from '../theme';
@@ -116,7 +116,10 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
         <Pressable accessibilityRole="button" accessibilityLabel={t('feed.share')} onPress={share} style={[styles.action, webTouch(10)]} hitSlop={10}>
           <Icon name="share" size={13} />
         </Pressable>
-        <Text style={styles.time}>{relativeTime(item.created_at)}</Text>
+        {/* No feed, há quanto tempo; com o post aberto, a data e a hora exatas. */}
+        <Text testID="post-time" style={styles.time} numberOfLines={1}>
+          {expanded ? exactTime(item.created_at) : relativeTime(item.created_at)}
+        </Text>
       </View>
     </Pressable>
   );

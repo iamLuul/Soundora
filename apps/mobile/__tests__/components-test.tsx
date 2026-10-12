@@ -88,6 +88,23 @@ describe('<PostCard />', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Opções do post' }));
     expect(onMore).toHaveBeenCalledWith(post);
   });
+
+  test('no feed, há quanto tempo; com o post aberto, data e hora exatas', async () => {
+    // 05/03/2026 09:07 no fuso do aparelho.
+    const at = { ...post, created_at: new Date(2026, 2, 5, 9, 7).toISOString() };
+    await i18n.changeLanguage('pt-BR');
+    const feed = await render(<PostCard item={at} onToggleLike={jest.fn()} />, { wrapper });
+    expect(screen.getByTestId('post-time').props.children).toMatch(/^\d+ d$/);
+    await feed.unmount();
+
+    await render(<PostCard item={at} expanded onToggleLike={jest.fn()} />, { wrapper });
+    expect(screen.getByTestId('post-time').props.children).toMatch(/^5 de mar\.? de 2026 às 09:07$/);
+
+    await i18n.changeLanguage('en');
+    await render(<PostCard item={at} expanded onToggleLike={jest.fn()} />, { wrapper });
+    expect(screen.getByTestId('post-time').props.children).toMatch(/^Mar 5, 2026 at 0?9:07\sAM$/);
+    await i18n.changeLanguage('pt-BR');
+  });
 });
 
 describe('<PostCard /> sem música', () => {

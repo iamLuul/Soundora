@@ -43,4 +43,16 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
   return i18n.t('time.days', { count: Math.floor(h / 24) });
 }
 
+/**
+ * Data e hora exatas, no idioma do app e no fuso do aparelho
+ * (ex.: "12 de out. de 2026 às 14:35" / "Oct 12, 2026 at 2:35 PM").
+ */
+export function exactTime(iso: string): string {
+  const d = new Date(iso);
+  const lang = i18n.language || 'pt-BR';
+  const date = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  const time = new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit' }).format(d);
+  return i18n.t('time.exact', { date, time });
+}
+
 export default i18n;

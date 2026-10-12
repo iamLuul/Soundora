@@ -234,6 +234,8 @@
     "minutes": "{{count}} min",
     "hours": "{{count}} h",
     "days": "{{count}} d"
+,
+    "exact": "{{date}} às {{time}}"
   },
   "discover": {
     "segDiscover": "Descobrir",
