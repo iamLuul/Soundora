@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { relativeTime } from '../lib/i18n';
 import { genreLabel, useGenres } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
@@ -36,7 +36,8 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
       testID={`post-${item.id}`}
       onPress={onOpen ? () => onOpen(item) : undefined}
       disabled={!onOpen}
-      accessibilityRole={onOpen ? 'button' : undefined}
+      // Na web, role "button" vira <button>, e o post tem outros botões dentro (HTML não deixa).
+      accessibilityRole={onOpen && Platform.OS !== 'web' ? 'button' : undefined}
       accessibilityHint={onOpen ? t('post.openHint') : undefined}
       style={[styles.post, expanded && styles.expanded]}
     >
