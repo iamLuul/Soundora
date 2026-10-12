@@ -222,6 +222,13 @@ async function songs() {
     }
   }
   if (found.size) return { list: [...found.values()], online: true };
+  // Teste do script sem internet com muitas músicas (LOAD_FAKE_SONGS=1200).
+  const fake = Number(process.env.LOAD_FAKE_SONGS ?? 0);
+  if (fake > 0)
+    return {
+      online: false,
+      list: Array.from({ length: fake }, (_, i) => ({ url: `https://www.deezer.com/track/${980000000 + i}`, platform: 'deezer', kind: 'track', provider_id: String(980000000 + i), title: `Faixa ${i}`, artist: `Artista ${i % 97}`, genres: [GENRES[i % GENRES.length]] })),
+    };
   return {
     online: false,
     list: OFFLINE_SONGS.map(([artist, title, genre], i) => ({
@@ -287,9 +294,13 @@ async function main() {
     // Músicas
     console.log('Buscando músicas...');
     const { list: songList, online } = await songs();
-    const previews = await insertBatches('link_previews', songList, { size: 200, upsert: 'url' });
-    void previews;
-    const tracks = must('ler músicas')(await admin.from('link_previews').select('id, genres').in('url', songList.map((s) => s.url)).limit(5000));
+    await insertBatches('link_previews', songList, { size: 200, upsert: 'url' });
+    // Lê de volta em pedaços: com mais de mil músicas, os links todos não cabem num endereço só.
+    const tracks = [];
+    const urls = songList.map((s) => s.url);
+    for (let i = 0; i < urls.length; i += 100) {
+      tracks.push(...must('ler músicas')(await admin.from('link_previews').select('id, genres').in('url', urls.slice(i, i + 100))));
+    }
 
     // Contas
     console.log(`Criando ${N_USERS} contas...`);
