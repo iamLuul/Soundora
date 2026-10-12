@@ -136,7 +136,8 @@
     "profile": "Profile",
     "discover": "Discover",
     "music": "Music",
-    "home": "Home"
+    "home": "Home",
+    "following": "Following"
   },
   "feed": {
     "empty": "Your feed is empty. Follow people or post the first song!",
@@ -154,7 +155,11 @@
     "sharing": "Sharing",
     "preview": "Preview",
     "share": "Share",
-    "postOptions": "Post options"
+    "postOptions": "Post options",
+    "follow": "Follow",
+    "followUser": "Follow @{{username}}",
+    "followingEmpty": "You don't follow anyone yet. How about starting with these accounts?",
+    "followingEmptyNoSuggestions": "You don't follow anyone yet. Follow people to see their posts here."
   },
   "compose": {
     "title": "New post",
@@ -233,8 +238,7 @@
     "now": "now",
     "minutes": "{{count}}m",
     "hours": "{{count}}h",
-    "days": "{{count}}d"
-,
+    "days": "{{count}}d",
     "exact": "{{date}} at {{time}}"
   },
   "discover": {
@@ -420,5 +424,11 @@
     "title": "Blocked",
     "empty": "You haven't blocked anyone.",
     "hint": "People you block can't see your posts and vibes, and you don't see theirs. Unblocking doesn't follow them again."
+  },
+  "suggest": {
+    "title": "Accounts to follow",
+    "genres": "Also into {{genres}}",
+    "liked": "You like their posts",
+    "friends": "Followed by people you follow"
   }
 }

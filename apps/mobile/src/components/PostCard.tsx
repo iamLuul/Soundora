@@ -21,10 +21,12 @@ export interface PostCardProps {
   onOpen?: (item: FeedItem) => void;
   /** Post aberto: texto maior e sem a linha de baixo. */
   expanded?: boolean;
+  /** Botão "Seguir" ao lado do menu (só quando eu ainda não sigo o autor). */
+  onFollow?: (item: FeedItem) => void;
 }
 
 /** Post no layout do Figma (Home page/For You): autor, texto, cartão da música e ações. */
-export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink, onOpen, expanded = false }: PostCardProps) {
+export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink, onOpen, expanded = false, onFollow }: PostCardProps) {
   const { t, i18n } = useTranslation();
   const genres = useGenres();
   const share = () => {
@@ -57,6 +59,18 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
             </View>
           </Pressable>
         </Link>
+        {onFollow ? (
+          <Pressable
+            testID={`follow-${item.author_username}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('feed.followUser', { username: item.author_username })}
+            onPress={() => onFollow(item)}
+            hitSlop={8}
+            style={({ pressed }) => [styles.follow, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.followText}>{t('feed.follow')}</Text>
+          </Pressable>
+        ) : null}
         {onMore ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t('feed.postOptions')} hitSlop={12} onPress={() => onMore(item)} style={[styles.more, webTouch(12, { vertical: 2, horizontal: space.sm })]}>
             <View style={styles.dot} />
@@ -126,8 +140,10 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
 }
 
 const styles = StyleSheet.create({
+  follow: { marginLeft: 'auto', backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 14, height: 28, justifyContent: 'center' },
+  followText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
   post: { gap: space.md, paddingVertical: space.lg, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   author: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexShrink: 1 },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },

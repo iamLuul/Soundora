@@ -6,7 +6,7 @@ import { Alert, FlatList, Platform, Text } from 'react-native';
 import { blockUser, deletePost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
-import { useToggleLike } from '../lib/queries';
+import { useFollow, useFollowingIds, useToggleLike } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
 import { colors, space, text } from '../theme';
 import { PostActions, type PostAction } from './PostActions';
@@ -22,6 +22,9 @@ function notify(message: string) {
   else Alert.alert('Soundora', message);
 }
 
+/** Linha da lista: um post ou o bloco extra no meio (ex.: contas sugeridas). */
+type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' };
+
 /** Lista de posts com curtir, comentários e o menu de denúncia/bloqueio. */
 export function PostList({
   items,
@@ -31,6 +34,9 @@ export function PostList({
   loadingMore,
   header,
   emptyText,
+  empty,
+  followable = false,
+  interstitial,
 }: {
   items: FeedItem[];
   loading: boolean;
@@ -40,9 +46,23 @@ export function PostList({
   loadingMore?: boolean;
   header?: ReactElement;
   emptyText: string;
+  /** No lugar do texto de lista vazia. */
+  empty?: ReactElement;
+  /** Botão "Seguir" nos posts de quem eu ainda não sigo. */
+  followable?: boolean;
+  /** Bloco no meio da lista, depois de `after` posts (ou no fim, se houver menos). */
+  interstitial?: { after: number; element: ReactElement };
 }) {
   const { t } = useTranslation();
   const { session } = useAuth();
+  const me = session?.user.id;
+  const followingIds = useFollowingIds(followable);
+  const follow = useFollow();
+  // Só mostra o botão depois de saber quem eu sigo (senão ele piscaria em quem já sigo).
+  const canFollow = (p: FeedItem) => followable && !!followingIds.data && p.author_id !== me && !followingIds.data.has(p.author_id);
+  const posts = uniqueBy(items, (i) => i.id, 'posts');
+  const rows: Row[] = posts.map((item) => ({ kind: 'post', item }));
+  if (interstitial && posts.length) rows.splice(Math.min(interstitial.after, posts.length), 0, { kind: 'extra' });
   const qc = useQueryClient();
   const toggleLike = useToggleLike();
   const [menuFor, setMenuFor] = useState<FeedItem | null>(null);
@@ -90,21 +110,26 @@ export function PostList({
       <PullToRefresh onRefresh={onRefresh}>
         <FlatList
           {...listPerf}
-          data={uniqueBy(items, (i) => i.id, 'posts')}
-          keyExtractor={(item) => item.id}
+          data={rows}
+          keyExtractor={(row) => (row.kind === 'post' ? row.item.id : 'extra')}
           ListHeaderComponent={header}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
-          renderItem={({ item }) => (
-            <PostCard
-              item={item}
-              onToggleLike={(p) => toggleLike.mutate(p)}
-              onMore={setMenuFor}
-              onOpenComments={(p) => router.push(`/post/${p.id}`)}
-              onOpen={(p) => router.push(`/post/${p.id}`)}
-            />
-          )}
+          renderItem={({ item: row }) => {
+            if (row.kind === 'extra') return interstitial?.element ?? null;
+            const item = row.item;
+            return (
+              <PostCard
+                item={item}
+                onFollow={canFollow(item) ? (p) => follow.mutate({ userId: p.author_id, follow: true }) : undefined}
+                onToggleLike={(p) => toggleLike.mutate(p)}
+                onMore={setMenuFor}
+                onOpenComments={(p) => router.push(`/post/${p.id}`)}
+                onOpen={(p) => router.push(`/post/${p.id}`)}
+              />
+            );
+          }}
           ListEmptyComponent={
-            loading ? <PostSkeleton /> : <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
+            loading ? <PostSkeleton /> : empty ?? <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}

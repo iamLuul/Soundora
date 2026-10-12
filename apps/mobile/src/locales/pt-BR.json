@@ -136,7 +136,8 @@
     "profile": "Perfil",
     "discover": "Descobrir",
     "music": "Músicas",
-    "home": "Início"
+    "home": "Início",
+    "following": "Seguindo"
   },
   "feed": {
     "empty": "Seu feed está vazio. Siga pessoas ou poste a primeira música!",
@@ -154,7 +155,11 @@
     "sharing": "Compartilhando",
     "preview": "Prévia",
     "share": "Compartilhar",
-    "postOptions": "Opções do post"
+    "postOptions": "Opções do post",
+    "follow": "Seguir",
+    "followUser": "Seguir @{{username}}",
+    "followingEmpty": "Você ainda não segue ninguém. Que tal começar por estas contas?",
+    "followingEmptyNoSuggestions": "Você ainda não segue ninguém. Siga pessoas para ver os posts delas aqui."
   },
   "compose": {
     "title": "Novo post",
@@ -233,8 +238,7 @@
     "now": "agora",
     "minutes": "{{count}} min",
     "hours": "{{count}} h",
-    "days": "{{count}} d"
-,
+    "days": "{{count}} d",
     "exact": "{{date}} às {{time}}"
   },
   "discover": {
@@ -420,5 +424,11 @@
     "title": "Bloqueados",
     "empty": "Você não bloqueou ninguém.",
     "hint": "Quem você bloqueia não vê seus posts e vibes, e você não vê os dela. Desbloquear não volta a seguir automaticamente."
+  },
+  "suggest": {
+    "title": "Contas para seguir",
+    "genres": "Também curte {{genres}}",
+    "liked": "Você curte os posts",
+    "friends": "Seguida por quem você segue"
   }
 }

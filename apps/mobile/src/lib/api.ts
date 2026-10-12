@@ -220,6 +220,43 @@ export async function fetchFeed(page: number, openedAt: string): Promise<FeedIte
   return data as FeedItem[];
 }
 
+/** Aba Seguindo: só quem eu sigo (e eu), do mais novo ao mais velho. */
+export async function fetchFollowingFeed(before: PostCursor | null): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('feed_following', {
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: FEED_PAGE_SIZE,
+  });
+  if (error) throw error;
+  return data as FeedItem[];
+}
+
+/** Por que a conta foi sugerida: gêneros parecidos, posts que curti ou seguida por quem sigo. */
+export type SuggestionReason = 'genres' | 'liked' | 'friends';
+export interface SuggestedAccount {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  /** Até 2 gêneros em comum com o meu gosto (slugs). */
+  genres: string[];
+  reason: SuggestionReason;
+}
+
+export async function fetchSuggestedAccounts(limit = 12): Promise<SuggestedAccount[]> {
+  const { data, error } = await supabase.rpc('suggested_accounts', { p_limit: limit });
+  if (error) throw error;
+  return data as SuggestedAccount[];
+}
+
+/** Ids de quem eu sigo (para o botão Seguir dos posts). */
+export async function fetchMyFollowingIds(): Promise<string[]> {
+  const userId = await currentUserId();
+  const { data, error } = await supabase.from('follows').select('followee_id').eq('follower_id', userId).limit(5000);
+  if (error) throw error;
+  return (data as { followee_id: string }[]).map((r) => r.followee_id);
+}
+
 /** Cursor dos posts de um perfil: o último post da página anterior (data e id, para desempatar). */
 export interface PostCursor {
   createdAt: string;

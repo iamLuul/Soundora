@@ -3,6 +3,10 @@ import {
   getStreamingPlatform,
   FEED_PAGE_SIZE,
   fetchFeed,
+  fetchFollowingFeed,
+  fetchMyFollowingIds,
+  fetchSuggestedAccounts,
+  setFollowing,
   fetchProfileLikedSongs,
   LIKED_SONGS_PAGE,
   fetchNotifications,
@@ -24,6 +28,9 @@ import type { FeedItem } from './types';
 
 export const keys = {
   feed: ['feed'] as const,
+  followingFeed: ['feed-following'] as const,
+  followingIds: ['following-ids'] as const,
+  suggested: ['suggested-accounts'] as const,
   profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
   profile: (username: string) => ['profile', username] as const,
   comments: (postId: string) => ['comments', postId] as const,
@@ -99,6 +106,60 @@ export function useFeed() {
   });
 }
 
+/** Aba Seguindo: rolagem infinita por data (cursor = último post da página). */
+export function useFollowingFeed(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: keys.followingFeed,
+    enabled,
+    queryFn: ({ pageParam }) => fetchFollowingFeed(pageParam),
+    initialPageParam: null as PostCursor | null,
+    getNextPageParam: (last) => {
+      const tail = last[last.length - 1];
+      return last.length === FEED_PAGE_SIZE && tail ? { createdAt: tail.created_at, id: tail.id } : undefined;
+    },
+  });
+}
+
+/** Contas para seguir, pelo gosto (gêneros, curtidas) e por quem eu já sigo. */
+export function useSuggestedAccounts(enabled = true) {
+  return useQuery({ queryKey: keys.suggested, queryFn: () => fetchSuggestedAccounts(), enabled, staleTime: 5 * 60_000 });
+}
+
+/** Quem eu sigo, como conjunto de ids. */
+export function useFollowingIds(enabled = true) {
+  return useQuery({
+    queryKey: keys.followingIds,
+    queryFn: async () => new Set(await fetchMyFollowingIds()),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Seguir/deixar de seguir com atualização otimista: o botão muda na hora. Depois atualiza o
+ * que depende disso (aba Seguindo, perfis, listas de seguidores, fila de vibes). O Para você
+ * não é recarregado (os posts não pulam de lugar enquanto a pessoa lê).
+ */
+export function useFollow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, follow }: { userId: string; follow: boolean }) => setFollowing(userId, follow),
+    onMutate: async ({ userId, follow }) => {
+      await qc.cancelQueries({ queryKey: keys.followingIds });
+      const before = qc.getQueryData<Set<string>>(keys.followingIds);
+      const next = new Set(before ?? []);
+      if (follow) next.add(userId);
+      else next.delete(userId);
+      qc.setQueryData(keys.followingIds, next);
+      return { before };
+    },
+    onError: (_err, _vars, ctx) => qc.setQueryData(keys.followingIds, ctx?.before),
+    onSettled: () => {
+      for (const queryKey of [keys.followingFeed, keys.vibesTray, ['profile'], ['people'], ['following']]) void qc.invalidateQueries({ queryKey });
+    },
+  });
+}
+
 /** Tira posts repetidos entre páginas (mantém a primeira ocorrência). */
 export function dedupePages(pages: FeedItem[][]): FeedItem[][] {
   const seen = new Set<string>();
@@ -146,7 +207,8 @@ export function useToggleLike() {
     onMutate: async (item) => {
       await qc.cancelQueries({ queryKey: keys.feed });
       await qc.cancelQueries({ queryKey: ['profile-posts'] });
-      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])) });
+      await qc.cancelQueries({ queryKey: keys.followingFeed });
+      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'feed-following', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])) });
       for (const [key, data] of lists) qc.setQueryData(key, patchPostInCache(data, item.id, toggleLikePatch));
       // O post aberto em tela cheia.
       const single = qc.getQueryData<FeedItem | null>(keys.post(item.id));
