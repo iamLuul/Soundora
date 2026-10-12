@@ -268,7 +268,8 @@
     "becauseGenre": "Em alta em {{genre}}",
     "becausePopular": "Em alta no mundo",
     "previewAt": "Prévia: {{s}} de 30 segundos",
-    "previewUnavailable": "Prévia indisponível para esta música."
+    "previewUnavailable": "Prévia indisponível para esta música.",
+    "genreEmpty": "Acabaram as sugestões de {{genre}} por agora. Tente outro gênero ou volte mais tarde."
   },
   "trending": {
     "title": "Mais tocadas no mundo",

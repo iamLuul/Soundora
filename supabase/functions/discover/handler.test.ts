@@ -21,12 +21,13 @@ const deezer = (id: number, artist: string, title: string): DeezerTrack => ({
   imageUrl: 'https://e-cdns-images.dzcdn.net/images/cover/x/500x500.jpg',
   artistImageUrl: null,
   previewUrl: `https://cdnt-preview.dzcdn.net/${id}.mp3`,
+  albumId: String(id * 10),
 });
 
 function setup(overrides: Partial<Deps> = {}) {
   const rows = new Map<string, TrackRow>();
   const lookups = new Map<string, string | null>();
-  const calls = { find: 0, byId: 0, fetchLinks: 0, recommend: [] as (string | null)[] };
+  const calls = { find: 0, byId: 0, fetchLinks: 0, albums: 0, recommend: [] as (string | null)[] };
   let n = 0;
   const deps: Deps = {
     debug: true,
@@ -77,6 +78,11 @@ function setup(overrides: Partial<Deps> = {}) {
       return row;
     },
     saveAudio: async (id, url) => void (rows.get(id)!.audio_url = url),
+    albumGenres: async () => {
+      calls.albums++;
+      return [75];
+    },
+    saveGenreIds: async (id, ids) => void (rows.get(id)!.store_genre_ids = ids),
     getTrack: async (id) => rows.get(id) ?? null,
     findLinks: async () => null,
     saveLinks: async () => {},
@@ -215,4 +221,25 @@ Deno.test('prévia de outra plataforma que a Deezer não tem: null (o app avisa)
   });
   const res = await (await s.handler(post({ action: 'audio', previewId: id }))).json();
   assertEquals(res.audio_url, null);
+});
+
+Deno.test('gênero: descarta o que a Deezer diz ser de outro gênero (funk americano no funk brasileiro)', async () => {
+  // "Americana" vem de um álbum Soul & Funk (169); a outra, de Música Brasileira (75).
+  const s = setup({
+    recommend: async () => [cand('MC Br', 'Baile', { kind: 'genre', genre: 'funk_br' }), cand('Americana', 'Groove', { kind: 'genre', genre: 'funk_br' })],
+    albumGenres: async (albumId) => (albumId === '1020' ? [169] : [75]),
+  });
+  const body = await (await s.handler(post({ action: 'deck', genre: 'funk_br' }))).json();
+  assertEquals(body.cards.map((c: { title: string }) => c.title), ['Baile']);
+  // O que foi conferido fica guardado no cartão.
+  assertEquals([...s.rows.values()].map((r) => r.store_genre_ids), [[75], [169]]);
+});
+
+Deno.test('gênero: cartão já conferido não pergunta de novo à Deezer; gênero sem conferência nem pergunta', async () => {
+  const s = setup({ recommend: async () => [cand('MC Br', 'Baile', { kind: 'genre', genre: 'funk_br' })] });
+  await s.handler(post({ action: 'deck', genre: 'funk_br' }));
+  assertEquals(s.calls.albums, 1);
+  const again = setup({ recommend: async () => [cand('Banda', 'Indie', { kind: 'genre', genre: 'shoegaze' })] });
+  await again.handler(post({ action: 'deck', genre: 'shoegaze' }));
+  assertEquals(again.calls.albums, 0);
 });

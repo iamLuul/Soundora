@@ -293,7 +293,14 @@ export function DiscoverSection() {
         </>
       ) : (
         <View style={[styles.center, { height: stackHeight }]}>
-          <Text style={[text.body, { textAlign: 'center', color: colors.textMuted }]}>{base.isError ? formatError(t, base.error) : refilling ? t('discover.loading') : t('discover.empty')}</Text>
+          <Text style={[text.body, { textAlign: 'center', color: colors.textMuted }]}>{base.isError
+              ? formatError(t, base.error)
+              : refilling
+                ? t('discover.loading')
+                : // Com um gênero escolhido, a pilha não completa com outras músicas: só avisa.
+                  genre
+                  ? t('discover.genreEmpty', { genre: label(genre) })
+                  : t('discover.empty')}</Text>
           <Button testID="discover-reload" title={t('discover.reload')} variant="ghost" onPress={shuffle} />
         </View>
       )}

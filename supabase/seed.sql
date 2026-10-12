@@ -14,7 +14,7 @@ insert into public.genres (slug, name_pt, name_en) values
   ('emo', 'Emo', 'Emo'),
   ('folk', 'Folk', 'Folk'),
   ('forro', 'Forró', 'Forró'),
-  ('funk_br', 'Funk', 'Brazilian funk'),
+  ('funk_br', 'Funk brasileiro', 'Brazilian funk'),
   ('gospel', 'Gospel', 'Gospel'),
   ('hip_hop', 'Hip-hop', 'Hip-hop'),
   ('house', 'House', 'House'),
