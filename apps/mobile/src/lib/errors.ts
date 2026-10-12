@@ -46,6 +46,10 @@ const KNOWN = new Set([
   'video_dimensions',
   'post_empty',
   'invalid_genre',
+  'account_suspended',
+  'forbidden',
+  'cannot_suspend_admin',
+  'cannot_remove_profile',
 ]);
 
 export class AppError extends Error {

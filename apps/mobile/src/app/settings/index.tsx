@@ -10,6 +10,7 @@ import { updateLocale } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
 import { useStreamingPlatform } from '../../lib/queries';
+import { useIsAdmin } from '../../lib/admin';
 import { disablePush, enablePush, pushAvailability, pushEnabled } from '../../lib/push';
 import { colors, space, text } from '../../theme';
 
@@ -19,6 +20,7 @@ type Locale = 'pt-BR' | 'en';
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { profile, session, signOut } = useAuth();
+  const admin = useIsAdmin(!!profile);
   if (!profile) return null;
 
   const changeLanguage = async (locale: Locale) => {
@@ -65,6 +67,13 @@ export default function SettingsScreen() {
         <StreamingRow />
         <PushRow />
       </SettingsSection>
+
+      {/* Só para administradores (o banco confere de novo em cada ação do painel). */}
+      {admin.data ? (
+        <SettingsSection title={t('admin.title')}>
+          <SettingsRow testID="settings-admin" icon="shield-checkmark-outline" label={t('admin.entry')} value={t('admin.entryHint')} onPress={() => router.push('/admin')} last />
+        </SettingsSection>
+      ) : null}
 
       <SettingsSection title={t('settings.session')}>
         <SettingsRow testID="settings-sign-out" icon="log-out-outline" label={t('profile.signOut')} onPress={signOut} />
