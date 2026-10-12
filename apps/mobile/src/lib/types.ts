@@ -13,6 +13,9 @@ export interface Profile {
   locale: 'pt-BR' | 'en';
   username_changed_at: string | null;
   created_at: string;
+  verified?: boolean;
+  /** Suspensa até (null = conta normal; 'infinity' = sem data para voltar). */
+  suspended_until?: string | null;
 }
 
 /** Pessoa na busca e na lista de bloqueados: só os campos do cartão. */

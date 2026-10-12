@@ -85,8 +85,12 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
   from public.link_previews where url = 'https://open.spotify.com/track/<id>';
   ```
 
-- **Moderação.** Para virar administrador: `insert into public.admins (user_id) values ('<seu id>');` Administradores veem todas as denúncias e podem apagar posts e comentários.
+- **Moderação.** Para virar administrador: `insert into public.admins (user_id) values ('<seu id>');` (só pelo banco). Aí aparece **Configurações › Painel admin**, com:
+  - **Denúncias** agrupadas por conteúdo (as mais denunciadas primeiro): ver, remover o post/comentário/vibe, dispensar ou suspender o autor;
+  - **Usuários**: busca por @ ou nome, verificar/tirar a insígnia, suspender por 7 dias, 30 dias ou sem data, e reativar. Conta suspensa continua vendo o app, mas o banco recusa posts, comentários, curtidas, seguir, vibes e denúncias, e ela vê um aviso na Início;
+  - **Destaques** do Descobrir: colar o link da música, recado e ordem; remover.
+  Cada ação fica registrada em `public.admin_actions` (quem fez, o quê, quando).
 
 ## Próximos passos do roteiro
 
-Painel admin (moderação e curadoria sem SQL) e vínculo com responsável.
+Vínculo com responsável e anúncios.

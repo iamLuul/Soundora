@@ -6,6 +6,7 @@ import { TopTabs } from '../../components/figma';
 import { FollowingRow } from '../../components/FollowingRow';
 import { PostList } from '../../components/PostList';
 import { SuggestedAccounts } from '../../components/SuggestedAccounts';
+import { SuspendedBanner } from '../../components/SuspendedBanner';
 import { useFeed, useFollowingFeed, useSuggestedAccounts } from '../../lib/queries';
 import { colors, space, text } from '../../theme';
 
@@ -36,6 +37,7 @@ export default function FeedScreen() {
         onChange={setTab}
         style={{ marginHorizontal: space.lg }}
       />
+      <SuspendedBanner />
       {/* As duas ficam montadas: trocar de aba não perde a rolagem nem busca de novo. */}
       <View style={{ flex: 1, display: tab === 'feed' ? 'flex' : 'none' }}>
         <ForYou />

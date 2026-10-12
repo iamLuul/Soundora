@@ -90,6 +90,7 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
         <Stack.Screen name="settings/streaming" options={{ title: '' }} />
         <Stack.Screen name="settings/blocked" options={{ title: '' }} />
         <Stack.Screen name="settings/delete-account" options={{ title: '' }} />
+        <Stack.Screen name="admin" options={{ title: '' }} />
       </Stack.Protected>
 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
