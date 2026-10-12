@@ -7,7 +7,13 @@
 //   npm run load -- --scale small      100 contas, 1.000 posts
 //   npm run load -- --scale large      1.000 contas, 10.000 posts
 //   npm run load -- --users 500 --posts 6000
-//   npm run load -- --remove           apaga só as contas de carga (e tudo delas)
+//   npm run load -- --remove           apaga só as contas de carga (e tudo delas, fotos inclusive)
+//   npm run load -- --no-media         sem fotos e vídeos (mais rápido)
+//
+// Fotos e vídeos de bancos públicos feitos para teste: retratos do randomuser.me (fotos de
+// perfil), fotos do Lorem Picsum (Unsplash; banners e posts) e trechos de 10 s dos filmes
+// abertos da Blender Foundation (Big Buck Bunny, Sintel; CC BY) em test-videos.co.uk.
+// Cada arquivo é baixado uma vez e copiado dentro do Storage para cada conta.
 //
 // Precisa do `npx supabase start` rodando. Com internet, as músicas vêm das paradas da Deezer
 // (capa, álbum e prévia de verdade); sem internet, entram só com título e artista.
@@ -19,6 +25,7 @@
 // Só roda contra o Supabase do seu PC: recusa qualquer endereço que não seja localhost.
 import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const require = createRequire(import.meta.url);
@@ -31,6 +38,7 @@ const option = (name) => {
   return i >= 0 ? args[i + 1] : undefined;
 };
 const REMOVE = flag('remove');
+const NO_MEDIA = flag('no-media');
 const SCALES = { small: [100, 1000], medium: [300, 3000], large: [1000, 10000] };
 const [defUsers, defPosts] = SCALES[option('scale') ?? 'medium'] ?? SCALES.medium;
 const N_USERS = Math.max(20, Number(option('users') ?? defUsers));
@@ -168,6 +176,7 @@ const TEXT_ONLY = [
 ];
 const COMMENTS = ['que som!', 'salvei aqui', 'essa é das minhas favoritas', 'ouvindo agora 🔥', 'não conhecia, que achado', 'concordo demais', 'clássico absoluto', 'o refrão não sai da cabeça', 'que produção!', 'perfeita pra viagem', 'ao vivo é melhor ainda', 'manda mais desse estilo'];
 const REPLIES = ['né?? demais', 'também acho!', 'kkkk exato', 'vou ouvir agora', 'boa demais'];
+const MEDIA_TEXT = ['olha que foto desse show 📸', 'meu setup de hoje', 'garimpo de vinil 💿', 'ensaio da banda', 'fim de tarde com fone', 'trecho do show de ontem 🎥', '', 'bastidores', 'o palco tava assim'];
 const VIBE_TEXT = ['bom dia com música alta', 'sextou 🎶', 'fone no máximo', 'qual música vocês tão ouvindo hoje?', 'show sábado, quem vai?', 'playlist nova no forno', 'no repeat 🔁'];
 const STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'];
 
@@ -243,6 +252,131 @@ async function songs() {
   };
 }
 
+// ---------------------------------------------------------------- fotos e vídeos
+
+const VIDEOS = [
+  'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+  'https://test-videos.co.uk/vids/jellyfish/mp4/h264/360/Jellyfish_360_10s_1MB.mp4',
+  'https://test-videos.co.uk/vids/sintel/mp4/h264/360/Sintel_360_10s_1MB.mp4',
+];
+const PHOTO_SIZES = [
+  [720, 900],
+  [720, 720],
+  [900, 720],
+  [720, 1280],
+];
+const BUCKET_LIMIT = { avatars: 1_000_000, banners: 2_000_000, 'post-media': 30_000_000, vibes: 30_000_000 };
+
+async function download(url, type, maxBytes) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow' });
+    if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith(type)) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return buf.length > 0 && buf.length <= maxBytes ? buf : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Baixa um conjunto pequeno de cada tipo (reaproveitado em todas as contas). */
+async function mediaPool() {
+  if (NO_MEDIA) return null;
+  if (process.env.LOAD_FAKE_MEDIA) {
+    const fake = (n) => new Uint8Array(n).fill(7);
+    return {
+      avatars: Array.from({ length: 4 }, () => fake(100)),
+      banners: Array.from({ length: 2 }, () => fake(100)),
+      photos: PHOTO_SIZES.map(([w, h]) => ({ buf: fake(100), w, h })),
+      videos: [{ buf: fake(100), w: 640, h: 360, ms: 10000 }],
+    };
+  }
+  const avatarUrls = Array.from({ length: 40 }, (_, i) => `https://randomuser.me/api/portraits/${i % 2 ? 'men' : 'women'}/${Math.floor(i / 2) * 3 + 1}.jpg`);
+  const bannerUrls = Array.from({ length: 16 }, (_, i) => `https://picsum.photos/seed/soundora-banner-${i}/1500/500.jpg`);
+  const photoSpecs = Array.from({ length: 40 }, (_, i) => PHOTO_SIZES[i % PHOTO_SIZES.length]);
+  let done = 0;
+  const total = avatarUrls.length + bannerUrls.length + photoSpecs.length + VIDEOS.length;
+  const step = (x) => (progress('baixando fotos e vídeos', ++done, total), x);
+  const avatars = (await pool(avatarUrls, 6, async (u) => step(await download(u, 'image/jpeg', BUCKET_LIMIT.avatars)))).filter(Boolean);
+  const banners = (await pool(bannerUrls, 6, async (u) => step(await download(u, 'image/jpeg', BUCKET_LIMIT.banners)))).filter(Boolean);
+  const photos = (
+    await pool(photoSpecs, 6, async ([w, h], i) => {
+      const buf = await download(`https://picsum.photos/seed/soundora-post-${i}/${w}/${h}.jpg`, 'image/jpeg', 5_000_000);
+      return step(buf ? { buf, w, h } : null);
+    })
+  ).filter(Boolean);
+  const videos = (
+    await pool(VIDEOS, 3, async (u) => {
+      const buf = await download(u, 'video/mp4', 10_000_000);
+      return step(buf ? { buf, w: 640, h: 360, ms: 10000 } : null);
+    })
+  ).filter(Boolean);
+  if (!avatars.length && !photos.length) return null;
+  return { avatars, banners, photos, videos };
+}
+
+/**
+ * Sobe cada arquivo do conjunto uma vez (pasta seed/ do bucket) e copia no próprio Storage
+ * para o caminho de cada conta (bem mais rápido que subir de novo).
+ */
+function storageCopier() {
+  const seeds = new Map();
+  const seed = async (bucket, key, buf, contentType) => {
+    const id = `${bucket}/${key}`;
+    if (!seeds.has(id)) {
+      seeds.set(
+        id,
+        (async () => {
+          must(`subir ${id}`)(await admin.storage.from(bucket).upload(`seed/${key}`, buf, { contentType, upsert: true }));
+          return `seed/${key}`;
+        })(),
+      );
+    }
+    return seeds.get(id);
+  };
+  return {
+    async copy(bucket, key, buf, contentType, to) {
+      const from = await seed(bucket, key, buf, contentType);
+      must(`copiar para ${bucket}/${to}`)(await admin.storage.from(bucket).copy(from, to));
+    },
+    async cleanup() {
+      const byBucket = {};
+      for (const id of seeds.keys()) {
+        const [bucket, ...rest] = id.split('/');
+        (byBucket[bucket] ??= []).push(`seed/${rest.join('/')}`);
+      }
+      for (const [bucket, paths] of Object.entries(byBucket)) await admin.storage.from(bucket).remove(paths);
+    },
+  };
+}
+
+/** Apaga do Storage as pastas das contas de carga (fotos de perfil, banners, posts e vibes). */
+async function removeUserMedia(userIds) {
+  const wanted = new Set(userIds);
+  let removed = 0;
+  for (const bucket of Object.keys(BUCKET_LIMIT)) {
+    const folders = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await admin.storage.from(bucket).list('', { limit: 1000, offset });
+      if (error || !data?.length) break;
+      folders.push(...data.map((f) => f.name).filter((n) => wanted.has(n)));
+      if (data.length < 1000) break;
+    }
+    await pool(folders, 8, async (folder) => {
+      const { data } = await admin.storage.from(bucket).list(folder, { limit: 1000 });
+      const paths = (data ?? []).map((f) => `${folder}/${f.name}`);
+      if (paths.length) {
+        await admin.storage.from(bucket).remove(paths);
+        removed += paths.length;
+      }
+    });
+  }
+  return removed;
+}
+
 // ---------------------------------------------------------------- etapas
 
 async function listUsers(filter) {
@@ -257,6 +391,10 @@ async function listUsers(filter) {
 
 async function removeLoadUsers() {
   const users = await listUsers((u) => u.email?.endsWith(`@${DOMAIN}`));
+  if (users.length) {
+    const files = await removeUserMedia(users.map((u) => u.id));
+    if (files) console.log(`  (${files} fotos e vídeos de carga apagados)`);
+  }
   await pool(users, 8, async (u, i) => {
     must('apagar usuário')(await admin.auth.admin.deleteUser(u.id));
     progress('apagando contas', i + 1, users.length);
@@ -302,6 +440,11 @@ async function main() {
       tracks.push(...must('ler músicas')(await admin.from('link_previews').select('id, genres').in('url', urls.slice(i, i + 100))));
     }
 
+    // Fotos e vídeos (bancos públicos de teste)
+    const media = await mediaPool();
+    if (!NO_MEDIA && !media) console.log('  Sem internet para as fotos e vídeos: a carga segue sem mídia.');
+    const store = storageCopier();
+
     // Contas
     console.log(`Criando ${N_USERS} contas...`);
     const people = await pool(Array.from({ length: N_USERS }, (_, i) => i), 8, async (i) => {
@@ -312,7 +455,25 @@ async function main() {
       progress('contas', i + 1, N_USERS);
       return { id: user.id, username, name: `${first} ${one(LAST)}`, genres: some(GENRES, int(3, 6)) };
     });
-    await insertBatches('profiles', people.map((p) => ({ id: p.id, username: p.username, display_name: p.name, bio: one(BIOS), locale: 'pt-BR' })));
+    // Foto de perfil para todos e banner para a maioria (copiados no Storage antes do perfil).
+    if (media) {
+      let k = 0;
+      await pool(people, 8, async (p, i) => {
+        const ts = Date.now() * 10 + i;
+        if (media.avatars.length) {
+          const a = i % media.avatars.length;
+          await store.copy('avatars', `avatar-${a}.jpg`, media.avatars[a], 'image/jpeg', `${p.id}/avatar-${ts}.jpg`);
+          p.avatar = `avatars/${p.id}/avatar-${ts}.jpg`;
+        }
+        if (media.banners.length && rand() < 0.6) {
+          const b = i % media.banners.length;
+          await store.copy('banners', `banner-${b}.jpg`, media.banners[b], 'image/jpeg', `${p.id}/banner-${ts}.jpg`);
+          p.banner = `banners/${p.id}/banner-${ts}.jpg`;
+        }
+        progress('fotos de perfil e banners', ++k, people.length);
+      });
+    }
+    await insertBatches('profiles', people.map((p) => ({ id: p.id, username: p.username, display_name: p.name, bio: one(BIOS), locale: 'pt-BR', avatar_url: p.avatar ?? null, banner_url: p.banner ?? null })));
     await insertBatches('profile_private', people.map((p) => ({ user_id: p.id, birthdate: `${int(1975, 2005)}-0${int(1, 9)}-1${int(0, 9)}`, is_minor: false, streaming_platform: one(['spotify', 'deezer', 'apple_music', 'youtube_music']) })));
     await insertBatches('user_genres', people.flatMap((p) => p.genres.map((genre) => ({ user_id: p.id, genre }))), { upsert: 'user_id,genre' });
 
@@ -339,8 +500,25 @@ async function main() {
       for (let i = 0; i < ids.length; i++) if ((r -= authorWeight[i]) <= 0) return ids[i];
       return ids[ids.length - 1];
     };
-    const postRows = Array.from({ length: N_POSTS }, () => {
+    // Posts com mídia: ~12% com fotos (1 a 4) e ~2% com vídeo (com teto para não pesar o disco).
+    const MAX_PHOTO_POSTS = 1000;
+    const MAX_VIDEO_POSTS = 80;
+    let photoPosts = 0;
+    let videoPosts = 0;
+    const plannedMedia = [];
+    const postRows = Array.from({ length: N_POSTS }, (_, idx) => {
       const at = agoIso(Math.pow(rand(), 1.6) * DAYS * 24 * HOUR);
+      const r = rand();
+      if (media?.videos.length && r < 0.02 && videoPosts < MAX_VIDEO_POSTS) {
+        videoPosts++;
+        plannedMedia[idx] = { kind: 'video' };
+        return { author_id: pickAuthor(), type: 'media', body: one(MEDIA_TEXT), genres: [], created_at: at };
+      }
+      if (media?.photos.length && r < 0.14 && photoPosts < MAX_PHOTO_POSTS) {
+        photoPosts++;
+        plannedMedia[idx] = { kind: 'photo', count: rand() < 0.5 ? 1 : rand() < 0.5 ? 2 : rand() < 0.6 ? 3 : 4 };
+        return { author_id: pickAuthor(), type: 'media', body: one(MEDIA_TEXT), genres: [], created_at: at };
+      }
       if (rand() < 0.6 && tracks.length) {
         const t = one(tracks);
         const genres = (t.genres ?? []).filter((g) => GENRES.includes(g)).slice(0, 3);
@@ -350,6 +528,35 @@ async function main() {
     });
     console.log(`Criando ${N_POSTS} posts...`);
     const posts = await insertBatches('posts', postRows, { select: 'id, author_id, created_at' });
+
+    // Arquivos dos posts com mídia (copiados para a pasta do autor) e as linhas de post_media.
+    const mediaRows = [];
+    if (media) {
+      const jobs = [];
+      posts.forEach((p, idx) => {
+        const plan = plannedMedia[idx];
+        if (!plan) return;
+        if (plan.kind === 'video') {
+          const v = int(0, media.videos.length - 1);
+          const path = `${p.author_id}/${randomUUID()}.mp4`;
+          jobs.push(() => store.copy('post-media', `video-${v}.mp4`, media.videos[v].buf, 'video/mp4', path));
+          mediaRows.push({ post_id: p.id, position: 0, kind: 'video', path, width: media.videos[v].w, height: media.videos[v].h, duration_ms: media.videos[v].ms });
+        } else {
+          for (let pos = 0; pos < plan.count; pos++) {
+            const f = int(0, media.photos.length - 1);
+            const path = `${p.author_id}/${randomUUID()}.jpg`;
+            jobs.push(() => store.copy('post-media', `photo-${f}.jpg`, media.photos[f].buf, 'image/jpeg', path));
+            mediaRows.push({ post_id: p.id, position: pos, kind: 'photo', path, width: media.photos[f].w, height: media.photos[f].h });
+          }
+        }
+      });
+      let k = 0;
+      await pool(jobs, 8, async (job) => {
+        await job();
+        progress('fotos e vídeos dos posts', ++k, jobs.length);
+      });
+      await insertBatches('post_media', mediaRows);
+    }
 
     // Curtidas (cauda longa: a maioria com poucas, alguns virais)
     const likes = [];
@@ -392,12 +599,33 @@ async function main() {
       if (!(followedByReal.has(id) ? rand() < 0.6 : rand() < 0.15)) continue;
       for (let i = 0, n = int(1, 4); i < n; i++) {
         const at = agoIso(rand() * 20 * HOUR);
-        if (rand() < 0.5 && tracks.length) vibeRows.push({ author_id: id, kind: 'music', link_preview_id: one(tracks).id, text: rand() < 0.5 ? one(VIBE_TEXT) : null, style: one(STYLES), text_x: 0.5, text_y: 0.22, created_at: at });
+        const r = rand();
+        if (media?.photos.length && r < 0.25) {
+          const f = int(0, media.photos.length - 1);
+          vibeRows.push({ author_id: id, kind: 'photo', media_path: `${id}/${randomUUID()}.jpg`, file: ['photo', f], text: rand() < 0.4 ? one(VIBE_TEXT) : null, style: one(STYLES), text_x: rand() < 0.4 ? 0.5 : null, text_y: null, created_at: at });
+          const v = vibeRows[vibeRows.length - 1];
+          v.text_y = v.text_x === null ? null : 0.8;
+          if (!v.text) v.text_x = v.text_y = null;
+        } else if (media?.videos.length && r < 0.33) {
+          const f = int(0, media.videos.length - 1);
+          vibeRows.push({ author_id: id, kind: 'video', media_path: `${id}/${randomUUID()}.mp4`, file: ['video', f], duration_ms: media.videos[f].ms, text: null, style: one(STYLES), created_at: at });
+        } else if (rand() < 0.5 && tracks.length) vibeRows.push({ author_id: id, kind: 'music', link_preview_id: one(tracks).id, text: rand() < 0.5 ? one(VIBE_TEXT) : null, style: one(STYLES), text_x: 0.5, text_y: 0.22, created_at: at });
         else vibeRows.push({ author_id: id, kind: 'text', text: one(VIBE_TEXT), style: one(STYLES), text_x: 0.5, text_y: 0.45, created_at: at });
       }
     }
     console.log(`Vibes (${vibeRows.length})...`);
-    await insertBatches('vibes', vibeRows);
+    if (media) {
+      const withFile = vibeRows.filter((v) => v.file);
+      let k = 0;
+      await pool(withFile, 8, async (v) => {
+        const [kind, f] = v.file;
+        if (kind === 'photo') await store.copy('vibes', `photo-${f}.jpg`, media.photos[f].buf, 'image/jpeg', v.media_path);
+        else await store.copy('vibes', `video-${f}.mp4`, media.videos[f].buf, 'video/mp4', v.media_path);
+        progress('fotos e vídeos das vibes', ++k, withFile.length);
+      });
+    }
+    await insertBatches('vibes', vibeRows.map(({ file, ...v }) => (void file, v)));
+    await store.cleanup();
 
     // Curtidas do Descobrir (perfil › Curtidas)
     const swipes = [];
@@ -405,6 +633,7 @@ async function main() {
     await insertBatches('discover_swipes', swipes, { size: 1000, upsert: 'user_id,link_preview_id' });
 
     const s = ((Date.now() - t0) / 1000).toFixed(0);
+    if (media) console.log(`\nMídia: ${people.filter((p) => p.avatar).length} fotos de perfil, ${people.filter((p) => p.banner).length} banners, ${mediaRows.filter((m) => m.kind === 'photo').length} fotos e ${mediaRows.filter((m) => m.kind === 'video').length} vídeos em posts, ${vibeRows.filter((v) => v.media_path).length} vibes com foto/vídeo.`);
     console.log(`\nPronto em ${s}s: ${N_USERS} contas, ${posts.length} posts, ${likes.length} curtidas, ${comments.length + replyRows.length} comentários, ${follows.size} seguidores, ${vibeRows.length} vibes, ${swipes.length} swipes no Descobrir, ${tracks.length} músicas.`);
     if (!online) console.log('Aviso: sem internet para a Deezer; as músicas entraram sem capa e sem prévia.');
     console.log(`Suas contas (${realProfiles.map((p) => '@' + p.username).join(', ') || 'nenhuma ainda'}) seguem parte das contas de carga e são seguidas por elas.`);
