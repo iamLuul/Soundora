@@ -205,7 +205,10 @@
     "showMoreReplies_one": "Show {{count}} more reply",
     "showMoreReplies_other": "Show {{count}} more replies",
     "showLess": "Show less",
-    "playVideo": "Play video"
+    "playVideo": "Play video",
+    "mediaPosition": "{{current}} of {{total}}",
+    "previousMedia": "Previous",
+    "nextMedia": "Next"
   },
   "profile": {
     "followers": "Followers",

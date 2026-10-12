@@ -205,7 +205,10 @@
     "showMoreReplies_one": "Ver mais {{count}} resposta",
     "showMoreReplies_other": "Ver mais {{count}} respostas",
     "showLess": "Mostrar menos",
-    "playVideo": "Assistir ao vídeo"
+    "playVideo": "Assistir ao vídeo",
+    "mediaPosition": "{{current}} de {{total}}",
+    "previousMedia": "Anterior",
+    "nextMedia": "Próxima"
   },
   "profile": {
     "followers": "Seguidores",

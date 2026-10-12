@@ -3,12 +3,12 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
-import { colors, space } from '../theme';
-import { webTouch } from '../lib/touch';
+import { colors } from '../theme';
+import { MediaViewer, type ViewerItem } from './MediaViewer';
 import { Spinner } from './Spinner';
 
 /** URLs assinadas (1 h) das mídias do post; os posts da mesma página assinam juntos (signPostMedia). */
@@ -26,7 +26,7 @@ function ratio(m: Media) {
 export function PostMedia({ media }: { media: Media[] }) {
   const { t } = useTranslation();
   const urls = useMediaUrls(media);
-  const [zoom, setZoom] = useState<string | null>(null);
+  const [open, setOpen] = useState<number | null>(null);
   if (!media.length) return null;
 
   const first = media[0]!;
@@ -35,10 +35,24 @@ export function PostMedia({ media }: { media: Media[] }) {
     return <View style={[styles.box, { aspectRatio: ratio(first) }]}>{uri ? <PostVideo uri={uri} /> : <Spinner color={colors.muted} style={{ flex: 1 }} />}</View>;
   }
 
+  // Tudo o que já tem URL, na ordem do post, para passar de uma em uma em tela cheia.
+  const viewerItems: ViewerItem[] = media.flatMap((m) => {
+    const uri = urls.data?.[m.path];
+    return uri ? [{ key: m.path, kind: m.kind, uri }] : [];
+  });
+
   const photo = (m: Media, style: object) => {
     const uri = urls.data?.[m.path];
+    const at = viewerItems.findIndex((v) => v.key === m.path);
     return (
-      <Pressable key={m.path} accessibilityRole="imagebutton" accessibilityLabel={t('post.openPhoto')} onPress={() => uri && setZoom(uri)} style={[styles.cell, style]}>
+      <Pressable
+        key={m.path}
+        testID={`post-photo-${media.indexOf(m)}`}
+        accessibilityRole="imagebutton"
+        accessibilityLabel={t('post.openPhoto')}
+        onPress={() => at >= 0 && setOpen(at)}
+        style={[styles.cell, style]}
+      >
         {/* cacheKey = o arquivo (a URL assinada muda a cada hora; a foto não precisa baixar de novo). */}
         {uri ? <Image source={{ uri, cacheKey: m.path }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} cachePolicy="memory-disk" /> : null}
       </Pressable>
@@ -62,14 +76,7 @@ export function PostMedia({ media }: { media: Media[] }) {
           </View>
         </View>
       )}
-      <Modal visible={!!zoom} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
-        <View style={styles.zoom}>
-          {zoom ? <Image source={{ uri: zoom }} style={StyleSheet.absoluteFill} contentFit="contain" /> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={() => setZoom(null)} style={[styles.close, webTouch(12)]} hitSlop={12}>
-            <Ionicons name="close" size={28} color={colors.text} />
-          </Pressable>
-        </View>
-      </Modal>
+      <MediaViewer items={viewerItems} index={open} onClose={() => setOpen(null)} />
     </>
   );
 }
@@ -105,7 +112,5 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', gap: 2 },
   col: { flex: 1, gap: 2 },
   cell: { overflow: 'hidden', backgroundColor: colors.card },
-  zoom: { flex: 1, backgroundColor: '#000' },
   videoCover: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
-  close: { position: 'absolute', top: space.xxl, right: space.lg },
 });
