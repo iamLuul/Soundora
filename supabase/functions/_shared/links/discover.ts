@@ -119,19 +119,158 @@ export async function fetchSimilarTracks(apiKey: string, ref: TrackRef, limit: n
   return refs(data?.similartracks?.track, limit);
 }
 
-/** Tag do Last.fm de um gênero: as dos 37 de destaque estão na tabela; as do catálogo grande são o próprio nome. */
-export function lastfmTag(genre: string): string {
-  return LASTFM_GENRE_TAGS[genre as GenreSlug] ?? genre.replace(/_/g, ' ');
+/**
+ * Gêneros do catálogo grande cujo nome sozinho acha pouco (ou a coisa errada) no Last.fm: a
+ * tag certa primeiro e as reservas depois (usadas quando a anterior tem poucas músicas).
+ * Ex.: o funk brasileiro e seus subgêneros caem em "funk carioca" (a tag "funk" é o funk
+ * americano dos anos 70).
+ */
+export const LASTFM_TAG_CHAINS: Record<string, string[]> = {
+  funk_br: ['funk carioca', 'baile funk', 'funk brasileiro'],
+  funk_rj: ['funk carioca', 'baile funk', 'funk rj'],
+  funk_paulista: ['funk paulista', 'funk ostentacao', 'funk carioca'],
+  funk_ostentacao: ['funk ostentacao', 'funk paulista', 'funk carioca'],
+  funk_mandelao: ['funk mandelao', 'funk bh', 'funk carioca'],
+  funk_bh: ['funk bh', 'funk mandelao', 'funk carioca'],
+  brega_funk: ['brega funk', 'bregafunk', 'funk carioca'],
+  funk_melody: ['funk melody', 'funk carioca'],
+  funk_das_antigas: ['funk das antigas', 'funk melody', 'funk carioca'],
+  funk_consciente: ['funk consciente', 'funk carioca'],
+  funk_mtg: ['funk mtg', 'funk carioca'],
+  mega_funk: ['mega funk', 'funk carioca'],
+  funk_bpm: ['funk bpm', 'funk carioca'],
+  funk_viral: ['funk viral', 'funk carioca'],
+  rave_funk: ['rave funk', 'funk carioca'],
+  trap_funk: ['trap funk', 'funk carioca'],
+  funk_pop: ['funk pop', 'funk carioca'],
+  funk_evangelico: ['funk evangelico', 'funk gospel', 'funk carioca'],
+  funk: ['funk', 'p-funk'],
+};
+
+/**
+ * Tags do Last.fm de um gênero, na ordem em que valem: a do gênero (tabela dos 37 de destaque,
+ * cadeia acima ou o próprio nome) e, como reserva, a dos gêneros de destaque que aparecem no
+ * nome ("sertanejo_universitario" → "sertanejo").
+ */
+export function lastfmTags(genre: string): string[] {
+  const chain = LASTFM_TAG_CHAINS[genre];
+  if (chain) return chain;
+  const own = LASTFM_GENRE_TAGS[genre as GenreSlug] ?? genre.replace(/_/g, ' ');
+  const parents = genre
+    .split('_')
+    .filter((part) => part !== genre && part in LASTFM_GENRE_TAGS)
+    .map((part) => LASTFM_GENRE_TAGS[part as GenreSlug]);
+  return [...new Set([own, ...parents])];
 }
 
-/** As mais ouvidas de um gênero (Last.fm tag.getTopTracks). `page` varia a seleção. */
-export async function fetchGenreTracks(apiKey: string, genre: string, page: number, limit: number, opts: Opts): Promise<TrackRef[]> {
-  if (!KEY_RE.test(apiKey)) throw new LastfmKeyError();
-  const tag = encodeURIComponent(lastfmTag(genre));
-  const url = `${LASTFM}?method=tag.gettoptracks&api_key=${apiKey}&format=json&tag=${tag}&limit=${limit}&page=${Math.max(1, Math.min(page, 10))}`;
+/** A tag principal do gênero. */
+export function lastfmTag(genre: string): string {
+  return lastfmTags(genre)[0]!;
+}
+
+async function fetchTagTracks(apiKey: string, tag: string, page: number, limit: number, opts: Opts): Promise<TrackRef[]> {
+  const url = `${LASTFM}?method=tag.gettoptracks&api_key=${apiKey}&format=json&tag=${encodeURIComponent(tag)}&limit=${limit}&page=${Math.max(1, Math.min(page, 10))}`;
   const data = (await getJson(opts.fetch, url, opts.timeoutMs ?? 5000)) as { error?: unknown; tracks?: { track?: unknown } } | null;
   if (data?.error === 10 || data?.error === 26) throw new LastfmKeyError();
   return refs(data?.tracks?.track, limit);
+}
+
+/**
+ * As mais ouvidas de um gênero (Last.fm tag.getTopTracks). `page` varia a seleção. Se a tag
+ * principal tiver pouca coisa (menos de 60% do pedido), completa com as tags de reserva.
+ */
+export async function fetchGenreTracks(apiKey: string, genre: string, page: number, limit: number, opts: Opts): Promise<TrackRef[]> {
+  if (!KEY_RE.test(apiKey)) throw new LastfmKeyError();
+  const out: TrackRef[] = [];
+  const seen = new Set<string>();
+  for (const tag of lastfmTags(genre)) {
+    let list = await fetchTagTracks(apiKey, tag, page, limit, opts);
+    // Tag pequena: a página sorteada pode vir vazia; a primeira não.
+    if (!list.length && page > 1) list = await fetchTagTracks(apiKey, tag, 1, limit, opts);
+    for (const t of list) {
+      const key = `${t.artist}|${t.title}`.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(t);
+      }
+    }
+    if (out.length >= limit * 0.6) break;
+  }
+  return out.slice(0, limit);
+}
+
+/**
+ * Gêneros da Deezer (ids do /genre) que a gente usa para conferir se a música é mesmo do
+ * gênero pedido. A Deezer classifica pelo álbum e em poucas categorias, então a conferência
+ * só descarta o que é claramente de outro gênero (lista de "não é"), nunca exige um.
+ */
+export const DEEZER_GENRES = {
+  pop: 132,
+  rapHipHop: 116,
+  rock: 152,
+  dance: 113,
+  rnb: 165,
+  alternative: 85,
+  electro: 106,
+  folk: 466,
+  reggae: 144,
+  jazz: 129,
+  country: 84,
+  classical: 98,
+  metal: 464,
+  soulFunk: 169,
+  blues: 153,
+  brazilian: 75,
+  latin: 197,
+  asian: 16,
+} as const;
+
+const D = DEEZER_GENRES;
+const BR_FUNK_DENY = [D.soulFunk, D.jazz, D.classical, D.metal, D.country, D.rock, D.blues];
+const BRAZILIAN_DENY = [D.metal, D.classical, D.asian, D.soulFunk];
+/** Gênero do Soundora → gêneros da Deezer que ele não pode ter. */
+const GENRE_DENY: Record<string, number[]> = {
+  funk: [D.brazilian, D.latin, D.metal, D.classical, D.country],
+  sertanejo: BRAZILIAN_DENY,
+  forro: BRAZILIAN_DENY,
+  pagode: BRAZILIAN_DENY,
+  samba: BRAZILIAN_DENY,
+  mpb: BRAZILIAN_DENY,
+  bossa_nova: [D.metal, D.asian, D.soulFunk],
+  k_pop: [D.brazilian, D.latin, D.country],
+  metal: [D.brazilian, D.rnb, D.classical, D.jazz],
+  classical: [D.rapHipHop, D.metal, D.dance, D.brazilian],
+  jazz: [D.metal, D.rapHipHop, D.brazilian],
+};
+
+/** Regras de "não é" do gênero (os subgêneros do funk brasileiro usam as do funk_br). */
+function denyFor(genre: string): number[] | null {
+  if (genre === 'funk_br' || (genre in LASTFM_TAG_CHAINS && LASTFM_TAG_CHAINS[genre]!.includes('funk carioca'))) return BR_FUNK_DENY;
+  return GENRE_DENY[genre] ?? null;
+}
+
+/** Este gênero tem conferência na Deezer? (Senão nem vale buscar o gênero do álbum.) */
+export function checksDeezerGenre(genre: string): boolean {
+  return denyFor(genre) !== null;
+}
+
+/**
+ * A música (pelos gêneros do álbum na Deezer) pode ser deste gênero? Sem informação da
+ * Deezer, ou se algum gênero do álbum não estiver na lista de "não é", aceita.
+ */
+export function fitsGenre(genre: string, deezerGenreIds: readonly number[] | null | undefined): boolean {
+  const deny = denyFor(genre);
+  if (!deny || !deezerGenreIds?.length) return true;
+  return deezerGenreIds.some((id) => !deny.includes(id));
+}
+
+/** Gêneros do álbum na Deezer (/album/{id}). null = não deu para saber. */
+export async function deezerAlbumGenres(albumId: string, opts: Opts): Promise<number[] | null> {
+  if (!/^\d{1,15}$/.test(albumId)) return null;
+  const data = (await getJson(opts.fetch, `${DEEZER}/album/${albumId}`, opts.timeoutMs ?? 5000)) as { genres?: { data?: { id?: unknown }[] }; error?: unknown } | null;
+  if (!data || data.error) return null;
+  const ids = (data.genres?.data ?? []).map((g) => g.id).filter((id): id is number => typeof id === 'number' && Number.isInteger(id) && id > 0);
+  return ids.slice(0, 10);
 }
 
 /** O que a Deezer tem da música: tudo o que o cartão mostra. */
@@ -144,6 +283,8 @@ export interface DeezerTrack {
   imageUrl: string | null;
   artistImageUrl: string | null;
   previewUrl: string | null;
+  /** Álbum na Deezer (para conferir o gênero). */
+  albumId: string | null;
 }
 
 interface DeezerHit {
@@ -152,7 +293,7 @@ interface DeezerHit {
   link?: unknown;
   preview?: unknown;
   artist?: { name?: unknown; picture_medium?: unknown };
-  album?: { title?: unknown; cover_big?: unknown; cover_medium?: unknown };
+  album?: { id?: unknown; title?: unknown; cover_big?: unknown; cover_medium?: unknown };
 }
 
 function toDeezerTrack(hit: DeezerHit, fallback: TrackRef): DeezerTrack | null {
@@ -168,6 +309,7 @@ function toDeezerTrack(hit: DeezerHit, fallback: TrackRef): DeezerTrack | null {
     imageUrl: safeImageUrl(cover),
     artistImageUrl: safeImageUrl(typeof hit.artist?.picture_medium === 'string' ? hit.artist.picture_medium : null),
     previewUrl: isAllowedAudioUrl(hit.preview) ? hit.preview : null,
+    albumId: typeof hit.album?.id === 'number' || (typeof hit.album?.id === 'string' && /^\d{1,15}$/.test(hit.album.id)) ? String(hit.album!.id) : null,
   };
 }
 
@@ -266,7 +408,10 @@ export async function recommend(
   const similar = shuffle(similarLists.flat(), random);
   const genre = shuffle(genreLists.flat(), random);
   let popular: Candidate[] = [];
-  if (similar.length + genre.length < opts.size) {
+  // As mais tocadas do mundo só entram quando quase não há o que sugerir (conta nova, sem
+  // curtidas e com gêneros que o Last.fm não conhece). Antes completavam a pilha toda vez e
+  // enchiam de pop o Descobrir de quem escolheu gêneros de nicho.
+  if (similar.length + genre.length < Math.min(5, opts.size)) {
     const top = (await fetchLastfmTopTracks(apiKey, opts).catch((e) => (e instanceof LastfmKeyError ? Promise.reject(e) : null))) ?? [];
     popular = shuffle(asCandidates(top, { kind: 'popular' }), random);
   }

@@ -268,7 +268,8 @@
     "becauseGenre": "Popular in {{genre}}",
     "becausePopular": "Popular worldwide",
     "previewAt": "Preview: {{s}} of 30 seconds",
-    "previewUnavailable": "Preview unavailable for this song."
+    "previewUnavailable": "Preview unavailable for this song.",
+    "genreEmpty": "No more {{genre}} suggestions for now. Try another genre or come back later."
   },
   "trending": {
     "title": "Most played worldwide",

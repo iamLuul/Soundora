@@ -10,7 +10,7 @@ beforeAll(async () => {
 });
 afterAll(async () => db.close());
 
-const search = (q: string, limit = 20) => db.as<{ slug: string; name_en: string; featured: boolean }>(ana, `select * from public.search_genres($1, $2)`, [q, limit]);
+const search = (q: string, limit = 20) => db.as<{ slug: string; name_pt: string; name_en: string; featured: boolean }>(ana, `select * from public.search_genres($1, $2)`, [q, limit]);
 
 describe('catálogo de gêneros', () => {
   it('tem milhares de gêneros, e os 37 de antes continuam em destaque com o nome em português', async () => {
@@ -32,6 +32,14 @@ describe('catálogo de gêneros', () => {
     expect((await search('eletr')).map((r) => r.slug)).toContain('electronic');
     expect(await search('')).toEqual([]);
     await expect(db.anon(`select * from public.search_genres('rock')`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('os dois funks têm nomes diferentes; o brasileiro vem primeiro na busca', async () => {
+    const rows = await search('funk', 3);
+    expect(rows.slice(0, 2).map((r) => [r.slug, r.name_pt])).toEqual([
+      ['funk_br', 'Funk brasileiro'],
+      ['funk', 'Funk (EUA)'],
+    ]);
   });
 
   it('qualquer gênero do catálogo pode ir para o perfil; inventado não', async () => {

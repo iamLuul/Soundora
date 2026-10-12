@@ -133,25 +133,26 @@ export function DiscoverDeck({
         >
           <SvgXml xml={icons.skipButton} width={52} height={52} />
         </Pressable>
-        {/* Play: toca a prévia de 30 s; sem prévia, abre a música na plataforma. */}
+        {/* Play: toca a prévia de 30 s (a de músicas de outras plataformas vem da Deezer, pelo
+            servidor). Sem quem cuide do play (onTogglePlay), abre a música na plataforma. */}
         <Pressable
           testID="discover-play"
           accessibilityRole="button"
           accessibilityLabel={
-            top.audio_url && onTogglePlay
+            onTogglePlay
               ? playing
                 ? t('discover.pause')
                 : t('discover.play')
               : t('feed.listenOn', { platform: PLATFORM_LABELS[platform ?? top.platform] })
           }
-          onPress={() => (top.audio_url && onTogglePlay ? onTogglePlay() : onOpen ? onOpen(top) : Linking.openURL(top.url))}
+          onPress={() => (onTogglePlay ? onTogglePlay() : onOpen ? onOpen(top) : Linking.openURL(top.url))}
           accessibilityValue={
-            top.audio_url && seconds ? { min: 0, max: Math.round(seconds.duration), now: Math.round(seconds.position), text: t('discover.previewAt', { s: Math.round(seconds.position) }) } : undefined
+            seconds ? { min: 0, max: Math.round(seconds.duration), now: Math.round(seconds.position), text: t('discover.previewAt', { s: Math.round(seconds.position) }) } : undefined
           }
           style={({ pressed }) => [styles.play, pressed && { opacity: 0.8 }]}
         >
           {/* Anel da prévia: mostra que é só um trecho (30 s) e quanto já tocou. */}
-          {top.audio_url ? <PreviewRing progress={progress} /> : null}
+          {onTogglePlay ? <PreviewRing progress={progress} /> : null}
           <SvgXml xml={playing ? icons.pauseButton : icons.playButton} width={72} height={72} />
         </Pressable>
         <Pressable

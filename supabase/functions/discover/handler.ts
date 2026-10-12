@@ -3,10 +3,10 @@
 //
 // { action: 'deck', genre? }          → cartões sugeridos para a pessoa (ou só de um gênero)
 // { action: 'link', previewId, platform } → link da música na plataforma da pessoa (ou a busca)
-// { action: 'audio', previewId }          → prévia renovada (a da Deezer vence pelo próprio link)
+// { action: 'audio', previewId }          → prévia renovada (Deezer) ou achada na Deezer (outras plataformas)
 import { readJsonLimited } from '../_shared/body.ts';
-import { isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl } from '../_shared/links/charts.ts';
-import { previewUsable, type Candidate, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
+import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl } from '../_shared/links/charts.ts';
+import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
@@ -42,6 +42,8 @@ export interface TrackRow {
   audio_url: string | null;
   genres: string[] | null;
   store_checked_at: string | null;
+  /** Gêneros do álbum na Deezer (null = ainda não conferido). */
+  store_genre_ids?: number[] | null;
 }
 
 export interface Deps {
@@ -57,6 +59,10 @@ export interface Deps {
   trackById(id: string): Promise<DeezerTrack | null>;
   /** Guarda o que a Deezer achou (ou que não achou) e devolve o cartão. */
   saveTrack(key: string, track: DeezerTrack | null, genre: string | null): Promise<TrackRow | null>;
+  /** Gêneros do álbum na Deezer (null = não deu para saber). */
+  albumGenres(albumId: string): Promise<number[] | null>;
+  /** Guarda os gêneros da Deezer do cartão (para não perguntar de novo). */
+  saveGenreIds(previewId: string, ids: number[]): Promise<void>;
   /** Nova prévia da Deezer num cartão que já existia. */
   saveAudio(previewId: string, audioUrl: string | null): Promise<void>;
   getTrack(previewId: string): Promise<TrackRow | null>;
@@ -100,11 +106,16 @@ export function createHandler(deps: Deps) {
     const seenIds = new Set(seeds.seenPreviewIds);
     const cards: { row: TrackRow; candidate: Candidate }[] = [];
     const pending: Candidate[] = [];
+    const knownCards: { row: TrackRow; candidate: Candidate }[] = [];
     for (const c of candidates) {
       const row = known.get(c.key);
       if (row === undefined) pending.push(c);
-      else if (row && !seenIds.has(row.id)) cards.push({ row, candidate: c });
+      else if (row && !seenIds.has(row.id)) knownCards.push({ row, candidate: c });
     }
+    // Sugestão de gênero: confere na Deezer se a música é mesmo daquele gênero (ex.: pedir funk
+    // brasileiro e vir funk americano). As já conhecidas, todas juntas.
+    const knownOk = await Promise.all(knownCards.map((k) => genreOk(k.row, k.candidate)));
+    knownCards.forEach((k, i) => knownOk[i] && cards.push(k));
 
     // Procura na Deezer o que ainda não conhece, de 5 em 5, até ter cartões suficientes.
     let quota = false;
@@ -119,7 +130,7 @@ export function createHandler(deps: Deps) {
         }
         const c = batch[j]!;
         const row = await deps.saveTrack(c.key, track, c.reason.kind === 'genre' ? c.reason.genre : null);
-        if (row && !seenIds.has(row.id)) cards.push({ row, candidate: c });
+        if (row && !seenIds.has(row.id) && (await genreOk(row, c, track?.albumId ?? null))) cards.push({ row, candidate: c });
       }
     }
 
@@ -160,16 +171,68 @@ export function createHandler(deps: Deps) {
     });
   }
 
-  /** Prévia nova de um cartão (o app pede quando a que tem venceu ou não tocou). */
+  /**
+   * A música combina com o gênero da sugestão? Só pergunta à Deezer quando o gênero tem
+   * conferência e o cartão ainda não foi conferido; na dúvida (Deezer fora), aceita.
+   */
+  async function genreOk(row: TrackRow, c: Candidate, albumId: string | null = null): Promise<boolean> {
+    if (c.reason.kind !== 'genre' || !checksDeezerGenre(c.reason.genre)) return true;
+    let ids = row.store_genre_ids ?? null;
+    if (ids === null) {
+      let album = albumId;
+      if (!album && row.platform === 'deezer' && row.provider_id) album = (await deps.trackById(row.provider_id).catch(() => null))?.albumId ?? null;
+      ids = album ? await deps.albumGenres(album).catch(() => null) : null;
+      if (ids) {
+        row.store_genre_ids = ids;
+        await deps.saveGenreIds(row.id, ids).catch(() => undefined);
+      }
+    }
+    const ok = fitsGenre(c.reason.genre, ids);
+    if (!ok && deps.debug) log(`discover: "${row.artist} – ${row.title}" não é ${c.reason.genre} (Deezer: ${ids?.join(',')})`);
+    return ok;
+  }
+
+  /** Prévia da Deezer de um cartão da Deezer: a guardada, ou uma nova se venceu/vai vencer. */
+  async function deezerAudio(track: TrackRow): Promise<string | null> {
+    const t = now().getTime();
+    if (track.audio_url && previewUsable(track.audio_url, t, AUDIO_MARGIN_MS)) return track.audio_url;
+    const fresh = track.provider_id ? await deps.trackById(track.provider_id).catch(() => null) : null;
+    if (!fresh) return previewUsable(track.audio_url, t) ? track.audio_url : null;
+    await deps.saveAudio(track.id, fresh.previewUrl).catch(() => undefined);
+    return fresh.previewUrl;
+  }
+
+  /**
+   * Prévia de um cartão (o app pede quando a que tem venceu, não tocou ou não existe).
+   * - Deezer: renova pelo próprio link.
+   * - Outras plataformas (indicações da comunidade: links de Spotify, YouTube etc., que não
+   *   trazem prévia): procura a mesma música (artista + título) na Deezer, guarda a busca
+   *   (track_lookups) e toca a prévia de lá.
+   */
   async function audio(body: { previewId?: unknown }): Promise<Response> {
     if (typeof body.previewId !== 'string' || !UUID_RE.test(body.previewId)) return json({ error: 'invalid_request' }, 400);
     const track = await deps.getTrack(body.previewId);
     if (!track) return json({ error: 'not_found' }, 404);
-    if (track.platform !== 'deezer' || !track.provider_id) return json({ audio_url: track.audio_url });
-    const fresh = await deps.trackById(track.provider_id).catch(() => null);
-    if (!fresh) return json({ audio_url: previewUsable(track.audio_url, now().getTime()) ? track.audio_url : null });
-    await deps.saveAudio(track.id, fresh.previewUrl).catch(() => undefined);
-    return json({ audio_url: fresh.previewUrl });
+    if (track.platform === 'deezer' && track.provider_id) {
+      const fresh = await deps.trackById(track.provider_id).catch(() => null);
+      if (!fresh) return json({ audio_url: previewUsable(track.audio_url, now().getTime()) ? track.audio_url : null });
+      await deps.saveAudio(track.id, fresh.previewUrl).catch(() => undefined);
+      return json({ audio_url: fresh.previewUrl });
+    }
+    // Prévia própria ainda válida (ex.: a oficial da Apple Music, que não vence).
+    if (track.audio_url && previewUsable(track.audio_url, now().getTime(), AUDIO_MARGIN_MS)) return json({ audio_url: track.audio_url });
+    if (!track.artist) return json({ audio_url: null });
+
+    const key = chartKey(track.artist, track.title);
+    const known = (await deps.lookup([key])).get(key);
+    let match: TrackRow | null;
+    if (known !== undefined) match = known;
+    else {
+      const found = await deps.findTrack({ artist: track.artist, title: track.title }).catch(() => null);
+      if (found === 'quota') return json({ audio_url: null });
+      match = await deps.saveTrack(key, found, null);
+    }
+    return json({ audio_url: match ? await deezerAudio(match) : null });
   }
 
   async function link(body: { previewId?: unknown; platform?: unknown }): Promise<Response> {

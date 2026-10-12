@@ -119,6 +119,29 @@ describe('Descobrir', () => {
     await waitFor(() => expect(screen.queryByText('Get Lucky')).toBeNull());
   });
 
+  test('indicação da comunidade (link do Spotify, sem prévia): o play pede a prévia, não abre o streaming', async () => {
+    mockRecs.mockResolvedValue([
+      rec('c1', 'Midnight City', { platform: 'spotify', url: 'https://open.spotify.com/track/x', audio_url: null, source: 'community', reason: null as never, because: null }),
+    ]);
+    await wrap();
+    await waitFor(() => expect(screen.getByLabelText('Ouvir a prévia')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('discover-play'));
+    await waitFor(() => expect(mockRefresh).toHaveBeenCalledWith('c1'));
+    expect(screen.getByLabelText('Pausar a prévia')).toBeTruthy();
+    expect(mockOpenURL).not.toHaveBeenCalled();
+  });
+
+  test('a mesma indicação sem prévia nem na Deezer: avisa e não abre o streaming', async () => {
+    mockRefresh.mockResolvedValueOnce(null as never);
+    mockRecs.mockResolvedValue([rec('c2', 'Rara', { platform: 'youtube', url: 'https://youtu.be/x', audio_url: null })]);
+    await wrap();
+    await waitFor(() => expect(screen.getByLabelText('Ouvir a prévia')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('discover-play'));
+    await waitFor(() => expect(screen.getByText('Prévia indisponível para esta música.')).toBeTruthy());
+    expect(screen.getByLabelText('Ouvir a prévia')).toBeTruthy();
+    expect(mockOpenURL).not.toHaveBeenCalled();
+  });
+
   test('buscar um gênero troca a pilha para só esse gênero', async () => {
     await wrap();
     await waitFor(() => expect(screen.getByText('One More Time')).toBeTruthy());

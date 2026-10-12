@@ -8,7 +8,7 @@
 // Nuvem:  npx supabase functions deploy discover
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { chartKey, fetchPlatformLinks, LastfmKeyError } from '../_shared/links/charts.ts';
-import { deezerTrackById, findDeezerTrack, recommend } from '../_shared/links/discover.ts';
+import { deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend } from '../_shared/links/discover.ts';
 import { isAllowedAudioUrl } from '../_shared/links/genres.ts';
 import type { FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
@@ -19,7 +19,7 @@ const admin = createClient(supabaseUrl, apiKey('secret'), { auth: { persistSessi
 const http = fetch as unknown as FetchLike;
 const opts = { fetch: http, timeoutMs: 5000 };
 
-const TRACK_COLUMNS = 'id, url, platform, provider_id, title, artist, album, image_url, artist_image_url, audio_url, genres, store_checked_at';
+const TRACK_COLUMNS = 'id, url, platform, provider_id, title, artist, album, image_url, artist_image_url, audio_url, genres, store_checked_at, store_genre_ids';
 
 Deno.serve(
   createHandler({
@@ -75,6 +75,11 @@ Deno.serve(
     },
     findTrack: (ref) => findDeezerTrack(ref, opts),
     trackById: (id) => deezerTrackById(id, opts),
+    albumGenres: (albumId) => deezerAlbumGenres(albumId, opts),
+    async saveGenreIds(previewId, ids) {
+      const { error } = await admin.from('link_previews').update({ store_genre_ids: ids }).eq('id', previewId);
+      if (error) throw error;
+    },
     async saveTrack(key, track, genre) {
       let row: TrackRow | null = null;
       if (track) {

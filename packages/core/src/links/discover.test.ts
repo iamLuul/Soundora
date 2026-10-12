@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chartKey, LastfmKeyError } from './charts.ts';
-import { deezerTrackById, findDeezerTrack, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
+import { deezerAlbumGenres, DEEZER_GENRES, deezerTrackById, findDeezerTrack, fitsGenre, lastfmTags, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -65,7 +65,21 @@ describe('recomendações', () => {
     const calls: string[] = [];
     const out = await recommend(KEY, { genres: ['rock'], liked: [], seenKeys: [] }, { fetch: fakeFetch(lastfm, calls), size: 10, onlyGenre: 'funk_br', random: () => 0 });
     expect(out.map((x) => x.reason)).toEqual([{ kind: 'genre', genre: 'funk_br' }]);
-    expect(calls.every((u) => u.includes('tag=funk%20carioca'))).toBe(true);
+    const tags = calls.map((u) => decodeURIComponent(/tag=([^&]+)/.exec(u)![1]!));
+    // Primeiro a tag certa; com pouca coisa nela, as reservas do funk brasileiro. Nunca o "funk" americano.
+    expect(tags[0]).toBe('funk carioca');
+    expect(tags.every((t) => ['funk carioca', 'baile funk', 'funk brasileiro'].includes(t))).toBe(true);
+  });
+
+  it('com sugestões suficientes, não completa com as mais tocadas do mundo (pop)', async () => {
+    const many = { tracks: { track: Array.from({ length: 30 }, (_, i) => ({ name: `Funk ${i}`, artist: { name: `MC ${i}` } })) } };
+    const out = await recommend(KEY, { genres: ['funk_br'], liked: [], seenKeys: [] }, {
+      fetch: fakeFetch({ ...lastfm, 'https://ws.audioscrobbler.com/2.0/?method=tag.gettoptracks': many }),
+      size: 10,
+      random: () => 0,
+    });
+    expect(out).toHaveLength(10);
+    expect(out.every((x) => x.reason.kind === 'genre')).toBe(true);
   });
 
   it('chave inválida avisa; Last.fm fora do ar só deixa a lista vazia', async () => {
@@ -81,7 +95,7 @@ describe('Deezer', () => {
     link: 'https://www.deezer.com/track/3135556',
     preview: 'https://cdnt-preview.dzcdn.net/api/1/1/a/b/c/0/abc.mp3?hdnts=exp=1',
     artist: { name: 'Daft Punk', picture_medium: 'https://e-cdns-images.dzcdn.net/images/artist/x/250x250.jpg' },
-    album: { title: 'Discovery', cover_big: 'https://e-cdns-images.dzcdn.net/images/cover/y/500x500.jpg' },
+    album: { id: 302127, title: 'Discovery', cover_big: 'https://e-cdns-images.dzcdn.net/images/cover/y/500x500.jpg' },
   };
 
   it('acha a faixa certa com capa, álbum, foto do artista e prévia', async () => {
@@ -95,6 +109,7 @@ describe('Deezer', () => {
       imageUrl: 'https://e-cdns-images.dzcdn.net/images/cover/y/500x500.jpg',
       artistImageUrl: 'https://e-cdns-images.dzcdn.net/images/artist/x/250x250.jpg',
       previewUrl: hit.preview,
+      albumId: '302127',
     });
   });
 
@@ -129,5 +144,34 @@ describe('validade da prévia da Deezer', () => {
     expect(previewUsable(at(1760000000 - 10), now)).toBe(false);
     expect(previewUsable('https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a', now)).toBe(true);
     expect(previewUsable(null, now)).toBe(false);
+  });
+});
+
+describe('gêneros certos', () => {
+  it('tags do Last.fm: funk brasileiro e subgêneros caem em funk carioca; o americano é outro', () => {
+    expect(lastfmTags('funk_br')[0]).toBe('funk carioca');
+    expect(lastfmTags('funk_paulista')).toEqual(['funk paulista', 'funk ostentacao', 'funk carioca']);
+    expect(lastfmTags('brega_funk').at(-1)).toBe('funk carioca');
+    expect(lastfmTags('funk')).not.toContain('funk carioca');
+    // Gênero do catálogo sem tabela: o próprio nome e, de reserva, o gênero de destaque do nome.
+    expect(lastfmTags('sertanejo_universitario')).toEqual(['sertanejo universitario', 'sertanejo']);
+    expect(lastfmTags('rock')).toEqual(['rock']);
+  });
+
+  it('conferência na Deezer: descarta só o que claramente é de outro gênero', () => {
+    const D = DEEZER_GENRES;
+    expect(fitsGenre('funk_br', [D.soulFunk])).toBe(false); // funk americano no lugar do brasileiro
+    expect(fitsGenre('funk_paulista', [D.soulFunk, D.rnb])).toBe(true); // um dos gêneros serve
+    expect(fitsGenre('funk_br', [D.brazilian])).toBe(true);
+    expect(fitsGenre('funk', [D.brazilian])).toBe(false);
+    expect(fitsGenre('funk_br', null)).toBe(true); // sem informação: aceita
+    expect(fitsGenre('shoegaze', [D.metal])).toBe(true); // gênero sem conferência
+  });
+
+  it('gêneros do álbum na Deezer', async () => {
+    const fetch = fakeFetch({ 'https://api.deezer.com/album/302127': { genres: { data: [{ id: 113, name: 'Dance' }, { id: 106, name: 'Electro' }] } } });
+    expect(await deezerAlbumGenres('302127', { fetch })).toEqual([113, 106]);
+    expect(await deezerAlbumGenres('../x', { fetch })).toBeNull();
+    expect(await deezerAlbumGenres('1', { fetch: fakeFetch({}) })).toBeNull();
   });
 });
