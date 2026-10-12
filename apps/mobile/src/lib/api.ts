@@ -92,7 +92,7 @@ export async function completeOnboarding(input: OnboardingInput): Promise<Profil
 
 /** Pede à Edge Function o cartão de prévia do link. */
 export async function previewLink(url: string): Promise<LinkPreviewRow> {
-  const { data, error } = await supabase.functions.invoke<{ preview: LinkPreviewRow }>('link-preview', { body: { url } });
+  const { data, error } = await invokeFunction<{ preview: LinkPreviewRow }>('link-preview', { body: { url } });
   // Sem resposta (FunctionsFetchError / FunctionsRelayError): a função não está rodando ou não foi publicada.
   if (error) throw await functionError('link-preview', error, 'preview_unavailable');
   if (!data?.preview) throw new AppError('generic');
@@ -307,7 +307,7 @@ export interface ChartTrack {
 
 /** Sugestões do algoritmo para o Descobrir (ou só de um gênero). */
 export async function fetchRecommendations(genre: string | null): Promise<DiscoverCard[]> {
-  const { data, error } = await supabase.functions.invoke<{ cards: Omit<DiscoverCard, 'kind' | 'source' | 'note' | 'post_id' | 'recommender_username' | 'recommender_display_name' | 'recommender_avatar_url'>[] }>(
+  const { data, error } = await invokeFunction<{ cards: Omit<DiscoverCard, 'kind' | 'source' | 'note' | 'post_id' | 'recommender_username' | 'recommender_display_name' | 'recommender_avatar_url'>[] }>(
     'discover',
     { body: { action: 'deck', ...(genre ? { genre } : {}) } },
   );
@@ -333,7 +333,7 @@ export async function fetchLikedSongs(): Promise<LikedSong[]> {
 
 /** Prévia renovada de um cartão do Descobrir (a da Deezer vence pelo próprio link). */
 export async function refreshDiscoverAudio(previewId: string): Promise<string | null> {
-  const { data, error } = await supabase.functions.invoke<{ audio_url: string | null }>('discover', { body: { action: 'audio', previewId } });
+  const { data, error } = await invokeFunction<{ audio_url: string | null }>('discover', { body: { action: 'audio', previewId } });
   if (error) throw await functionError('discover', error, 'discover_unavailable');
   const url = data?.audio_url ?? null;
   // Só https (em desenvolvimento, aceita http para servidores locais de teste).
@@ -342,7 +342,7 @@ export async function refreshDiscoverAudio(previewId: string): Promise<string | 
 
 /** Link de uma música (cartão) na plataforma escolhida: exato, ou a busca nela. */
 export async function trackLink(previewId: string, platform: StreamingChoice): Promise<string> {
-  const { data, error } = await supabase.functions.invoke<{ url: string }>('discover', { body: { action: 'link', previewId, platform } });
+  const { data, error } = await invokeFunction<{ url: string }>('discover', { body: { action: 'link', previewId, platform } });
   if (error) throw await functionError('discover', error, 'discover_unavailable');
   if (!data?.url || !data.url.startsWith('https://')) throw new AppError('generic');
   return data.url;
@@ -350,14 +350,14 @@ export async function trackLink(previewId: string, platform: StreamingChoice): P
 
 /** As mais tocadas no mundo (Last.fm), pelo servidor. */
 export async function fetchWorldChart(): Promise<{ updated_at: string; stale: boolean; entries: ChartTrack[] }> {
-  const { data, error } = await supabase.functions.invoke('music-charts', { body: { action: 'chart' } });
+  const { data, error } = await invokeFunction('music-charts', { body: { action: 'chart' } });
   if (error) throw await functionError('music-charts', error, 'charts_unavailable');
   return data as { updated_at: string; stale: boolean; entries: ChartTrack[] };
 }
 
 /** Link da música do ranking na plataforma escolhida (exato, ou a busca dela na plataforma). */
 export async function chartTrackLink(key: string, platform: StreamingChoice): Promise<string> {
-  const { data, error } = await supabase.functions.invoke<{ url: string }>('music-charts', { body: { action: 'link', key, platform } });
+  const { data, error } = await invokeFunction<{ url: string }>('music-charts', { body: { action: 'link', key, platform } });
   if (error) throw await functionError('music-charts', error, 'charts_unavailable');
   if (!data?.url || !data.url.startsWith('https://')) throw new AppError('generic');
   return data.url;
@@ -411,6 +411,18 @@ export async function updateProfile(input: { displayName: string; bio: string })
 }
 
 /** Erro de uma Edge Function → AppError com o código que ela mandou ({ error: 'codigo' }). */
+/**
+ * Chama uma Edge Function. Se o servidor responder 401 (token de login vencido, por exemplo
+ * depois de o app ficar em segundo plano), renova a sessão e tenta de novo uma vez.
+ */
+async function invokeFunction<T = unknown>(name: string, options?: Parameters<typeof supabase.functions.invoke>[1]) {
+  const first = await supabase.functions.invoke<T>(name, options);
+  if (!(first.error instanceof FunctionsHttpError) || (first.error.context as Response).status !== 401) return first;
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error || !data.session) return first;
+  return supabase.functions.invoke<T>(name, options);
+}
+
 async function functionError(name: string, error: Error, unavailableCode: string): Promise<AppError> {
   if (error instanceof FunctionsHttpError) {
     const res = error.context as Response;
@@ -437,7 +449,7 @@ export async function uploadProfileImage(
   // Uint8Array em JSON.
   const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 
-  const { data, error } = await supabase.functions.invoke<{ path: string }>(`profile-image?kind=${kind}`, {
+  const { data, error } = await invokeFunction<{ path: string }>(`profile-image?kind=${kind}`, {
     body,
     headers: { 'Content-Type': 'image/jpeg' },
   });
@@ -447,7 +459,7 @@ export async function uploadProfileImage(
 }
 
 export async function removeProfileImage(kind: ProfileImageKind): Promise<void> {
-  const { error } = await supabase.functions.invoke(`profile-image?kind=${kind}`, { method: 'DELETE' });
+  const { error } = await invokeFunction(`profile-image?kind=${kind}`, { method: 'DELETE' });
   if (error) throw await functionError('profile-image', error, 'generic');
 }
 
@@ -484,7 +496,7 @@ export async function requestReauthentication(): Promise<void> {
  * exige login recente: se for antigo, responde "reauth_required".
  */
 export async function deleteAccount(confirm: string): Promise<void> {
-  const { error } = await supabase.functions.invoke('delete-account', { body: { confirm } });
+  const { error } = await invokeFunction('delete-account', { body: { confirm } });
   if (error) throw await functionError('delete-account', error, 'generic');
 }
 
@@ -706,7 +718,7 @@ export interface UploadedMedia {
 export async function uploadMedia(target: 'vibe' | 'post', type: 'photo' | 'video', bytes: Uint8Array): Promise<UploadedMedia> {
   // ArrayBuffer (não Uint8Array): com Content-Type próprio, o supabase-js transformaria em JSON.
   const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  const { data, error } = await supabase.functions.invoke<UploadedMedia>(`media-upload?for=${target}&type=${type}`, {
+  const { data, error } = await invokeFunction<UploadedMedia>(`media-upload?for=${target}&type=${type}`, {
     body,
     headers: { 'Content-Type': type === 'photo' ? 'image/jpeg' : 'video/mp4' },
   });

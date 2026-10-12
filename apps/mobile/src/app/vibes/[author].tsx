@@ -18,6 +18,7 @@ import { keys, useVibeMedia, useVibesOf, useVibesTray } from '../../lib/queries'
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
+import { SheetBackdrop } from '../../components/ui';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -290,8 +291,8 @@ function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () 
   const viewers = useQuery({ queryKey: ['vibe-viewers', vibeId], queryFn: () => fetchVibeViewers(vibeId!), enabled: !!vibeId });
   return (
     <Modal visible={!!vibeId} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <SheetBackdrop style={styles.backdrop} onClose={onClose} label={t('common.close')}>
+        <View style={styles.sheet}>
           <Text style={styles.sheetTitle}>{t('vibes.viewersTitle')}</Text>
           {viewers.isLoading ? (
             <PeopleSkeleton count={4} avatar={36} />
@@ -319,8 +320,8 @@ function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () 
               )}
             />
           )}
-        </Pressable>
-      </Pressable>
+        </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

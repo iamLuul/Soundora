@@ -1,8 +1,9 @@
 import { reportReasonSchema, type ReportReason } from '@soundora/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, StyleSheet, Text } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, space, text } from '../theme';
+import { SheetBackdrop } from './ui';
 
 export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' } | { type: 'vibe' };
 
@@ -37,8 +38,8 @@ export function PostActions({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityRole="button" accessibilityLabel={t('common.cancel')}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <SheetBackdrop style={styles.backdrop} onClose={close} label={t('common.cancel')}>
+        <View style={styles.sheet}>
           {step === 'menu' ? (
             <>
               <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} />
@@ -60,8 +61,8 @@ export function PostActions({
             </>
           )}
           <Option label={t('common.cancel')} onPress={close} />
-        </Pressable>
-      </Pressable>
+        </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

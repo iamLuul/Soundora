@@ -388,3 +388,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
+
+/**
+ * Fundo escuro de um menu que sobe de baixo: tocar fora fecha. O fundo é uma camada atrás do
+ * menu (não em volta dele), porque na web um botão não pode ter outros botões dentro.
+ */
+export function SheetBackdrop({ onClose, label, style, children }: { onClose: () => void; label: string; style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  return (
+    <View style={style}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={label} />
+      {children}
+    </View>
+  );
+}
+

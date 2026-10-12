@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, space } from '../theme';
+import { SheetBackdrop } from './ui';
 
 export interface SheetOption {
   key: string;
@@ -17,8 +18,8 @@ export function OptionsSheet({ visible, title, options, onClose }: { visible: bo
   const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.cancel')}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()} accessibilityRole="menu">
+      <SheetBackdrop style={styles.backdrop} onClose={onClose} label={t('common.cancel')}>
+        <View style={styles.sheet} accessibilityRole="menu">
           <View style={styles.grabber} />
           {title ? <Text style={styles.title}>{title}</Text> : null}
           {options.map((o) => (
@@ -39,8 +40,8 @@ export function OptionsSheet({ visible, title, options, onClose }: { visible: bo
           <Pressable accessibilityRole="button" onPress={onClose} style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.7 }]}>
             <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
-        </Pressable>
-      </Pressable>
+        </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

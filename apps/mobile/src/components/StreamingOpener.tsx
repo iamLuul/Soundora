@@ -3,12 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Platform, Pressable, StyleSheet, Text } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { setStreamingPlatform } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { keys, useStreamingPlatform } from '../lib/queries';
 import { colors, fonts, space, text } from '../theme';
 import { StreamingPicker } from './StreamingPicker';
+import { SheetBackdrop } from './ui';
 
 /** Música para abrir: identifica o pedido e serve para a busca se o servidor não responder. */
 export interface OpenTarget {
@@ -81,13 +82,13 @@ export function useStreamingOpener(resolve: (target: OpenTarget, platform: Strea
 
   const chooser = (
     <Modal visible={!!pending} transparent animationType="fade" onRequestClose={() => setPending(null)}>
-      <Pressable style={styles.backdrop} onPress={() => setPending(null)} accessibilityRole="button" accessibilityLabel={t('common.cancel')}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <SheetBackdrop style={styles.backdrop} onClose={() => setPending(null)} label={t('common.cancel')}>
+        <View style={styles.sheet}>
           <Text style={styles.sheetTitle}>{t('streaming.title')}</Text>
           <Text style={[text.small, { textAlign: 'center' }]}>{t('streaming.hint')}</Text>
           <StreamingPicker value={null} onChange={choose} disabled={saving} />
-        </Pressable>
-      </Pressable>
+        </View>
+      </SheetBackdrop>
     </Modal>
   );
 

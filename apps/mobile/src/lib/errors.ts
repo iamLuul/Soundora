@@ -95,9 +95,15 @@ export function errorMessageKey(err: unknown): string {
   return `errors.${code}`;
 }
 
+const logged = new WeakSet<object>();
+
 /** Mensagem traduzida + (em desenvolvimento) o motivo técnico na linha de baixo. */
 export function formatError(t: (key: string, vars?: Record<string, unknown>) => string, err: unknown, vars?: Record<string, unknown>): string {
-  if (__DEV__) console.error('[Soundora]', err);
+  // Em desenvolvimento, registra o motivo técnico uma vez (a tela pode renderizar várias vezes).
+  if (__DEV__ && !(err !== null && typeof err === 'object' && logged.has(err))) {
+    if (err !== null && typeof err === 'object') logged.add(err);
+    console.warn('[Soundora]', err);
+  }
   const detail = errorDetail(err);
   const message = t(errorMessageKey(err), vars);
   return detail ? `${message}\n${detail}` : message;
