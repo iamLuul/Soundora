@@ -38,6 +38,9 @@ export function VibeAudio({ url, paused, muted, loop = false, onProgress, onEnde
   useEffect(() => {
     if (paused) player.pause();
     else {
+      // Já tocou até o fim: volta para o começo (o player não volta sozinho, e o play parado no
+      // fim não tocava nada).
+      if (player.duration > 0 && player.currentTime >= player.duration - 0.25) void player.seekTo(0);
       // Prévia indisponível (loja fora do ar, link vencido) não pode derrubar a vibe: fica sem som.
       try {
         const result = player.play() as unknown;

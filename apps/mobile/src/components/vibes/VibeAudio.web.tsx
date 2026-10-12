@@ -11,6 +11,10 @@ function unload(audio: HTMLAudioElement) {
   audio.removeAttribute('src');
   audio.load();
 }
+/** Já tocou até o fim: volta para o começo (para o play tocar de novo). */
+function rewindIfEnded(audio: HTMLAudioElement) {
+  if (audio.ended) audio.currentTime = 0;
+}
 function configure(audio: HTMLAudioElement, opts: { loop: boolean; muted: boolean }) {
   audio.loop = opts.loop;
   audio.muted = opts.muted;
@@ -58,11 +62,13 @@ export function VibeAudio({ url, paused, muted, loop = false, onProgress, onEnde
   useEffect(() => {
     if (!audio) return;
     if (paused) audio.pause();
-    else
+    else {
+      rewindIfEnded(audio);
       audio.play().catch((err: unknown) => {
         // Autoplay bloqueado pelo navegador (sem toque antes) não é link ruim: só não toca.
         if ((err as { name?: string })?.name !== 'NotAllowedError' && (err as { name?: string })?.name !== 'AbortError') handlers.current.onError?.();
       });
+    }
   }, [audio, paused, url]);
 
   return null;

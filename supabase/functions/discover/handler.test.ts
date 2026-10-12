@@ -178,3 +178,41 @@ Deno.test('prévia: renova se o link da Deezer já vai vencer; ação audio devo
   assertEquals((await s.handler(post({ action: 'audio', previewId: 'x' }))).status, 400);
   assertEquals((await s.handler(post({ action: 'audio', previewId: '00000000-0000-4000-8000-999999999999' }))).status, 404);
 });
+
+Deno.test('prévia de música de outra plataforma (indicação da comunidade): acha na Deezer e guarda a busca', async () => {
+  const s = setup();
+  const spotifyId = '00000000-0000-4000-8000-0000000000aa';
+  s.rows.set(spotifyId, {
+    id: spotifyId,
+    url: 'https://open.spotify.com/track/abc',
+    platform: 'spotify',
+    provider_id: null,
+    title: 'Midnight City',
+    artist: 'M83',
+    album: null,
+    image_url: null,
+    artist_image_url: null,
+    audio_url: null,
+    genres: null,
+    store_checked_at: null,
+  });
+  const res = await (await s.handler(post({ action: 'audio', previewId: spotifyId }))).json();
+  assertEquals(typeof res.audio_url, 'string');
+  assertEquals(res.audio_url.startsWith('https://'), true);
+  assertEquals(s.calls.find, 1);
+  // Na segunda vez usa a busca guardada (não procura de novo na Deezer).
+  const again = await (await s.handler(post({ action: 'audio', previewId: spotifyId }))).json();
+  assertEquals(again.audio_url, res.audio_url);
+  assertEquals(s.calls.find, 1);
+});
+
+Deno.test('prévia de outra plataforma que a Deezer não tem: null (o app avisa)', async () => {
+  const s = setup();
+  const id = '00000000-0000-4000-8000-0000000000ab';
+  s.rows.set(id, {
+    id, url: 'https://youtu.be/x', platform: 'youtube', provider_id: null, title: 'Inexistente', artist: 'Ninguém', album: null,
+    image_url: null, artist_image_url: null, audio_url: null, genres: null, store_checked_at: null,
+  });
+  const res = await (await s.handler(post({ action: 'audio', previewId: id }))).json();
+  assertEquals(res.audio_url, null);
+});
