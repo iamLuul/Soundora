@@ -1,6 +1,7 @@
 // Reviews de álbuns: cartão, estrelas, escrever (álbum obrigatório) e curtir.
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import AlbumScreen from '../src/app/album/[id]';
 import { ReviewCard } from '../src/components/ReviewCard';
 import { ReviewComposer } from '../src/components/ReviewComposer';
 import { ReviewList } from '../src/components/ReviewList';
@@ -13,7 +14,9 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 jest.mock('../src/lib/supabase', () => ({ supabase: {}, supabaseUrl: 'http://localhost:54321' }));
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
-  router: { push: jest.fn(), navigate: jest.fn() },
+  router: { push: jest.fn(), navigate: jest.fn(), back: jest.fn(), canGoBack: () => true },
+  Stack: { Screen: () => null },
+  useLocalSearchParams: () => ({ id: 'a1' }),
   useFocusEffect: () => undefined,
 }));
 jest.mock('../src/lib/auth', () => ({ useAuth: () => ({ session: { user: { id: 'me' } }, profile: { id: 'me' } }) }));
@@ -51,6 +54,8 @@ jest.mock('../src/lib/api', () => ({
   searchAlbums: async (q: string) => (q.includes('disc') ? [{ id: '302127', title: 'Discovery', artist: 'Daft Punk', image_url: null, record_type: 'album' }] : []),
   pickAlbum: (id: string) => mockPick(id),
   getStreamingPlatform: async () => 'spotify',
+  fetchAlbumSummary: async (id: string) =>
+    id === 'a1' ? { rank: 3, album_id: 'a1', title: 'Graduation', artist: 'Kanye West', image_url: null, url: '', platform: 'deezer', year: 2007, review_count: 5, average: 8.7 } : null,
 }));
 
 function wrap(ui: React.ReactElement) {
@@ -142,4 +147,21 @@ test('lista: curtir muda na hora e chama o banco', async () => {
 test('lista vazia: convida a escrever', async () => {
   await wrap(<ReviewList />);
   expect(await screen.findByText(/Ainda não tem reviews/)).toBeTruthy();
+});
+
+test('tela do álbum: média, posição e as reviews dele', async () => {
+  mockReviews = [review({ id: 'r9', body: 'Review do álbum Graduation, com mais de vinte letras.' })];
+  await wrap(<AlbumScreen />);
+  expect(await screen.findByTestId('album-header')).toBeTruthy();
+  expect(screen.getByTestId('album-average')).toHaveTextContent('8,7/10');
+  expect(screen.getByText('#3 · 5 reviews')).toBeTruthy();
+  expect(await screen.findByText('Review do álbum Graduation, com mais de vinte letras.')).toBeTruthy();
+});
+
+test('na lista geral, tocar no álbum da review abre a tela do álbum', async () => {
+  const { router } = jest.requireMock('expo-router') as { router: { push: jest.Mock } };
+  mockReviews = [review()];
+  await wrap(<ReviewList />);
+  await fireEvent.press(await screen.findByTestId('review-album-r1'));
+  expect(router.push).toHaveBeenCalledWith('/album/a1');
 });

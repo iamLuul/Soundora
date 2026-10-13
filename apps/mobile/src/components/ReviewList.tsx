@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { type ReactElement, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Platform, Text, View } from 'react-native';
@@ -48,6 +49,8 @@ export function ReviewList({ filter = {}, header }: { filter?: ReviewFilter; hea
         await deleteReview(item.id);
         removeReviewFromCache(qc, item.id);
         void qc.invalidateQueries({ queryKey: reviewKeys.all });
+        void qc.invalidateQueries({ queryKey: ['top-albums'] });
+        void qc.invalidateQueries({ queryKey: ['album-summary'] });
       }
     } catch (err) {
       notify(formatError(t, err));
@@ -68,7 +71,7 @@ export function ReviewList({ filter = {}, header }: { filter?: ReviewFilter; hea
               review={item}
               onToggleLike={(r) => toggleLike.mutate(r)}
               onMore={setMenuFor}
-              onOpenAlbum={(r) => open({ key: r.album_id, title: r.album_title, artist: r.album_artist ?? '' })}
+              onOpenAlbum={filter.album ? (r) => open({ key: r.album_id, title: r.album_title, artist: r.album_artist ?? '' }) : (r) => router.push(`/album/${r.album_id}`)}
             />
           )}
           contentContainerStyle={{ paddingBottom: space.xxl }}

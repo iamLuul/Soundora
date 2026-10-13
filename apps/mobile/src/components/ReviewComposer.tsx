@@ -40,6 +40,8 @@ export function ReviewComposer({ onPublished }: { onPublished: () => void }) {
       setRating(null);
       setBody('');
       await qc.invalidateQueries({ queryKey: reviewKeys.all });
+      void qc.invalidateQueries({ queryKey: ['top-albums'] });
+      void qc.invalidateQueries({ queryKey: ['album-summary'] });
       onPublished();
     } catch (err) {
       setError(formatError(t, err));

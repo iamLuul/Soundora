@@ -295,7 +295,16 @@
     "moveUp": "Subiu (estava em {{position}}º)",
     "moveDown": "Caiu (estava em {{position}}º)",
     "moveSame": "Mesma posição",
-    "rowLabel": "{{position}}º, {{title}}, de {{artist}}"
+    "rowLabel": "{{position}}º, {{title}}, de {{artist}}",
+    "global": "Top Global",
+    "reviews": "Top Reviews",
+    "reviewsTitle": "Top Reviews",
+    "reviewsHint": "Álbuns com as maiores notas médias nas reviews do Soundora.",
+    "reviewsEmpty": "Ainda não há reviews suficientes. Escreva a sua em + › Review.",
+    "reviewCount_one": "{{count}} review",
+    "reviewCount_other": "{{count}} reviews",
+    "averageLabel": "Média {{average}} de 10",
+    "rowReviewLabel": "{{rank}}º, {{title}}, {{artist}}, média {{average}}, {{count}} reviews"
   },
   "search": {
     "placeholder": "Busque pessoas, músicas, gêneros ou posts",
@@ -564,5 +573,10 @@
     "recordType_single": "Single",
     "recordType_compile": "Coletânea",
     "useLink": "Usar link"
+  },
+  "album": {
+    "title": "Álbum",
+    "noReviews": "Esse álbum ainda não tem reviews.",
+    "average": "Média"
   }
 }

@@ -119,3 +119,43 @@ describe('reviews de álbuns', () => {
     expect(await db.sql(`select id from public.album_reviews where id = $1`, [r!.id])).toEqual([]);
   });
 });
+
+describe('Top Reviews (álbuns com maior média)', () => {
+  type Top = { rank: number; album_id: string; title: string; review_count: number; average: string; year: number | null };
+  const top = (as: string, album?: string) =>
+    db.as<Top>(as, album ? `select * from public.top_reviewed_albums(50, $1)` : `select * from public.top_reviewed_albums(50)`, album ? [album] : []);
+
+  it('média por álbum, ordem bayesiana (uma nota 10 sozinha não lidera) e a média muda ao apagar', async () => {
+    const people: string[] = [];
+    for (const u of ['top_a', 'top_b', 'top_c', 'top_d']) people.push(await createUser(db, u));
+    const forte = await album('Muito Bem Avaliado', '1999-01-01');
+    const unico = await album('Só Uma Nota');
+    for (const [i, p] of people.entries()) await review(p, forte, [9.5, 9.7, 9.3, 9.5][i]!);
+    const [solo] = await review(people[0]!, unico, 10);
+
+    const rows = await top(ana);
+    const f = rows.find((r) => r.album_id === forte)!;
+    const u = rows.find((r) => r.album_id === unico)!;
+    expect(f).toMatchObject({ title: 'Muito Bem Avaliado', review_count: 4, year: 1999 });
+    expect(Number(f.average)).toBe(9.5);
+    expect(Number(u.average)).toBe(10);
+    expect(f.rank).toBeLessThan(u.rank);
+    expect(rows.map((r) => r.rank)).toEqual(rows.map((_, i) => i + 1));
+
+    // Um álbum só (tela do álbum), mesmo fora do top.
+    expect((await top(ana, unico))[0]).toMatchObject({ album_id: unico, review_count: 1 });
+
+    await db.as(people[0]!, `delete from public.album_reviews where id = $1`, [solo!.id]);
+    expect((await top(ana)).find((r) => r.album_id === unico)).toBeUndefined();
+    await expect(db.anon(`select * from public.top_reviewed_albums()`)).rejects.toThrow(/permission denied/);
+    await expect(db.as(ana, `select * from public.album_rating_stats`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('a soma guardada bate com as reviews', async () => {
+    const diff = await db.sql<{ n: number }>(`
+      select count(*)::int as n from public.album_rating_stats s
+      full join (select album_id, count(*) c, sum(rating) t from public.album_reviews group by album_id) r using (album_id)
+      where coalesce(s.review_count, 0) <> coalesce(r.c, 0) or coalesce(s.rating_sum, 0) <> coalesce(r.t, 0)`);
+    expect(diff[0]!.n).toBe(0);
+  });
+});

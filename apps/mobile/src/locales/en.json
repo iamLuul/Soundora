@@ -295,7 +295,16 @@
     "moveUp": "Up (was #{{position}})",
     "moveDown": "Down (was #{{position}})",
     "moveSame": "Same position",
-    "rowLabel": "#{{position}}, {{title}} by {{artist}}"
+    "rowLabel": "#{{position}}, {{title}} by {{artist}}",
+    "global": "Top Global",
+    "reviews": "Top Reviews",
+    "reviewsTitle": "Top Reviews",
+    "reviewsHint": "Albums with the highest average ratings in Soundora reviews.",
+    "reviewsEmpty": "Not enough reviews yet. Write yours in + › Review.",
+    "reviewCount_one": "{{count}} review",
+    "reviewCount_other": "{{count}} reviews",
+    "averageLabel": "Average {{average}} out of 10",
+    "rowReviewLabel": "#{{rank}}, {{title}}, {{artist}}, average {{average}}, {{count}} reviews"
   },
   "search": {
     "placeholder": "Search people, songs, genres or posts",
@@ -564,5 +573,10 @@
     "recordType_single": "Single",
     "recordType_compile": "Compilation",
     "useLink": "Use link"
+  },
+  "album": {
+    "title": "Album",
+    "noReviews": "This album has no reviews yet.",
+    "average": "Average"
   }
 }

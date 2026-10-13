@@ -615,6 +615,37 @@ export async function deleteReview(reviewId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Álbum no Top Reviews: posição, média das notas e quantas reviews. */
+export interface TopAlbum {
+  rank: number;
+  album_id: string;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  url: string;
+  platform: string;
+  year: number | null;
+  review_count: number;
+  average: number;
+}
+
+const toTopAlbum = (r: TopAlbum): TopAlbum => ({ ...r, average: Number(r.average) });
+
+/** Em alta › Top Reviews: os álbuns com as maiores médias (ordem que não deixa uma nota só liderar). */
+export async function fetchTopAlbums(limit = 50): Promise<TopAlbum[]> {
+  const { data, error } = await supabase.rpc('top_reviewed_albums', { p_limit: limit });
+  if (error) throw error;
+  return ((data ?? []) as TopAlbum[]).map(toTopAlbum);
+}
+
+/** Média e posição de um álbum (null = ainda sem reviews). */
+export async function fetchAlbumSummary(albumId: string): Promise<TopAlbum | null> {
+  const { data, error } = await supabase.rpc('top_reviewed_albums', { p_limit: 1, p_album: albumId });
+  if (error) throw error;
+  const row = ((data ?? []) as TopAlbum[])[0];
+  return row ? toTopAlbum(row) : null;
+}
+
 export const BIO_MAX = 160;
 
 export async function updateProfile(input: { displayName: string; bio: string }): Promise<void> {

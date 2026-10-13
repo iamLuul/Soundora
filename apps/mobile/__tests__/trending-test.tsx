@@ -18,6 +18,10 @@ jest.mock('../src/lib/api', () => ({
   chartTrackLink: (...a: unknown[]) => mockLink(...a),
   getStreamingPlatform: () => mockPlatform(),
   setStreamingPlatform: (p: string) => mockSetPlatform(p),
+  fetchTopAlbums: async () => [
+    { rank: 1, album_id: 'a1', title: 'Discovery', artist: 'Daft Punk', image_url: null, url: 'https://www.deezer.com/album/1', platform: 'deezer', year: 2001, review_count: 12, average: 9.4 },
+    { rank: 2, album_id: 'a2', title: 'Homework', artist: 'Daft Punk', image_url: null, url: 'https://www.deezer.com/album/2', platform: 'deezer', year: 1997, review_count: 1, average: 10 },
+  ],
 }));
 
 const mockEntries: ChartTrack[] = [
@@ -76,4 +80,20 @@ describe('Trending (mais tocadas no mundo)', () => {
     expect(mockSetPlatform).toHaveBeenCalledWith('deezer');
     expect(mockLink).toHaveBeenCalledWith('sabrina|espresso', 'deezer');
   });
+});
+
+test('Top Reviews: álbuns com a média ao lado; tocar abre o álbum', async () => {
+  const { router } = jest.requireMock('expo-router') as { router: { push: jest.Mock } };
+  await wrap();
+  await fireEvent.press(await screen.findByTestId('trending-view-reviews'));
+  expect(await screen.findByText('Discovery')).toBeTruthy();
+  expect(screen.getByTestId('top-album-average-1')).toHaveTextContent('9,4');
+  expect(screen.getByText('12 reviews')).toBeTruthy();
+  expect(screen.getByText('1 review')).toBeTruthy();
+  expect(screen.getByText('Daft Punk · 2001')).toBeTruthy();
+  await fireEvent.press(screen.getByTestId('top-album-1'));
+  expect(router.push).toHaveBeenCalledWith('/album/a1');
+  // Volta para o Top Global.
+  await fireEvent.press(screen.getByTestId('trending-view-global'));
+  expect(await screen.findByText('Espresso')).toBeTruthy();
 });
