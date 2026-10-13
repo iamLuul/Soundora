@@ -21,6 +21,7 @@ import { DeckSkeleton, TrackListSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
 import { CoachMarks, type CoachStep, useFirstTimeTip } from './CoachMarks';
+import { useIsFocused } from 'expo-router';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -50,6 +51,8 @@ export function DiscoverSection() {
   const { t, i18n } = useTranslation();
   // Primeira vez no Descobrir: como curtir, pular e ouvir.
   const [tipOpen, closeTip] = useFirstTimeTip('discover');
+  // A aba pode estar montada fora da tela (carrossel das abas): a dica espera ela abrir.
+  const focused = useIsFocused();
   const qc = useQueryClient();
   const { height } = useWindowDimensions();
   const genres = useGenres();
@@ -218,7 +221,8 @@ export function DiscoverSection() {
       .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
   };
 
-  const openSong = (s: { link_preview_id: string; title: string; artist: string | null }) => open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });
+  const openSong = (s: { link_preview_id: string; title: string; artist: string | null }) =>
+    open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });
 
   // Gêneros: os de destaque batem na hora; o catálogo inteiro vem do servidor.
   const remoteGenres = useGenreSearch(query, 12);
@@ -238,12 +242,19 @@ export function DiscoverSection() {
 
   return (
     <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
-      <CoachMarks testID="coach-discover" visible={tipOpen} steps={discoverTips} onClose={closeTip} />
+      <CoachMarks testID="coach-discover" visible={tipOpen && focused} steps={discoverTips} onClose={closeTip} />
       {/* Figma: "Search genres" — a pilha passa a ser só desse gênero. */}
       {genre ? (
         <View style={styles.genreChosen}>
           <Text style={styles.genreChosenText}>{t('discover.onlyGenre', { genre: label(genre) ?? genre })}</Text>
-          <Pressable testID="discover-genre-clear" accessibilityRole="button" accessibilityLabel={t('discover.allGenres')} onPress={() => chooseGenre(null)} hitSlop={10} style={webTouch(10)}>
+          <Pressable
+            testID="discover-genre-clear"
+            accessibilityRole="button"
+            accessibilityLabel={t('discover.allGenres')}
+            onPress={() => chooseGenre(null)}
+            hitSlop={10}
+            style={webTouch(10)}
+          >
             <Ionicons name="close" size={18} color={colors.text} />
           </Pressable>
         </View>
@@ -253,13 +264,7 @@ export function DiscoverSection() {
       {matches.length ? (
         <View style={styles.matches}>
           {matches.map((g) => (
-            <Pressable
-              key={g.slug}
-              testID={`discover-genre-${g.slug}`}
-              accessibilityRole="button"
-              onPress={() => chooseGenre(g.slug)}
-              style={styles.match}
-            >
+            <Pressable key={g.slug} testID={`discover-genre-${g.slug}`} accessibilityRole="button" onPress={() => chooseGenre(g.slug)} style={styles.match}>
               <Text style={styles.matchText}>{label(g.slug)}</Text>
             </Pressable>
           ))}
@@ -303,14 +308,16 @@ export function DiscoverSection() {
         </>
       ) : (
         <View style={[styles.center, { height: stackHeight }]}>
-          <Text style={[text.body, { textAlign: 'center', color: colors.textMuted }]}>{base.isError
+          <Text style={[text.body, { textAlign: 'center', color: colors.textMuted }]}>
+            {base.isError
               ? formatError(t, base.error)
               : refilling
                 ? t('discover.loading')
                 : // Com um gênero escolhido, a pilha não completa com outras músicas: só avisa.
                   genre
                   ? t('discover.genreEmpty', { genre: label(genre) })
-                  : t('discover.empty')}</Text>
+                  : t('discover.empty')}
+          </Text>
           <Button testID="discover-reload" title={base.isError ? t('common.retry') : t('discover.reload')} variant="ghost" onPress={shuffle} />
         </View>
       )}
@@ -328,7 +335,9 @@ export function DiscoverSection() {
       ) : !liked.data?.length ? (
         <Text style={[text.small, { color: colors.textMuted }]}>{t('discover.likedEmpty')}</Text>
       ) : (
-        uniqueBy(liked.data, (s) => s.link_preview_id, 'curtidas do Descobrir').map((s) => <LikedSongRow key={s.link_preview_id} song={s} onOpen={openSong} onUnlike={unlike} />)
+        uniqueBy(liked.data, (s) => s.link_preview_id, 'curtidas do Descobrir').map((s) => (
+          <LikedSongRow key={s.link_preview_id} song={s} onOpen={openSong} onUnlike={unlike} />
+        ))
       )}
       {chooser}
     </ScrollView>

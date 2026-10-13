@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SwipeTabs } from '../../components/SwipeTabs';
+import { carouselOptions, onTabTransition, SwipeTabs } from '../../components/SwipeTabs';
 import { TabBar } from '../../components/TabBar';
 import { colors } from '../../theme';
 
@@ -12,14 +12,22 @@ export default function TabsLayout() {
       tabBar={(props) => <TabBar {...props} />}
       // Fechar o "postar" (o X) volta para a aba de onde a pessoa veio.
       backBehavior="history"
-      // Arrastar para os lados passa para a aba vizinha (Início ↔ Descobrir ↔ Músicas ↔ Perfil).
-      // Sem animação de troca: com ela, no celular a aba nova às vezes ficava sem carregar.
+      // Carrossel: arrastar para os lados puxa a aba vizinha (Início ↔ Descobrir ↔ Músicas ↔
+      // Perfil) e a troca desliza. As abas não são desligadas fora da tela (detachInactiveScreens
+      // false): desligar e religar durante a animação fazia telas não carregarem no celular.
+      detachInactiveScreens={false}
       screenLayout={({ children, route, navigation }) => (
-        <SwipeTabs route={route.name} onNavigate={(name) => navigation.navigate(name)}>
+        <SwipeTabs
+          route={route.name}
+          focused={navigation.isFocused()}
+          onNavigate={(name) => navigation.navigate(name)}
+          onPreload={(name) => navigation.preload(name)}
+        >
           {children}
         </SwipeTabs>
       )}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
+      screenListeners={({ route }) => ({ transitionStart: () => onTabTransition(route.name) })}
+      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: colors.background }, ...carouselOptions(route.name) })}
     >
       <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
       <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />

@@ -7,7 +7,7 @@ import type { DiscoverCard, LikedSong } from '../src/lib/types';
 
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn() }, useIsFocused: () => true }));
 jest.mock('../src/lib/supabase', () => ({
   supabase: {
     rpc: jest.fn(async () => ({ data: [], error: null })),
