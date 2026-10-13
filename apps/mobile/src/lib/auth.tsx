@@ -18,6 +18,11 @@ interface AuthState {
   session: Session | null;
   /** null quando a pessoa entrou mas ainda não fez o onboarding. */
   profile: Profile | null;
+  /**
+   * Entrou, mas o perfil não carregou (rede, servidor). Não dá para saber se falta o onboarding:
+   * o app mostra "tentar de novo" em vez de mandar uma conta pronta para o cadastro.
+   */
+  profileFailed: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -28,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileFailed, setProfileFailed] = useState(false);
   const qc = useQueryClient();
   // Conta da sessão atual. Mudou (saiu, entrou, trocou de conta): apaga o cache das consultas,
   // senão a conta nova veria dados da anterior (sugestões do Descobrir, curtidas, plataforma...).
@@ -40,20 +46,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [qc],
   );
+  // Cada troca de sessão ganha um número; uma resposta atrasada de uma troca antiga é ignorada.
+  const seq = useRef(0);
 
-  const loadProfile = useCallback(async (s: Session | null) => {
-    if (!s) {
-      setProfile(null);
-      return;
-    }
-    try {
-      const p = await getMyProfile();
-      setProfile(p);
-      if (p && p.locale !== i18n.language) await i18n.changeLanguage(p.locale);
-    } catch {
-      setProfile(null);
-    }
-  }, []);
+  /**
+   * Aplica uma sessão. Conta nova (login, troca de conta): a sessão e o perfil passam a valer
+   * JUNTOS, só depois de o perfil chegar. Antes, a sessão valia na hora e, até o perfil chegar,
+   * o app via "logado sem perfil" e mostrava o cadastro por um instante. Mesma conta (token
+   * renovado, perfil editado): a sessão troca na hora e o perfil atualiza por trás.
+   */
+  const applySession = useCallback(
+    async (s: Session | null) => {
+      const mine = ++seq.current;
+      const id = s?.user.id ?? null;
+      const sameUser = userRef.current === id;
+      if (!s) {
+        switchUser(null);
+        setSession(null);
+        setProfile(null);
+        setProfileFailed(false);
+        return;
+      }
+      if (sameUser) setSession(s);
+      let next: Profile | null = null;
+      let failed = false;
+      try {
+        next = await getMyProfile();
+        if (next && next.locale !== i18n.language) await i18n.changeLanguage(next.locale);
+      } catch {
+        failed = true;
+      }
+      if (mine !== seq.current) return;
+      // Mesma conta e falhou: mantém o que já aparece (perfil, ou o aviso de falha).
+      if (failed && sameUser) return;
+      switchUser(s);
+      setSession(s);
+      setProfile(failed ? null : next);
+      setProfileFailed(failed);
+    },
+    [switchUser],
+  );
 
   useEffect(() => {
     let active = true;
@@ -65,35 +97,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session && (await accountGone())) {
         await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         if (!active) return;
-        switchUser(null);
-        setSession(null);
-        await loadProfile(null);
+        await applySession(null);
         setLoading(false);
         return;
       }
-      switchUser(data.session);
-      setSession(data.session);
-      await loadProfile(data.session);
+      await applySession(data.session);
       if (active) setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      switchUser(s);
-      setSession(s);
       // Não chamar o Supabase direto dentro do callback (evita travas); agenda.
-      setTimeout(() => loadProfile(s), 0);
+      setTimeout(() => applySession(s), 0);
     });
     return () => {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile, switchUser]);
+  }, [applySession]);
 
   const value = useMemo<AuthState>(
     () => ({
       loading,
       session,
       profile,
-      refreshProfile: () => loadProfile(session),
+      profileFailed,
+      refreshProfile: () => applySession(session),
       signOut: async () => {
         // Este aparelho para de receber push da conta que está saindo (precisa da sessão ainda).
         await disablePush().catch(() => undefined);
@@ -102,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         qc.clear();
       },
     }),
-    [loading, session, profile, loadProfile, switchUser, qc],
+    [loading, session, profile, profileFailed, applySession, switchUser, qc],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -53,7 +53,9 @@
     "reauthNeeded": "Por segurança, confirme com o código que enviamos ao seu e-mail.",
     "signUpTitle": "Criar conta",
     "noAccountYet": "Não tem conta?",
-    "checkEmail": "Confira seu e-mail"
+    "checkEmail": "Confira seu e-mail",
+    "accountLoadFailed": "Não foi possível carregar sua conta. Confira a internet e tente de novo.",
+    "signOut": "Sair"
   },
   "onboarding": {
     "step": "Passo {{current}} de {{total}}",

@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { useLiveNotifications } from '../lib/live';
 import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
+import { AccountLoadFailed } from '../components/AccountLoadFailed';
 import { AppSkeleton } from '../components/Skeleton';
 import { ToastHost } from '../components/Toast';
 
@@ -31,7 +32,7 @@ const queryClient = new QueryClient({
 });
 
 function RootNavigator() {
-  const { loading, session, profile } = useAuth();
+  const { loading, session, profile, profileFailed } = useAuth();
   const [fontsLoaded] = useFonts({ Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold });
   const ready = fontsLoaded && !loading;
 
@@ -41,6 +42,10 @@ function RootNavigator() {
 
   // Abrindo (fontes e sessão): o esqueleto do app. Na web ele já vem no HTML, antes do JavaScript.
   if (!ready) return <AppSkeleton />;
+
+  // Entrou, mas o perfil não carregou: não dá para saber se falta o onboarding. Nada de
+  // cadastro nem de abas até confirmar (tentar de novo ou sair).
+  if (session && profileFailed) return <AccountLoadFailed />;
 
   const signedIn = !!session;
   const onboarded = signedIn && !!profile;

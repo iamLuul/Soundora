@@ -53,7 +53,9 @@
     "reauthNeeded": "For your security, confirm with the code we sent to your email.",
     "signUpTitle": "Create account",
     "noAccountYet": "Don't have an account?",
-    "checkEmail": "Check your email"
+    "checkEmail": "Check your email",
+    "accountLoadFailed": "We couldn’t load your account. Check your connection and try again.",
+    "signOut": "Sign out"
   },
   "onboarding": {
     "step": "Step {{current}} of {{total}}",
