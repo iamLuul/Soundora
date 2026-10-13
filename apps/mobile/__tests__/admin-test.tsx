@@ -115,3 +115,14 @@ test('zero no plural: "nenhuma denúncia aberta", "nenhum post"', () => {
   expect(i18n.t('admin.openReports', { count: 1 })).toBe('1 denúncia aberta');
   expect(i18n.t('admin.posts', { count: 2 })).toBe('2 posts');
 });
+
+test('fileira de filtros não estica: não cresce na coluna e os botões ficam centralizados', async () => {
+  const { StyleSheet } = jest.requireActual('react-native');
+  await wrap(<AdminScreen />);
+  await fireEvent.press(await screen.findByTestId('tab-users'));
+  const chip = await screen.findByTestId('admin-filter-all');
+  expect(StyleSheet.flatten(chip.props.style)).toMatchObject({ alignSelf: 'center' });
+  let node = chip.parent;
+  while (node && !(node.props?.horizontal)) node = node.parent;
+  expect(StyleSheet.flatten(node!.props.style)).toMatchObject({ flexGrow: 0 });
+});

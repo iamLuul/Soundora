@@ -243,7 +243,14 @@ function UsersTab() {
   return (
     <View style={{ flex: 1, gap: space.md }}>
       <SearchField testID="admin-user-search" placeholder={t('admin.searchUsers')} value={query} onChangeText={setQuery} autoCapitalize="none" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }} accessibilityRole="tablist">
+      {/* flexGrow 0: numa coluna com flex, a fileira horizontal crescia e esticava os botões. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chips}
+        contentContainerStyle={styles.chipsContent}
+        accessibilityRole="tablist"
+      >
         {USER_FILTERS.map((f) => {
           const on = f === filter;
           return (
@@ -415,7 +422,9 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 14, color: colors.text, flexShrink: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.xs },
   empty: { color: colors.textMuted, textAlign: 'center', marginTop: space.xl },
-  chip: { borderRadius: radius.pill, borderWidth: 1, borderColor: colors.surface, paddingHorizontal: space.md, paddingVertical: 6 },
+  chips: { flexGrow: 0, flexShrink: 0 },
+  chipsContent: { gap: space.sm, alignItems: 'center' },
+  chip: { alignSelf: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.surface, paddingHorizontal: space.md, paddingVertical: 6 },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted },
   chipTextOn: { color: colors.text },
