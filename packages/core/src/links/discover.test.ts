@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chartKey, LastfmKeyError } from './charts.ts';
-import { deezerAlbumGenres, DEEZER_GENRES, deezerTrackById, findDeezerTrack, fitsGenre, lastfmTags, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
+import { deezerAlbumById, deezerAlbumGenres, searchDeezerAlbums, DEEZER_GENRES, deezerTrackById, findDeezerTrack, fitsGenre, lastfmTags, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -173,5 +173,43 @@ describe('gêneros certos', () => {
     expect(await deezerAlbumGenres('302127', { fetch })).toEqual([113, 106]);
     expect(await deezerAlbumGenres('../x', { fetch })).toBeNull();
     expect(await deezerAlbumGenres('1', { fetch: fakeFetch({}) })).toBeNull();
+  });
+});
+
+describe('álbuns da Deezer (Reviews)', () => {
+  it('busca por nome: sem repetir, só com https e dados válidos', async () => {
+    const calls: string[] = [];
+    const fetch = fakeFetch(
+      {
+        'https://api.deezer.com/search/album': {
+          data: [
+            { id: 302127, title: 'Discovery', link: 'https://www.deezer.com/album/302127', cover_big: 'https://e-cdns-images.dzcdn.net/images/cover/x/500x500.jpg', record_type: 'album', artist: { name: 'Daft Punk' } },
+            { id: 302127, title: 'Discovery', artist: { name: 'Daft Punk' } },
+            { id: 'abc', title: 'Ruim', artist: { name: 'X' } },
+            { id: 9, title: 'Sem artista' },
+            { id: 10, title: 'Capa http', cover_big: 'http://evil.example/c.jpg', artist: { name: 'Y' } },
+          ],
+        },
+      },
+      calls,
+    );
+    const out = await searchDeezerAlbums('  daft   punk discovery ', { fetch });
+    expect(out).not.toBe('quota');
+    const list = out as Exclude<typeof out, 'quota'>;
+    expect(list.map((a) => a.id)).toEqual(['302127', '10']);
+    expect(list[0]).toMatchObject({ url: 'https://www.deezer.com/album/302127', artist: 'Daft Punk', recordType: 'album', year: null });
+    expect(list[0]!.imageUrl).toMatch(/^https:\/\/e-cdns-images\.dzcdn\.net/);
+    expect(list[1]!.imageUrl).toBeNull();
+    expect(calls[0]).toContain('q=daft%20punk%20discovery');
+    expect(await searchDeezerAlbums('a', { fetch })).toEqual([]);
+  });
+
+  it('cota da Deezer e álbum pelo id com o ano', async () => {
+    expect(await searchDeezerAlbums('rock', { fetch: fakeFetch({ 'https://api.deezer.com/search/album': { error: { code: 4 } } }) })).toBe('quota');
+    const fetch = fakeFetch({ 'https://api.deezer.com/album/302127': { id: 302127, title: 'Discovery', release_date: '2001-03-07', artist: { name: 'Daft Punk' } } });
+    expect(await deezerAlbumById('302127', { fetch })).toMatchObject({ year: 2001, releaseDate: '2001-03-07', title: 'Discovery' });
+    expect(await deezerAlbumById('../x', { fetch })).toBeNull();
+    const noDate = fakeFetch({ 'https://api.deezer.com/album/1': { id: 1, title: 'A', release_date: '0000-00-00', artist: { name: 'B' } } });
+    expect((await deezerAlbumById('1', { fetch: noDate }))?.year).toBeNull();
   });
 });

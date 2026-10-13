@@ -132,7 +132,12 @@
     "account_suspended": "Sua conta está suspensa e não pode fazer isso agora.",
     "forbidden": "Você não tem permissão para isso.",
     "cannot_suspend_admin": "Não dá para suspender a própria conta nem outro admin.",
-    "cannot_remove_profile": "Perfil não se remove: suspenda a conta."
+    "cannot_remove_profile": "Perfil não se remove: suspenda a conta.",
+    "review_needs_album": "A review precisa de um álbum.",
+    "review_exists": "Você já fez uma review desse álbum.",
+    "review_too_short": "Escreva pelo menos 20 letras na review.",
+    "review_too_long": "A review pode ter até 5000 letras.",
+    "not_album": "Esse link não é de um álbum. Cole o link de um álbum ou busque pelo nome."
   },
   "tabs": {
     "feed": "Para você",
@@ -190,7 +195,8 @@
     "addMedia": "Foto/vídeo",
     "addMusic": "Música",
     "limits": "Até 500 caracteres, 4 fotos ou 1 vídeo de 30 s (30 MB).",
-    "loadingMusic": "Gerando o card da música…"
+    "loadingMusic": "Gerando o card da música…",
+    "mode": "O que você quer publicar?"
   },
   "post": {
     "commentPlaceholder": "Escreva um comentário…",
@@ -369,12 +375,13 @@
   },
   "music": {
     "liked": "Curtidas",
-    "mine": "Que eu postei",
+    "mine": "Postadas",
     "likedTitle": "Músicas curtidas",
     "likedHint": "As músicas que você curtiu no Descobrir.",
     "mineTitle": "Suas músicas",
     "empty": "Nenhuma música ainda.",
-    "search": "Buscar nas suas músicas"
+    "search": "Buscar nas suas músicas",
+    "reviews": "Reviews"
   },
   "vibes": {
     "background": "Cor de fundo",
@@ -518,5 +525,44 @@
     "followers_zero": "nenhum seguidor",
     "followers_one": "{{count}} seguidor",
     "followers_other": "{{count}} seguidores"
+  },
+  "reviews": {
+    "tab": "Reviews",
+    "label": "Review",
+    "rating": "{{rating}}/10",
+    "ratingLabel": "Nota {{rating}} de 10",
+    "likes_one": "{{count}} curtida",
+    "likes_other": "{{count}} curtidas",
+    "empty": "Ainda não tem reviews. Que tal escrever a primeira? Toque em + e escolha Review.",
+    "title": "Reviews de álbuns",
+    "more": "ver mais",
+    "less": "ver menos",
+    "composeTab": "Review",
+    "postTab": "Post",
+    "pickAlbum": "Escolha o álbum",
+    "searchAlbum": "Busque o álbum pelo nome ou artista",
+    "orPaste": "ou cole o link do álbum",
+    "noAlbums": "Nenhum álbum encontrado para “{{query}}”.",
+    "changeAlbum": "Trocar álbum",
+    "yourRating": "Sua nota",
+    "bodyPlaceholder": "Analise o álbum: produção, letras, faixas que se destacam, o que funcionou e o que não funcionou…",
+    "bodyLabel": "Texto da review",
+    "needAlbum": "Escolha um álbum para escrever a review.",
+    "minChars": "Mínimo de {{min}} letras ({{count}}/{{min}})",
+    "publish": "Publicar review",
+    "publishing": "Publicando…",
+    "published": "Review publicada!",
+    "less01": "Diminuir 0,1",
+    "more01": "Aumentar 0,1",
+    "starsHint": "Toque ou arraste nas estrelas; ajuste fino com − e +.",
+    "like": "Curtir review",
+    "unlike": "Descurtir review",
+    "delete": "Apagar review",
+    "deleted": "Review apagada.",
+    "recordType_album": "Álbum",
+    "recordType_ep": "EP",
+    "recordType_single": "Single",
+    "recordType_compile": "Coletânea",
+    "useLink": "Usar link"
   }
 }

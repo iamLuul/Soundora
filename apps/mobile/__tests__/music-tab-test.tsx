@@ -6,7 +6,9 @@ import i18n from '../src/lib/i18n';
 
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('../src/lib/supabase', () => ({ supabase: {}, supabaseUrl: 'http://localhost:54321' }));
+jest.mock('../src/lib/auth', () => ({ useAuth: () => ({ session: { user: { id: 'me' } }, profile: { id: 'me' } }) }));
 jest.mock('expo-router', () => ({
+  Link: ({ children }: { children: React.ReactNode }) => children,
   router: { push: jest.fn() },
   useFocusEffect: (cb: () => void) => {
     const { useEffect } = jest.requireActual('react');
@@ -22,6 +24,7 @@ jest.mock('../src/lib/api', () => ({
     { link_preview_id: 'p1', url: 'https://www.deezer.com/track/1', platform: 'deezer', title: 'One More Time', artist: 'Daft Punk', image_url: null },
   ],
   fetchMyTracks: async () => [],
+  fetchReviews: async () => [],
   trackLink: (id: string, p: string) => mockLink(id, p),
   getStreamingPlatform: async () => 'spotify',
   fetchUnreadNotifications: async () => 0,
@@ -39,6 +42,9 @@ test('mostra e abre na plataforma escolhida', async () => {
       <MusicScreen />
     </QueryClientProvider>,
   );
+  // Abre em Reviews; as curtidas ficam na segunda aba.
+  expect(await screen.findByText('Reviews de álbuns')).toBeTruthy();
+  await fireEvent.press(screen.getByTestId('tab-liked'));
   await waitFor(() => expect(screen.getByLabelText(/One More Time, Daft Punk\. Ouvir no Spotify/)).toBeTruthy());
   await fireEvent.press(screen.getByLabelText(/One More Time/));
   await waitFor(() => expect(mockOpenURL).toHaveBeenCalledWith('https://open.spotify.com/track/abc'));

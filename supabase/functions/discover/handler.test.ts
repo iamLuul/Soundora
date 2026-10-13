@@ -1,7 +1,7 @@
 // Testes da Edge Function discover no Deno, com Supabase e APIs simulados.
 // npm run test:functions
 import { chartKey, LastfmKeyError } from '../_shared/links/charts.ts';
-import type { Candidate, DeezerTrack } from '../_shared/links/discover.ts';
+import type { Candidate, DeezerAlbum, DeezerTrack } from '../_shared/links/discover.ts';
 import { createHandler, type Deps, type TrackRow } from './handler.ts';
 
 function assertEquals(actual: unknown, expected: unknown, msg = '') {
@@ -90,6 +90,13 @@ function setup(overrides: Partial<Deps> = {}) {
       calls.fetchLinks++;
       return { spotify: 'https://open.spotify.com/track/abc' };
     },
+    searchAlbums: async (q) =>
+      q === 'cota'
+        ? 'quota'
+        : [{ id: '302127', url: 'https://www.deezer.com/album/302127', title: 'Discovery', artist: 'Daft Punk', imageUrl: null, recordType: 'album', year: null, releaseDate: null }],
+    albumById: async (id): Promise<DeezerAlbum | null> =>
+      id === '302127' ? { id, url: `https://www.deezer.com/album/${id}`, title: 'Discovery', artist: 'Daft Punk', imageUrl: null, recordType: 'album', year: 2001, releaseDate: '2001-03-07' } : null,
+    saveAlbum: async (a) => ({ id: 'alb-1', url: a.url, platform: 'deezer', kind: 'album', title: a.title, artist: a.artist, image_url: a.imageUrl, release_year: a.year }),
     ...overrides,
   };
   return { handler: createHandler(deps), rows, lookups, calls };
@@ -242,4 +249,27 @@ Deno.test('gênero: cartão já conferido não pergunta de novo à Deezer; gêne
   const again = setup({ recommend: async () => [cand('Banda', 'Indie', { kind: 'genre', genre: 'shoegaze' })] });
   await again.handler(post({ action: 'deck', genre: 'shoegaze' }));
   assertEquals(again.calls.albums, 0);
+});
+
+Deno.test('álbuns: busca pelo nome, escolhe e guarda o cartão; entradas inválidas', async () => {
+  const { handler } = setup();
+  const found = await (await handler(post({ action: 'albums', query: 'discovery' }))).json();
+  assertEquals(found, { albums: [{ id: '302127', title: 'Discovery', artist: 'Daft Punk', image_url: null, record_type: 'album' }] });
+  assertEquals(await (await handler(post({ action: 'albums', query: 'a' }))).json(), { albums: [] });
+  assertEquals((await handler(post({ action: 'albums', query: 'cota' }))).status, 429);
+  assertEquals((await handler(post({ action: 'albums', query: 42 }))).status, 400);
+
+  const saved = await (await handler(post({ action: 'album', albumId: '302127' }))).json();
+  assertEquals(saved.album.release_year, 2001);
+  assertEquals(saved.album.kind, 'album');
+  assertEquals((await handler(post({ action: 'album', albumId: '999' }))).status, 404);
+  assertEquals((await handler(post({ action: 'album', albumId: '../x' }))).status, 400);
+  assertEquals((await handler(post({ action: 'album', albumId: '302127' }, ''))).status, 401);
+});
+
+Deno.test('álbuns: respeita o limite de pedidos', async () => {
+  const seen: string[] = [];
+  const { handler } = setup({ rateLimit: async (_u, a) => (seen.push(a), a !== 'albums') });
+  assertEquals((await handler(post({ action: 'albums', query: 'discovery' }))).status, 429);
+  assertEquals(seen, ['albums']);
 });

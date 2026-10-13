@@ -309,7 +309,7 @@ export async function unblockUser(blockedId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function report(targetType: 'post' | 'comment' | 'profile' | 'vibe', targetId: string, reason: ReportReason): Promise<void> {
+export async function report(targetType: 'post' | 'comment' | 'profile' | 'vibe' | 'review', targetId: string, reason: ReportReason): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from('reports').insert({ reporter_id: userId, target_type: targetType, target_id: targetId, reason });
   if (error && error.code !== '23505') throw error;
@@ -500,6 +500,119 @@ export async function searchPosts(query: string, before: PostCursor | null): Pro
   });
   if (error) throw error;
   return data as FeedItem[];
+}
+
+// ---------------------------------------------------------------- reviews de álbuns
+
+/** Nota da review: 0 a 10, uma casa decimal (5 estrelas, cada uma vale 2). */
+export const REVIEW_RATING_MAX = 10;
+/** Texto da review: de 20 a 5000 letras. */
+export const REVIEW_BODY = { min: 20, max: 5000 } as const;
+export const REVIEWS_PAGE = 20;
+
+/** Álbum achado na busca (Deezer), antes de escolher. */
+export interface AlbumHit {
+  id: string;
+  title: string;
+  artist: string;
+  image_url: string | null;
+  record_type: string | null;
+}
+
+/** Álbum escolhido (cartão guardado no servidor). */
+export interface AlbumCard {
+  id: string;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  release_year: number | null;
+}
+
+export interface AlbumReview {
+  id: string;
+  rating: number;
+  body: string;
+  like_count: number;
+  liked_by_me: boolean;
+  created_at: string;
+  author_id: string;
+  author_username: string;
+  author_display_name: string;
+  author_avatar_url: string | null;
+  album_id: string;
+  album_title: string;
+  album_artist: string | null;
+  album_image_url: string | null;
+  album_url: string;
+  album_platform: string;
+  album_year: number | null;
+}
+
+/** Busca álbuns pelo nome (na Deezer, pelo servidor). */
+export async function searchAlbums(query: string): Promise<AlbumHit[]> {
+  const { data, error } = await invokeFunction<{ albums: AlbumHit[] }>('discover', { body: { action: 'albums', query } });
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  return data?.albums ?? [];
+}
+
+/** Escolhe um álbum da busca: o servidor guarda o cartão e devolve. */
+export async function pickAlbum(albumId: string): Promise<AlbumCard> {
+  const { data, error } = await invokeFunction<{ album: AlbumCard }>('discover', { body: { action: 'album', albumId } });
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  if (!data?.album) throw new AppError('discover_unavailable');
+  return data.album;
+}
+
+/** Nota com uma casa decimal, entre 0 e 10. */
+export function clampRating(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(Math.min(Math.max(value, 0), REVIEW_RATING_MAX) * 10) / 10;
+}
+
+export async function createReview(input: { albumId: string; rating: number; body: string }): Promise<string> {
+  const body = input.body.trim();
+  if (body.length < REVIEW_BODY.min) throw new AppError('review_too_short');
+  if (body.length > REVIEW_BODY.max) throw new AppError('review_too_long');
+  const userId = await currentUserId();
+  const { data, error } = await supabase
+    .from('album_reviews')
+    .insert({ author_id: userId, album_id: input.albumId, rating: clampRating(input.rating), body })
+    .select('id')
+    .single();
+  // 23505 = já tem review desse álbum.
+  if (error?.code === '23505') throw new AppError('review_exists');
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
+export interface ReviewCursor {
+  createdAt: string;
+  id: string;
+}
+
+export async function fetchReviews(before: ReviewCursor | null, filter: { author?: string; album?: string } = {}): Promise<AlbumReview[]> {
+  const { data, error } = await supabase.rpc('reviews_feed', {
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: REVIEWS_PAGE,
+    p_author: filter.author ?? null,
+    p_album: filter.album ?? null,
+  });
+  if (error) throw error;
+  return ((data ?? []) as AlbumReview[]).map((r) => ({ ...r, rating: Number(r.rating) }));
+}
+
+export async function setReviewLiked(reviewId: string, liked: boolean): Promise<void> {
+  const userId = await currentUserId();
+  const { error } = liked
+    ? await supabase.from('review_likes').insert({ user_id: userId, review_id: reviewId })
+    : await supabase.from('review_likes').delete().eq('user_id', userId).eq('review_id', reviewId);
+  if (error && error.code !== '23505') throw error;
+}
+
+export async function deleteReview(reviewId: string): Promise<void> {
+  const { error } = await supabase.from('album_reviews').delete().eq('id', reviewId);
+  if (error) throw error;
 }
 
 export const BIO_MAX = 160;

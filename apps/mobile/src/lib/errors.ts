@@ -50,6 +50,11 @@ const KNOWN = new Set([
   'forbidden',
   'cannot_suspend_admin',
   'cannot_remove_profile',
+  'review_needs_album',
+  'review_exists',
+  'review_too_short',
+  'review_too_long',
+  'not_album',
 ]);
 
 export class AppError extends Error {

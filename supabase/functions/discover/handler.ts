@@ -4,9 +4,11 @@
 // { action: 'deck', genre? }          → cartões sugeridos para a pessoa (ou só de um gênero)
 // { action: 'link', previewId, platform } → link da música na plataforma da pessoa (ou a busca)
 // { action: 'audio', previewId }          → prévia renovada (Deezer) ou achada na Deezer (outras plataformas)
+// { action: 'albums', query }             → álbuns da Deezer pelo nome (para escolher na review)
+// { action: 'album', albumId }            → guarda o álbum escolhido como cartão e devolve o cartão
 import { readJsonLimited } from '../_shared/body.ts';
 import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl } from '../_shared/links/charts.ts';
-import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
+import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerAlbum, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
@@ -20,7 +22,7 @@ export const AUDIO_TTL_MS = 6 * 3600_000;
 export const AUDIO_MARGIN_MS = 10 * 60_000;
 export const LINKS_TTL_MS = 30 * 86_400_000;
 /** Pedidos por pessoa (por minuto). */
-export const RATE = { deck: 12, link: 30, audio: 30 } as const;
+export const RATE = { deck: 12, link: 30, audio: 30, albums: 40, album: 20 } as const;
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,6 +48,18 @@ export interface TrackRow {
   store_genre_ids?: number[] | null;
 }
 
+/** Cartão de álbum guardado (o que a review mostra). */
+export interface AlbumRow {
+  id: string;
+  url: string;
+  platform: string;
+  kind: string;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  release_year: number | null;
+}
+
 export interface Deps {
   getUserId(authHeader: string): Promise<string | null>;
   rateLimit(userId: string, action: keyof typeof RATE): Promise<boolean>;
@@ -66,6 +80,11 @@ export interface Deps {
   /** Nova prévia da Deezer num cartão que já existia. */
   saveAudio(previewId: string, audioUrl: string | null): Promise<void>;
   getTrack(previewId: string): Promise<TrackRow | null>;
+  /** Álbuns da Deezer pelo nome ('quota' = esperar). */
+  searchAlbums(query: string): Promise<DeezerAlbum[] | 'quota'>;
+  albumById(id: string): Promise<DeezerAlbum | null>;
+  /** Guarda o álbum como cartão (link_previews, tipo álbum) e devolve o cartão. */
+  saveAlbum(album: DeezerAlbum): Promise<AlbumRow>;
   findLinks(sourceUrl: string): Promise<{ links: Partial<Record<Platform, string>>; checked_at: string } | null>;
   saveLinks(sourceUrl: string, links: Partial<Record<Platform, string>>): Promise<void>;
   fetchLinks(sourceUrl: string): Promise<Partial<Record<Platform, string>> | null>;
@@ -235,6 +254,24 @@ export function createHandler(deps: Deps) {
     return json({ audio_url: match ? await deezerAudio(match) : null });
   }
 
+  async function albums(body: { query?: unknown }): Promise<Response> {
+    if (typeof body.query !== 'string') return json({ error: 'invalid_request' }, 400);
+    const query = body.query.trim();
+    if (query.length < 2 || query.length > 100) return json({ albums: [] });
+    const found = await deps.searchAlbums(query);
+    if (found === 'quota') return json({ error: 'rate_limited' }, 429);
+    return json({
+      albums: found.map((a) => ({ id: a.id, title: a.title, artist: a.artist, image_url: a.imageUrl, record_type: a.recordType })),
+    });
+  }
+
+  async function album(body: { albumId?: unknown }): Promise<Response> {
+    if (typeof body.albumId !== 'string' || !/^\d{1,15}$/.test(body.albumId)) return json({ error: 'invalid_request' }, 400);
+    const found = await deps.albumById(body.albumId);
+    if (!found) return json({ error: 'not_found' }, 404);
+    return json({ album: await deps.saveAlbum(found) });
+  }
+
   async function link(body: { previewId?: unknown; platform?: unknown }): Promise<Response> {
     if (typeof body.previewId !== 'string' || !UUID_RE.test(body.previewId) || !isStreamingChoice(body.platform)) {
       return json({ error: 'invalid_request' }, 400);
@@ -275,14 +312,18 @@ export function createHandler(deps: Deps) {
 
     const read = await readJsonLimited(req, MAX_BODY_BYTES);
     if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
-    const body = (read.value ?? {}) as { action?: unknown; genre?: unknown; previewId?: unknown; platform?: unknown };
-    if (body.action !== 'deck' && body.action !== 'link' && body.action !== 'audio') return json({ error: 'invalid_request' }, 400);
+    const body = (read.value ?? {}) as { action?: unknown; genre?: unknown; previewId?: unknown; platform?: unknown; query?: unknown; albumId?: unknown };
+    const actions = ['deck', 'link', 'audio', 'albums', 'album'] as const;
+    if (!actions.includes(body.action as (typeof actions)[number])) return json({ error: 'invalid_request' }, 400);
+    const action = body.action as (typeof actions)[number];
     if (body.action === 'deck' && body.genre != null && !isGenre(body.genre)) return json({ error: 'invalid_request' }, 400);
 
     try {
-      if (!(await deps.rateLimit(userId, body.action))) return json({ error: 'rate_limited' }, 429);
-      if (body.action === 'deck') return await deck(userId, isGenre(body.genre) ? body.genre : null);
-      return body.action === 'audio' ? await audio(body) : await link(body);
+      if (!(await deps.rateLimit(userId, action))) return json({ error: 'rate_limited' }, 429);
+      if (action === 'deck') return await deck(userId, isGenre(body.genre) ? body.genre : null);
+      if (action === 'albums') return await albums(body);
+      if (action === 'album') return await album(body);
+      return action === 'audio' ? await audio(body) : await link(body);
     } catch (err) {
       log('discover: erro', err);
       return json({ error: 'internal', ...(deps.debug ? { detail: err instanceof Error ? err.message : String(err) } : {}) }, 500);

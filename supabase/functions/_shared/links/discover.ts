@@ -434,3 +434,77 @@ export function previewUsable(url: string | null | undefined, now: number = Date
   const exp = previewExpiresAt(url);
   return exp == null || exp - marginMs > now;
 }
+
+// ---------------------------------------------------------------- álbuns (Reviews)
+
+/** Álbum da Deezer, para escolher na review. */
+export interface DeezerAlbum {
+  id: string;
+  url: string;
+  title: string;
+  artist: string;
+  imageUrl: string | null;
+  /** album, ep, single ou compile (coletânea). */
+  recordType: string | null;
+  /** Ano de lançamento (só no álbum aberto, /album/{id}; a busca não traz). */
+  year: number | null;
+  /** Data de lançamento (AAAA-MM-DD), quando a Deezer informa. */
+  releaseDate: string | null;
+}
+
+interface DeezerAlbumHit {
+  id?: unknown;
+  title?: unknown;
+  link?: unknown;
+  cover_big?: unknown;
+  cover_medium?: unknown;
+  record_type?: unknown;
+  release_date?: unknown;
+  artist?: { name?: unknown };
+  error?: unknown;
+}
+
+function toDeezerAlbum(hit: DeezerAlbumHit): DeezerAlbum | null {
+  const id = typeof hit.id === 'number' || (typeof hit.id === 'string' && /^\d{1,15}$/.test(hit.id)) ? String(hit.id) : null;
+  const title = str(hit.title);
+  const artist = str(hit.artist?.name);
+  if (!id || !title || !artist) return null;
+  const cover = typeof hit.cover_big === 'string' ? hit.cover_big : typeof hit.cover_medium === 'string' ? hit.cover_medium : null;
+  const date = typeof hit.release_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(hit.release_date) && hit.release_date !== '0000-00-00' ? hit.release_date : null;
+  const year = date ? Number(date.slice(0, 4)) : null;
+  return {
+    id,
+    url: `https://www.deezer.com/album/${id}`,
+    title,
+    artist,
+    imageUrl: safeImageUrl(cover),
+    recordType: typeof hit.record_type === 'string' && /^[a-z]{2,12}$/.test(hit.record_type) ? hit.record_type : null,
+    year: year && year >= 1900 && year <= 2100 ? year : null,
+    releaseDate: year && year >= 1900 && year <= 2100 ? date : null,
+  };
+}
+
+/** Busca álbuns pelo nome (e/ou artista) na Deezer. 'quota' = esperar um pouco. */
+export async function searchDeezerAlbums(query: string, opts: Opts, limit = 15): Promise<DeezerAlbum[] | 'quota'> {
+  const q = query.replace(/\s+/g, ' ').trim().slice(0, 100);
+  if (q.length < 2) return [];
+  const data = (await getJson(opts.fetch, `${DEEZER}/search/album?q=${encodeURIComponent(q)}&limit=${Math.min(Math.max(limit, 1), 25)}`, opts.timeoutMs ?? 5000)) as {
+    data?: DeezerAlbumHit[];
+    error?: { code?: unknown };
+  } | null;
+  if (data?.error?.code === 4) return 'quota';
+  const out: DeezerAlbum[] = [];
+  for (const hit of Array.isArray(data?.data) ? data.data : []) {
+    const album = toDeezerAlbum(hit);
+    if (album && !out.some((a) => a.id === album.id)) out.push(album);
+  }
+  return out;
+}
+
+/** O álbum da Deezer pelo id, com o ano de lançamento. */
+export async function deezerAlbumById(id: string, opts: Opts): Promise<DeezerAlbum | null> {
+  if (!/^\d{1,15}$/.test(id)) return null;
+  const hit = (await getJson(opts.fetch, `${DEEZER}/album/${id}`, opts.timeoutMs ?? 5000)) as DeezerAlbumHit | null;
+  if (!hit || hit.error) return null;
+  return toDeezerAlbum(hit);
+}

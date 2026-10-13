@@ -8,7 +8,7 @@
 // Nuvem:  npx supabase functions deploy discover
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { chartKey, fetchPlatformLinks, LastfmKeyError } from '../_shared/links/charts.ts';
-import { deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend } from '../_shared/links/discover.ts';
+import { deezerAlbumById, deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend, searchDeezerAlbums } from '../_shared/links/discover.ts';
 import { isAllowedAudioUrl } from '../_shared/links/genres.ts';
 import type { FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
@@ -74,6 +74,30 @@ Deno.serve(
       return map;
     },
     findTrack: (ref) => findDeezerTrack(ref, opts),
+    searchAlbums: (query) => searchDeezerAlbums(query, opts),
+    albumById: (id) => deezerAlbumById(id, opts),
+    async saveAlbum(album) {
+      const { data, error } = await admin
+        .from('link_previews')
+        .upsert(
+          {
+            url: album.url,
+            platform: 'deezer',
+            kind: 'album',
+            provider_id: album.id,
+            title: album.title,
+            artist: album.artist,
+            image_url: album.imageUrl,
+            release_date: album.releaseDate,
+          },
+          { onConflict: 'url' },
+        )
+        .select('id, url, platform, kind, title, artist, image_url, release_date')
+        .single();
+      if (error) throw error;
+      const row = data as { id: string; url: string; platform: string; kind: string; title: string; artist: string | null; image_url: string | null; release_date: string | null };
+      return { ...row, release_year: row.release_date ? Number(row.release_date.slice(0, 4)) : null };
+    },
     trackById: (id) => deezerTrackById(id, opts),
     albumGenres: (albumId) => deezerAlbumGenres(albumId, opts),
     async saveGenreIds(previewId, ids) {

@@ -17,7 +17,13 @@ export function PostActions({
   isMine,
   onClose,
   onAction,
+  allowVibe = true,
+  deleteLabel,
 }: {
+  /** Compartilhar no Vibes (só posts). */
+  allowVibe?: boolean;
+  /** Texto de "apagar" (padrão: apagar post). */
+  deleteLabel?: string;
   visible: boolean;
   username: string;
   isMine: boolean;
@@ -42,9 +48,9 @@ export function PostActions({
         <View style={styles.sheet}>
           {step === 'menu' ? (
             <>
-              <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} />
+              {allowVibe ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
               {isMine ? (
-                <Option label={t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
+                <Option label={deleteLabel ?? t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
               ) : (
                 <>
                   <Option label={t('feed.report')} onPress={() => setStep('reasons')} />

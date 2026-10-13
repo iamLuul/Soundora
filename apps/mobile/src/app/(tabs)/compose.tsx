@@ -32,6 +32,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GenrePicker } from "../../components/GenrePicker";
 import { MusicCard } from "../../components/MusicCard";
+import { ReviewComposer } from "../../components/ReviewComposer";
+import { TopTabs } from "../../components/figma";
 import { Button, ErrorText, KeyboardView } from "../../components/ui";
 import {
   createPost,
@@ -47,7 +49,7 @@ import { convertPostPhoto } from "../../lib/image-convert";
 import { keys } from "../../lib/queries";
 import type { LinkPreviewRow } from "../../lib/types";
 import { colors, fonts, space } from "../../theme";
-import { webTouch } from '../../lib/touch';
+import { webTouch } from "../../lib/touch";
 
 interface Picked {
   type: "photo" | "video";
@@ -70,6 +72,8 @@ export default function ComposeScreen() {
   const navigation = useNavigation();
   const { height } = useWindowDimensions();
   const [body, setBody] = useState("");
+  // Duas subtelas: Post (texto, mídia, música) e Review (álbum, nota e análise).
+  const [mode, setMode] = useState<"post" | "review">("post");
 
   // A tela sobe ao abrir; o X (o "+" girado na barra) faz ela descer e volta para a aba anterior.
   const slide = useSharedValue(height);
@@ -295,186 +299,215 @@ export default function ComposeScreen() {
     <Animated.View
       style={[styles.screen, { paddingTop: insets.top }, slideStyle]}
     >
-      <View style={styles.top}>
-        <Text style={styles.title}>{t("compose.title")}</Text>
-        <Button
-          testID="publish"
-          title={publishing ?? t("compose.publish")}
-          size="sm"
-          onPress={publish}
-          loading={!!publishing}
-          disabled={!canPublish || !!publishing}
-          style={{ alignSelf: "center" }}
+      <TopTabs<"post" | "review">
+        value={mode}
+        onChange={setMode}
+        style={{ marginHorizontal: space.lg }}
+        tabs={[
+          { value: "post", label: t("reviews.postTab") },
+          { value: "review", label: t("reviews.composeTab") },
+        ]}
+      />
+      {mode === "review" ? (
+        <ReviewComposer
+          onPublished={() => {
+            setMode("post");
+            goBack();
+            router.navigate("/music");
+          }}
         />
-      </View>
-
-      <KeyboardView>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View>
-            <TextInput
-              testID="post-body"
-              value={body}
-              onChangeText={setBody}
-              placeholder={t("compose.textPlaceholder")}
-              placeholderTextColor={colors.placeholder}
-              multiline
-              maxLength={POST_TEXT_MAX}
-              style={styles.body}
-              accessibilityLabel={t("compose.textLabel")}
+      ) : (
+        <>
+          <View style={styles.top}>
+            <Text style={styles.title}>{t("compose.title")}</Text>
+            <Button
+              testID="publish"
+              title={publishing ?? t("compose.publish")}
+              size="sm"
+              onPress={publish}
+              loading={!!publishing}
+              disabled={!canPublish || !!publishing}
+              style={{ alignSelf: "center" }}
             />
-            <Text
-              style={[
-                styles.counter,
-                body.length > POST_TEXT_MAX - 50 && { color: colors.warning },
-              ]}
-            >
-              {body.length}/{POST_TEXT_MAX}
-            </Text>
           </View>
 
-          {media.length ? (
+          <KeyboardView>
             <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.thumbs}
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
             >
-              {media.map((m, i) => (
-                <View key={m.uri} style={styles.thumb}>
-                  {m.type === "photo" ? (
-                    <Image
-                      source={{ uri: m.uri }}
-                      style={StyleSheet.absoluteFill}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={styles.videoThumb}>
-                      <Ionicons name="videocam" size={28} color={colors.text} />
-                      {m.durationMs ? (
-                        <Text style={styles.duration}>
-                          {Math.round(m.durationMs / 1000)}s
-                        </Text>
-                      ) : null}
+              <View>
+                <TextInput
+                  testID="post-body"
+                  value={body}
+                  onChangeText={setBody}
+                  placeholder={t("compose.textPlaceholder")}
+                  placeholderTextColor={colors.placeholder}
+                  multiline
+                  maxLength={POST_TEXT_MAX}
+                  style={styles.body}
+                  accessibilityLabel={t("compose.textLabel")}
+                />
+                <Text
+                  style={[
+                    styles.counter,
+                    body.length > POST_TEXT_MAX - 50 && {
+                      color: colors.warning,
+                    },
+                  ]}
+                >
+                  {body.length}/{POST_TEXT_MAX}
+                </Text>
+              </View>
+
+              {media.length ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.thumbs}
+                >
+                  {media.map((m, i) => (
+                    <View key={m.uri} style={styles.thumb}>
+                      {m.type === "photo" ? (
+                        <Image
+                          source={{ uri: m.uri }}
+                          style={StyleSheet.absoluteFill}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={styles.videoThumb}>
+                          <Ionicons
+                            name="videocam"
+                            size={28}
+                            color={colors.text}
+                          />
+                          {m.durationMs ? (
+                            <Text style={styles.duration}>
+                              {Math.round(m.durationMs / 1000)}s
+                            </Text>
+                          ) : null}
+                        </View>
+                      )}
+                      <Pressable
+                        testID={`remove-media-${i}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("compose.removeMedia")}
+                        onPress={() =>
+                          setMedia(media.filter((_, j) => j !== i))
+                        }
+                        style={[styles.remove, webTouch(8)]}
+                        hitSlop={8}
+                      >
+                        <Ionicons name="close" size={14} color={colors.text} />
+                      </Pressable>
                     </View>
-                  )}
+                  ))}
+                </ScrollView>
+              ) : null}
+
+              {loadingPreview && !showLink ? (
+                <Text style={styles.limits}>{t("compose.loadingMusic")}</Text>
+              ) : null}
+              {preview ? (
+                <View>
+                  <MusicCard
+                    data={{
+                      url: preview.url,
+                      platform: preview.platform,
+                      title: preview.title,
+                      artist: preview.artist,
+                      imageUrl: preview.image_url,
+                    }}
+                  />
                   <Pressable
-                    testID={`remove-media-${i}`}
+                    testID="remove-music"
                     accessibilityRole="button"
-                    accessibilityLabel={t("compose.removeMedia")}
-                    onPress={() => setMedia(media.filter((_, j) => j !== i))}
-                    style={[styles.remove, webTouch(8)]}
+                    accessibilityLabel={t("compose.removeMusic")}
+                    onPress={removeMusic}
+                    style={[styles.removeMusic, webTouch(8)]}
                     hitSlop={8}
                   >
                     <Ionicons name="close" size={14} color={colors.text} />
                   </Pressable>
                 </View>
-              ))}
-            </ScrollView>
-          ) : null}
+              ) : showLink ? (
+                <View style={styles.linkBox}>
+                  <TextInput
+                    testID="link-input"
+                    value={link}
+                    onChangeText={setLink}
+                    placeholder={t("compose.linkPlaceholder")}
+                    placeholderTextColor={colors.placeholder}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    inputMode="url"
+                    onSubmitEditing={() => loadPreview()}
+                    style={styles.linkInput}
+                  />
+                  <View style={styles.linkButtons}>
+                    <Button
+                      title={t("compose.paste")}
+                      variant="ghost"
+                      size="sm"
+                      onPress={paste}
+                      style={{ alignSelf: "auto" }}
+                    />
+                    <Button
+                      testID="load-preview"
+                      title={t("compose.preview")}
+                      size="sm"
+                      onPress={() => loadPreview()}
+                      loading={loadingPreview}
+                      disabled={!link.trim()}
+                      style={{ alignSelf: "auto" }}
+                    />
+                  </View>
+                </View>
+              ) : null}
 
-          {loadingPreview && !showLink ? (
-            <Text style={styles.limits}>{t("compose.loadingMusic")}</Text>
-          ) : null}
-          {preview ? (
-            <View>
-              <MusicCard
-                data={{
-                  url: preview.url,
-                  platform: preview.platform,
-                  title: preview.title,
-                  artist: preview.artist,
-                  imageUrl: preview.image_url,
-                }}
-              />
-              <Pressable
-                testID="remove-music"
-                accessibilityRole="button"
-                accessibilityLabel={t("compose.removeMusic")}
-                onPress={removeMusic}
-                style={[styles.removeMusic, webTouch(8)]}
-                hitSlop={8}
-              >
-                <Ionicons name="close" size={14} color={colors.text} />
-              </Pressable>
-            </View>
-          ) : showLink ? (
-            <View style={styles.linkBox}>
-              <TextInput
-                testID="link-input"
-                value={link}
-                onChangeText={setLink}
-                placeholder={t("compose.linkPlaceholder")}
-                placeholderTextColor={colors.placeholder}
-                autoCapitalize="none"
-                autoCorrect={false}
-                inputMode="url"
-                onSubmitEditing={() => loadPreview()}
-                style={styles.linkInput}
-              />
-              <View style={styles.linkButtons}>
-                <Button
-                  title={t("compose.paste")}
-                  variant="ghost"
-                  size="sm"
-                  onPress={paste}
-                  style={{ alignSelf: "auto" }}
+              <View style={styles.tools}>
+                <Tool
+                  testID="add-media"
+                  icon="images-outline"
+                  label={t("compose.addMedia")}
+                  onPress={() => pick("library")}
+                  disabled={!canAddMedia}
                 />
-                <Button
-                  testID="load-preview"
-                  title={t("compose.preview")}
-                  size="sm"
-                  onPress={() => loadPreview()}
-                  loading={loadingPreview}
-                  disabled={!link.trim()}
-                  style={{ alignSelf: "auto" }}
+                {Platform.OS !== "web" ? (
+                  <Tool
+                    testID="add-camera"
+                    icon="camera-outline"
+                    label={t("vibes.camera")}
+                    onPress={() => pick("camera")}
+                    disabled={!canAddMedia}
+                  />
+                ) : null}
+                <Tool
+                  testID="add-music"
+                  icon="musical-notes-outline"
+                  label={t("compose.addMusic")}
+                  onPress={() => setShowLink(true)}
+                  disabled={!!preview || showLink}
                 />
               </View>
-            </View>
-          ) : null}
+              <Text style={styles.limits}>{t("compose.limits")}</Text>
 
-          <View style={styles.tools}>
-            <Tool
-              testID="add-media"
-              icon="images-outline"
-              label={t("compose.addMedia")}
-              onPress={() => pick("library")}
-              disabled={!canAddMedia}
-            />
-            {Platform.OS !== "web" ? (
-              <Tool
-                testID="add-camera"
-                icon="camera-outline"
-                label={t("vibes.camera")}
-                onPress={() => pick("camera")}
-                disabled={!canAddMedia}
-              />
-            ) : null}
-            <Tool
-              testID="add-music"
-              icon="musical-notes-outline"
-              label={t("compose.addMusic")}
-              onPress={() => setShowLink(true)}
-              disabled={!!preview || showLink}
-            />
-          </View>
-          <Text style={styles.limits}>{t("compose.limits")}</Text>
+              {/* Gênero só com música: ele descreve a música do post. */}
+              {preview ? (
+                <GenrePicker
+                  value={genres}
+                  onChange={setGenres}
+                  detected={detected}
+                  suggestions={myGenres.data ?? []}
+                  max={MAX_POST_GENRES}
+                />
+              ) : null}
 
-          {/* Gênero só com música: ele descreve a música do post. */}
-          {preview ? (
-            <GenrePicker
-              value={genres}
-              onChange={setGenres}
-              detected={detected}
-              suggestions={myGenres.data ?? []}
-              max={MAX_POST_GENRES}
-            />
-          ) : null}
-
-          <ErrorText>{error}</ErrorText>
-        </ScrollView>
-      </KeyboardView>
+              <ErrorText>{error}</ErrorText>
+            </ScrollView>
+          </KeyboardView>
+        </>
+      )}
     </Animated.View>
   );
 }

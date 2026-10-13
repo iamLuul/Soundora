@@ -132,7 +132,12 @@
     "account_suspended": "Your account is suspended and can't do that right now.",
     "forbidden": "You don't have permission to do that.",
     "cannot_suspend_admin": "You can't suspend your own account or another admin.",
-    "cannot_remove_profile": "Profiles can't be removed: suspend the account instead."
+    "cannot_remove_profile": "Profiles can't be removed: suspend the account instead.",
+    "review_needs_album": "A review needs an album.",
+    "review_exists": "You already reviewed this album.",
+    "review_too_short": "Write at least 20 characters in the review.",
+    "review_too_long": "A review can have up to 5000 characters.",
+    "not_album": "That link isn't an album. Paste an album link or search by name."
   },
   "tabs": {
     "feed": "For you",
@@ -190,7 +195,8 @@
     "addMedia": "Photo/video",
     "addMusic": "Song",
     "limits": "Up to 500 characters, 4 photos or one 30 s video (30 MB).",
-    "loadingMusic": "Making the song card…"
+    "loadingMusic": "Making the song card…",
+    "mode": "What do you want to publish?"
   },
   "post": {
     "commentPlaceholder": "Write a comment…",
@@ -369,12 +375,13 @@
   },
   "music": {
     "liked": "Liked",
-    "mine": "I posted",
+    "mine": "Posted",
     "likedTitle": "Liked songs",
     "likedHint": "Songs you liked in Discover.",
     "mineTitle": "Your songs",
     "empty": "No songs yet.",
-    "search": "Search your songs"
+    "search": "Search your songs",
+    "reviews": "Reviews"
   },
   "vibes": {
     "background": "Background color",
@@ -518,5 +525,44 @@
     "followers_zero": "no followers",
     "followers_one": "{{count}} follower",
     "followers_other": "{{count}} followers"
+  },
+  "reviews": {
+    "tab": "Reviews",
+    "label": "Review",
+    "rating": "{{rating}}/10",
+    "ratingLabel": "Rated {{rating}} out of 10",
+    "likes_one": "{{count}} like",
+    "likes_other": "{{count}} likes",
+    "empty": "No reviews yet. Why not write the first one? Tap + and choose Review.",
+    "title": "Album reviews",
+    "more": "see more",
+    "less": "see less",
+    "composeTab": "Review",
+    "postTab": "Post",
+    "pickAlbum": "Choose the album",
+    "searchAlbum": "Search the album by name or artist",
+    "orPaste": "or paste the album link",
+    "noAlbums": "No albums found for “{{query}}”.",
+    "changeAlbum": "Change album",
+    "yourRating": "Your rating",
+    "bodyPlaceholder": "Analyze the album: production, lyrics, standout tracks, what worked and what didn’t…",
+    "bodyLabel": "Review text",
+    "needAlbum": "Choose an album to write the review.",
+    "minChars": "At least {{min}} characters ({{count}}/{{min}})",
+    "publish": "Publish review",
+    "publishing": "Publishing…",
+    "published": "Review published!",
+    "less01": "Decrease 0.1",
+    "more01": "Increase 0.1",
+    "starsHint": "Tap or drag on the stars; fine-tune with − and +.",
+    "like": "Like review",
+    "unlike": "Unlike review",
+    "delete": "Delete review",
+    "deleted": "Review deleted.",
+    "recordType_album": "Album",
+    "recordType_ep": "EP",
+    "recordType_single": "Single",
+    "recordType_compile": "Compilation",
+    "useLink": "Use link"
   }
 }
