@@ -9,6 +9,7 @@ import { SuggestedAccounts } from '../../components/SuggestedAccounts';
 import { SuspendedBanner } from '../../components/SuspendedBanner';
 import { useFeed, useFollowingFeed, useSuggestedAccounts } from '../../lib/queries';
 import { colors, space, text } from '../../theme';
+import { formatError } from '../../lib/errors';
 
 type FeedTab = 'feed' | 'following';
 
@@ -61,7 +62,8 @@ function ForYou() {
       onRefresh={() => feed.refetch()}
       onEndReached={() => feed.hasNextPage && !feed.isFetchingNextPage && feed.fetchNextPage()}
       loadingMore={feed.isFetchingNextPage}
-      emptyText={feed.isError ? t('common.error') : t('feed.empty')}
+      emptyText={t('feed.empty')}
+      errorText={feed.isError ? formatError(t, feed.error) : null}
       followable
       interstitial={{ after: SUGGESTIONS_AFTER, element: <SuggestedAccounts /> }}
     />
@@ -85,7 +87,8 @@ function Following({ active }: { active: boolean }) {
       onRefresh={() => feed.refetch()}
       onEndReached={() => feed.hasNextPage && !feed.isFetchingNextPage && feed.fetchNextPage()}
       loadingMore={feed.isFetchingNextPage}
-      emptyText={feed.isError ? t('common.error') : t('feed.followingEmptyNoSuggestions')}
+      emptyText={t('feed.followingEmptyNoSuggestions')}
+      errorText={feed.isError ? formatError(t, feed.error) : null}
       empty={
         feed.isError || !hasSuggestions ? undefined : (
           <View style={{ gap: space.md, marginTop: space.xl }}>

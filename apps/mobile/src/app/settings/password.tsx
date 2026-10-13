@@ -1,3 +1,4 @@
+import { passwordSchema } from '@soundora/core';
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,11 +22,16 @@ export default function PasswordScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Erros de digitação ficam embaixo do campo; os do servidor, no fim da tela.
+  const [fieldError, setFieldError] = useState<{ field: 'password' | 'confirm'; message: string } | null>(null);
 
   const save = async () => {
     setError(null);
     setNotice(null);
-    if (password !== confirm) return setError(formatError(t, new AppError('passwords_differ')));
+    setFieldError(null);
+    const pw = passwordSchema.safeParse(password);
+    if (!pw.success) return setFieldError({ field: 'password', message: t(`errors.${pw.error.issues[0]?.message ?? 'password_too_short'}`) });
+    if (password !== confirm) return setFieldError({ field: 'confirm', message: formatError(t, new AppError('passwords_differ')) });
     if (code !== null && code.length !== 6) return;
     setBusy(true);
     try {
@@ -56,8 +62,30 @@ export default function PasswordScreen() {
     <Screen scroll style={{ maxWidth: 560, width: '100%', alignSelf: 'center' }}>
       <Stack.Screen options={{ title: t('settings.password') }} />
       <Text style={text.body}>{t('editProfile.passwordHint')}</Text>
-      <PasswordField testID="new-password" label={t('editProfile.newPassword')} hint={t('auth.passwordHint')} value={password} onChangeText={setPassword} newPassword />
-      <PasswordField testID="confirm-password" label={t('editProfile.confirmPassword')} value={confirm} onChangeText={setConfirm} newPassword onSubmitEditing={save} />
+      <PasswordField
+        testID="new-password"
+        label={t('editProfile.newPassword')}
+        hint={t('auth.passwordHint')}
+        value={password}
+        onChangeText={(v) => {
+          setPassword(v);
+          setFieldError(null);
+        }}
+        error={fieldError?.field === 'password' ? fieldError.message : null}
+        newPassword
+      />
+      <PasswordField
+        testID="confirm-password"
+        label={t('editProfile.confirmPassword')}
+        value={confirm}
+        onChangeText={(v) => {
+          setConfirm(v);
+          setFieldError(null);
+        }}
+        error={fieldError?.field === 'confirm' ? fieldError.message : null}
+        newPassword
+        onSubmitEditing={save}
+      />
       {code !== null ? (
         <TextField
           testID="reauth-code"

@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockUser, fetchProfileSummary, setFollowing, type ProfileImageKind } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -24,14 +24,13 @@ import { ProfileSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
 import { Verified } from './Verified';
+import { notify } from '../lib/dialogs';
+import { showToast } from './Toast';
+import { ErrorState } from './ErrorState';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Soundora', message);
-}
 
 /** Números grandes como no Figma: 1.7k, 16.6k. */
 export function compactNumber(n: number, locale: string): string {
@@ -56,7 +55,8 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
 
   if (summary.isLoading) return <ProfileSkeleton />;
   const p = summary.data;
-  if (!p) return <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl }]}>{t('common.error')}</Text>;
+  if (summary.isError) return <ErrorState message={formatError(t, summary.error)} onRetry={() => summary.refetch()} />;
+  if (!p) return <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{t('profile.notFound')}</Text>;
 
   // Ao puxar: números, gêneros, favoritas e vibes também.
   const refreshExtras = () =>
@@ -163,7 +163,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
           onPress: async () => {
             try {
               await blockUser(p.id);
-              notify(t('feed.blocked', { username: p.username }));
+              showToast(t('feed.blocked', { username: p.username }));
               await qc.invalidateQueries();
               router.back();
             } catch (err) {

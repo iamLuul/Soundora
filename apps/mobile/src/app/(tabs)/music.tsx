@@ -15,6 +15,7 @@ import { TrackListSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { Spinner } from '../../components/Spinner';
+import { ErrorState } from '../../components/ErrorState';
 
 type Tab = 'reviews' | 'liked' | 'mine';
 
@@ -83,6 +84,8 @@ export default function MusicScreen() {
             ListEmptyComponent={
               tracks.isLoading ? (
                 <TrackListSkeleton count={8} />
+              ) : tracks.isError ? (
+                <ErrorState message={formatError(t, tracks.error)} onRetry={() => tracks.refetch()} />
               ) : (
                 <Text
                   style={[
@@ -94,7 +97,7 @@ export default function MusicScreen() {
                     },
                   ]}
                 >
-                  {tracks.isError ? formatError(t, tracks.error) : t(tab === 'liked' ? 'music.emptyLiked' : 'music.emptyMine')}
+                  {t(tab === 'liked' ? 'music.emptyLiked' : 'music.emptyMine')}
                 </Text>
               )
             }

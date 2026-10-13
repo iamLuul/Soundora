@@ -8,6 +8,7 @@ import { colors, fonts, space, text } from '../theme';
 import { TrackListSkeleton } from './Skeleton';
 import { PullToRefresh } from './PullToRefresh';
 import { Spinner } from './Spinner';
+import { ErrorState } from './ErrorState';
 
 /** Cores do Figma (Trending Page): selo NEW amarelo, seta verde (subiu) e vermelha (caiu). */
 const MOVE = { up: '#4E9A51', down: '#C44545', new: '#FFD43B' };
@@ -80,6 +81,7 @@ export function WorldChartList({
   items,
   loading,
   error,
+  failed = false,
   onRefresh,
   onPress,
   openingKey,
@@ -88,6 +90,8 @@ export function WorldChartList({
   items: ChartTrack[];
   loading: boolean;
   error: string | null;
+  /** O carregamento falhou: `error` é o motivo e aparece o "Tentar de novo". */
+  failed?: boolean;
   onRefresh: () => unknown;
   onPress: (item: ChartTrack) => void;
   openingKey: string | null;
@@ -104,6 +108,8 @@ export function WorldChartList({
         ListEmptyComponent={
           loading ? (
             <TrackListSkeleton count={8} rank />
+          ) : failed ? (
+            <ErrorState message={error ?? ''} onRetry={onRefresh} />
           ) : (
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>{error}</Text>
           )

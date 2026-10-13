@@ -26,6 +26,7 @@ import { AppError, formatError } from '../../lib/errors';
 import { convertVibePhoto } from '../../lib/image-convert';
 import { colors, fonts, space } from '../../theme';
 import { webTouch } from '../../lib/touch';
+import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 
 interface Media {
   type: 'photo' | 'video';
@@ -54,6 +55,8 @@ type Params = {
  */
 export default function NewVibeScreen() {
   const { t } = useTranslation();
+  // Primeira vez criando uma vibe: os tipos, escrever e arrastar, e as 24 horas.
+  const [tipOpen, closeTip] = useFirstTimeTip('vibe-new');
   const params = useLocalSearchParams<Params>();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -230,6 +233,16 @@ export default function NewVibeScreen() {
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={keyboardBehavior}>
       <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+      <CoachMarks
+        testID="coach-vibe-new"
+        visible={tipOpen}
+        onClose={closeTip}
+        steps={[
+          { icon: 'images-outline', title: t('tips.vibeNewTypeTitle'), body: t('tips.vibeNewTypeBody') },
+          { icon: 'text-outline', title: t('tips.vibeNewTextTitle'), body: t('tips.vibeNewTextBody') },
+          { icon: 'time-outline', title: t('tips.vibeNewTimeTitle'), body: t('tips.vibeNewTimeBody') },
+        ]}
+      />
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + space.sm, paddingBottom: insets.bottom + space.lg }]} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
           <Pressable testID="vibe-close" accessibilityRole="button" accessibilityLabel={t('common.cancel')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={12} style={webTouch(12)}>
@@ -330,6 +343,7 @@ export default function NewVibeScreen() {
               <Text style={styles.linkTitle}>{music ? t('vibes.changeMusic') : t('vibes.pasteMusic')}</Text>
               <TextInput
                 testID="vibe-link"
+                accessibilityLabel={t('a11y.musicLink')}
                 value={link}
                 onChangeText={setLink}
                 placeholder={t('compose.linkPlaceholder')}

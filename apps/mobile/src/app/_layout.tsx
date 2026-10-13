@@ -13,6 +13,7 @@ import { useLiveNotifications } from '../lib/live';
 import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 import { AppSkeleton } from '../components/Skeleton';
+import { ToastHost } from '../components/Toast';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -97,6 +98,8 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
       </Stack.Protected>
 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+      {/* Termos e privacidade abrem com ou sem login (o cadastro mostra os links). */}
+      <Stack.Screen name="legal/[doc]" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -112,6 +115,7 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="light" />
           <RootNavigator />
+          <ToastHost />
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

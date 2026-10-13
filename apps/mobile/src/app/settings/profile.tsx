@@ -16,6 +16,7 @@ import { pickAndUploadProfileImage } from '../../lib/pick-image';
 import { colors, fonts, space } from '../../theme';
 import { webTouch } from '../../lib/touch';
 import { Spinner } from '../../components/Spinner';
+import { showToast } from '../../components/Toast';
 
 /** Editar perfil: banner, foto (centralizada sobre o banner, como no perfil), nome e bio. */
 export default function EditProfileScreen() {
@@ -74,10 +75,15 @@ export default function EditProfileScreen() {
         await setMyGenres(genres);
         await qc.invalidateQueries({ queryKey: ['my-genres'] });
         await qc.invalidateQueries({ queryKey: ['discover-deck'] });
+        // Os gêneros que aparecem no perfil.
+        await qc.invalidateQueries({ queryKey: ['user-genres'] });
       }
       await refreshEverywhere();
     });
-    if (ok) router.back();
+    if (ok) {
+      showToast(t('toast.profileSaved'));
+      router.back();
+    }
   };
 
   return (

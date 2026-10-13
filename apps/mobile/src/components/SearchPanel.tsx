@@ -232,7 +232,8 @@ export function SearchPanel() {
           onRefresh={() => posts.refetch()}
           onEndReached={() => posts.hasNextPage && !posts.isFetchingNextPage && posts.fetchNextPage()}
           loadingMore={posts.isFetchingNextPage}
-          emptyText={posts.isError ? formatError(t, posts.error) : t('search.noPosts', { query: postsFor })}
+          emptyText={t('search.noPosts', { query: postsFor })}
+          errorText={posts.isError ? formatError(t, posts.error) : null}
           followable
         />
       ) : (

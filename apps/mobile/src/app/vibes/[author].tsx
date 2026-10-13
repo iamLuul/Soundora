@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar } from '../../components/figma';
 import { OptionsSheet, type SheetOption } from '../../components/OptionsSheet';
@@ -23,6 +23,9 @@ import { Spinner } from '../../components/Spinner';
 import { SheetBackdrop } from '../../components/ui';
 import { webTouch } from '../../lib/touch';
 import { Verified } from '../../components/Verified';
+import { confirmAction, notify } from '../../lib/dialogs';
+import { showToast } from '../../components/Toast';
+import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -30,10 +33,6 @@ const STILL_MS = 5000;
 const MUSIC_MS = 15_000;
 const TICK_MS = 50;
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Soundora', message);
-}
 
 type Params = { author: string; queue?: string; username?: string; avatar?: string };
 
@@ -124,6 +123,8 @@ function AuthorVibes({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  // Primeira vez vendo vibes: tocar para passar, segurar para pausar (a vibe espera a dica fechar).
+  const [tipOpen, closeTip] = useFirstTimeTip('vibe-view');
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { profile } = useAuth();
@@ -156,7 +157,7 @@ function AuthorVibes({
   const mediaReady = !current?.media_path || !!media.data;
   const audioUrl = current?.kind === 'music' ? current.preview_audio_url : null;
   const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : audioUrl ? MUSIC_MS : STILL_MS;
-  const paused = holding || !!menu || !!viewersFor || !mediaReady;
+  const paused = holding || !!menu || !!viewersFor || !mediaReady || tipOpen;
 
   const resetClock = () => {
     elapsedRef.current = 0;
@@ -218,8 +219,10 @@ function AuthorVibes({
   const remove = async () => {
     if (!current) return;
     setMenu(null);
+    if (!(await confirmAction(t('confirm.deleteVibe'), t('confirm.delete'), t('common.cancel')))) return;
     try {
       await deleteVibe(current.id);
+      showToast(t('toast.vibeDeleted'));
       await qc.invalidateQueries({ queryKey: ['vibes'] });
       if (list.length <= 1) close();
       else {
@@ -246,7 +249,7 @@ function AuthorVibes({
       if (!current) return;
       try {
         await report('vibe', current.id, reason);
-        notify(t('feed.reported'));
+        showToast(t('feed.reported'));
       } catch (err) {
         notify(formatError(t, err));
       }
@@ -255,6 +258,7 @@ function AuthorVibes({
 
   return (
     <>
+      <CoachMarks testID="coach-vibe-view" visible={tipOpen} onClose={closeTip} steps={[{ icon: 'hand-left-outline', title: t('tips.vibeViewTitle'), body: t('tips.vibeViewBody') }]} />
       {!current ? (
         <Spinner color={colors.text} style={{ flex: 1 }} />
       ) : (

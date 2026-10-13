@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../../components/figma';
 import { PostActions, type PostAction } from '../../components/PostActions';
@@ -20,11 +20,10 @@ import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { webTouch } from '../../lib/touch';
 import { Spinner } from '../../components/Spinner';
+import { confirmAction, notify } from '../../lib/dialogs';
+import { showToast } from '../../components/Toast';
+import { ErrorState } from '../../components/ErrorState';
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Soundora', message);
-}
 
 /** Post aberto em tela cheia, com os comentários embaixo e a caixa de responder fixa (como no X). */
 export default function PostScreen() {
@@ -121,13 +120,15 @@ export default function PostScreen() {
     try {
       if (action.type === 'report') {
         await report('post', item.id, action.reason);
-        notify(t('feed.reported'));
+        showToast(t('feed.reported'));
       } else if (action.type === 'block') {
         await blockUser(item.author_id);
-        notify(t('feed.blocked', { username: item.author_username }));
+        showToast(t('feed.blocked', { username: item.author_username }));
         router.back();
       } else {
+        if (!(await confirmAction(t('confirm.deletePost'), t('confirm.delete'), t('common.cancel')))) return;
         await deletePost(item.id);
+        showToast(t('toast.postDeleted'));
         router.back();
       }
       await qc.invalidateQueries();
@@ -151,8 +152,10 @@ export default function PostScreen() {
           <PostSkeleton count={1} />
           <CommentsSkeleton />
         </View>
+      ) : post.isError ? (
+        <ErrorState message={formatError(t, post.error)} onRetry={() => post.refetch()} />
       ) : !post.data ? (
-        <Text style={styles.gone}>{post.isError ? formatError(t, post.error) : t('post.gone')}</Text>
+        <Text style={styles.gone}>{t('post.gone')}</Text>
       ) : (
         <FlatList
           {...listPerf}
@@ -200,6 +203,7 @@ export default function PostScreen() {
             <TextInput
               ref={input}
               testID="comment-input"
+              accessibilityLabel={t('a11y.comment')}
               value={body}
               onChangeText={setBody}
               placeholder={t('post.replyPlaceholder', { username: post.data.author_username })}

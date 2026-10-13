@@ -34,7 +34,8 @@ export default function GenrePostsScreen() {
         onRefresh={() => posts.refetch()}
         onEndReached={() => posts.hasNextPage && !posts.isFetchingNextPage && posts.fetchNextPage()}
         loadingMore={posts.isFetchingNextPage}
-        emptyText={posts.isError ? formatError(t, posts.error) : t('search.genreEmpty')}
+        emptyText={t('search.genreEmpty')}
+        errorText={posts.isError ? formatError(t, posts.error) : null}
         followable
       />
     </View>

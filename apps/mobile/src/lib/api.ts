@@ -745,7 +745,8 @@ async function functionError(name: string, error: Error, unavailableCode: string
     const res = error.context as Response;
     const body = await res.json().catch(() => null);
     const code = typeof body?.error === 'string' ? body.error : 'generic';
-    return new AppError(code, `${name} HTTP ${res.status}${body?.detail ? ` – ${body.detail}` : ''}`);
+    const retryAfter = typeof body?.retry_after === 'number' && body.retry_after > 0 ? Math.ceil(body.retry_after) : undefined;
+    return new AppError(code, `${name} HTTP ${res.status}${body?.detail ? ` – ${body.detail}` : ''}`, retryAfter);
   }
   return new AppError(unavailableCode, `${error.name}: ${error.message}`);
 }
@@ -873,7 +874,7 @@ export async function fetchMyTracks(): Promise<TrackItem[]> {
 
 // ---------- Notificações ----------
 
-export type NotificationKind = 'like' | 'comment' | 'reply' | 'follow' | 'comment_reply' | 'comment_like';
+export type NotificationKind = 'like' | 'comment' | 'reply' | 'follow' | 'comment_reply' | 'comment_like' | 'review_like';
 export type NotificationFilter = 'all' | 'replies';
 
 export interface NotificationItem {
@@ -889,6 +890,8 @@ export interface NotificationItem {
   preview_title: string | null;
   preview_image_url: string | null;
   comment_body: string | null;
+  /** Curtida em review: o álbum (abre a tela do álbum). */
+  review_album_id?: string | null;
 }
 
 export async function fetchNotifications(filter: NotificationFilter, before: number | null): Promise<NotificationItem[]> {

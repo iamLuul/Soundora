@@ -17,6 +17,7 @@ import { TrackListSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { Spinner } from '../../components/Spinner';
+import { ErrorState } from '../../components/ErrorState';
 
 /** Perfil › Curtidas: as músicas que a pessoa curtiu no Descobrir (a mais recente primeiro). */
 export default function LikedSongsScreen() {
@@ -69,8 +70,10 @@ export default function LikedSongsScreen() {
           ListEmptyComponent={
             liked.isLoading ? (
               <TrackListSkeleton count={8} cover={56} />
+            ) : liked.isError ? (
+              <ErrorState message={formatError(t, liked.error)} onRetry={() => liked.refetch()} />
             ) : (
-              <Text style={[text.body, styles.empty]}>{liked.isError ? formatError(t, liked.error) : t(isMe ? 'liked.emptyMine' : 'liked.empty')}</Text>
+              <Text style={[text.body, styles.empty]}>{t(isMe ? 'liked.emptyMine' : 'liked.empty')}</Text>
             )
           }
           ListFooterComponent={liked.isFetchingNextPage || opening ? <Spinner style={{ marginTop: space.md }} /> : null}

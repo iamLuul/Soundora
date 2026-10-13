@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
 import type { VibeKind } from '../../lib/api';
@@ -86,6 +87,7 @@ export function EditableVibeText({
   onStartEdit: () => void;
   onEndEdit: () => void;
 }) {
+  const { t } = useTranslation();
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [dragStart, setDragStart] = useState<TextPos | null>(null);
@@ -144,6 +146,7 @@ export function EditableVibeText({
           {editing ? (
             <TextInput
               testID="vibe-text"
+              accessibilityLabel={t('a11y.vibeText')}
               value={text}
               onChangeText={onChangeText}
               onBlur={onEndEdit}

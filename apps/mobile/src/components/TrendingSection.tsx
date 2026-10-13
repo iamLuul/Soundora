@@ -60,6 +60,7 @@ export function TrendingSection() {
         items={top.data ?? []}
         loading={top.isLoading}
         error={top.isError ? formatError(t, top.error) : t('trending.reviewsEmpty')}
+        failed={top.isError}
         onRefresh={() => top.refetch()}
         onPress={(a) => router.push(`/album/${a.album_id}`)}
       />
@@ -98,6 +99,7 @@ export function TrendingSection() {
         items={chart.data?.entries ?? []}
         loading={chart.isLoading}
         error={chart.isError ? formatError(t, chart.error) : t('trending.empty')}
+        failed={chart.isError}
         onRefresh={() => chart.refetch()}
         onPress={onPress}
         openingKey={opening}

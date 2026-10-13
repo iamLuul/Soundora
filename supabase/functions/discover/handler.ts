@@ -275,7 +275,7 @@ export function createHandler(deps: Deps) {
     const query = body.query.trim();
     if (query.length < 2 || query.length > 100) return json({ albums: [] });
     const found = await deps.searchAlbums(query);
-    if (found === 'quota') return json({ error: 'rate_limited' }, 429);
+    if (found === 'quota') return json({ error: 'rate_limited', retry_after: 5 }, 429);
     return json({
       albums: found.map((a) => ({ id: a.id, title: a.title, artist: a.artist, image_url: a.imageUrl, record_type: a.recordType })),
     });
@@ -293,7 +293,7 @@ export function createHandler(deps: Deps) {
     const query = body.query.trim();
     if (query.length < 2 || query.length > 100) return json({ tracks: [] });
     const found = await deps.searchTracks(query);
-    if (found === 'quota') return json({ error: 'rate_limited' }, 429);
+    if (found === 'quota') return json({ error: 'rate_limited', retry_after: 5 }, 429);
     return json({ tracks: found.map((t) => ({ id: t.id, title: t.title, artist: t.artist, album: t.album, image_url: t.imageUrl })) });
   }
 
@@ -351,7 +351,7 @@ export function createHandler(deps: Deps) {
     if (body.action === 'deck' && body.genre != null && !isGenre(body.genre)) return json({ error: 'invalid_request' }, 400);
 
     try {
-      if (!(await deps.rateLimit(userId, action))) return json({ error: 'rate_limited' }, 429);
+      if (!(await deps.rateLimit(userId, action))) return json({ error: 'rate_limited', retry_after: 60 }, 429);
       if (action === 'deck') return await deck(userId, isGenre(body.genre) ? body.genre : null);
       if (action === 'albums') return await albums(body);
       if (action === 'album') return await album(body);

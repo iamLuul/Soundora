@@ -6,7 +6,8 @@
     "save": "Save",
     "loading": "Loading…",
     "error": "Something went wrong. Please try again.",
-    "or": "or"
+    "or": "or",
+    "retry": "Try again"
   },
   "auth": {
     "welcome": "Welcome to Soundora!",
@@ -141,7 +142,11 @@
     "invalid_request": "Couldn't do that. Refresh the screen and try again.",
     "network": "No connection. Check your internet and try again.",
     "gone": "This content doesn't exist anymore. It may have been deleted.",
-    "duplicate": "This was already done."
+    "duplicate": "This was already done.",
+    "rate_limited_minutes_one": "You did this too many times in a short time. Try again in {{count}} minute.",
+    "rate_limited_minutes_other": "You did this too many times in a short time. Try again in {{count}} minutes.",
+    "rate_limited_hours_one": "You did this too many times today. Try again in {{count}} hour.",
+    "rate_limited_hours_other": "You did this too many times today. Try again in {{count}} hours."
   },
   "tabs": {
     "feed": "For you",
@@ -240,7 +245,8 @@
     "tabReviews": "Reviews",
     "noReviews": "No reviews yet.",
     "genresLabel": "Genres",
-    "seeVibes": "See {{name}}’s vibes"
+    "seeVibes": "See {{name}}’s vibes",
+    "notFound": "This profile doesn't exist or isn't available."
   },
   "report": {
     "title": "Why are you reporting this?",
@@ -373,7 +379,7 @@
     "title": "Notifications",
     "all": "All",
     "replies": "Replies",
-    "empty": "Nothing here yet. Likes, comments and new followers show up here.",
+    "empty": "Nothing here yet. When people like your posts and reviews, comment or follow you, it shows up here.",
     "emptyReplies": "No replies yet. When someone replies to your comments, they show up here.",
     "like": "liked your post",
     "comment": "commented on your post",
@@ -384,7 +390,8 @@
     "pushDenied": "Notifications are blocked. Allow them in your phone settings.",
     "pushEnable": "Turn on",
     "comment_reply": "replied to you",
-    "comment_like": "liked your comment"
+    "comment_like": "liked your comment",
+    "review_like": "liked your review"
   },
   "music": {
     "liked": "Liked",
@@ -564,14 +571,12 @@
     "minChars": "At least {{min}} characters ({{count}}/{{min}})",
     "publish": "Publish review",
     "publishing": "Publishing…",
-    "published": "Review published!",
     "less01": "Decrease 0.1",
     "more01": "Increase 0.1",
     "starsHint": "Tap or drag on the stars; fine-tune with − and +.",
     "like": "Like review",
     "unlike": "Unlike review",
     "delete": "Delete review",
-    "deleted": "Review deleted.",
     "recordType_album": "Album",
     "recordType_ep": "EP",
     "recordType_single": "Single",
@@ -594,5 +599,56 @@
     "down": "Move {{title}} down",
     "noResults": "No songs found for “{{query}}”.",
     "empty": "No songs chosen yet."
+  },
+  "confirm": {
+    "deletePost": "Delete this post? It disappears from the feed and your profile, along with its comments. This can’t be undone.",
+    "deleteReview": "Delete this review? Its rating leaves the album’s average. This can’t be undone.",
+    "deleteVibe": "Delete this vibe? This can’t be undone.",
+    "delete": "Delete"
+  },
+  "toast": {
+    "postPublished": "Post published.",
+    "postDeleted": "Post deleted.",
+    "reviewPublished": "Review published.",
+    "reviewDeleted": "Review deleted.",
+    "vibeDeleted": "Vibe deleted.",
+    "favoritesSaved": "Favorite songs saved.",
+    "profileSaved": "Profile saved.",
+    "usernameSaved": "@ changed."
+  },
+  "legal": {
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "updatedAt": "Last updated: {{date}}",
+    "readTerms": "Read the Terms of Use",
+    "readPrivacy": "Read the Privacy Policy",
+    "about": "About"
+  },
+  "tips": {
+    "next": "Next",
+    "done": "Got it",
+    "skip": "Skip",
+    "discoverSwipeTitle": "Like or skip",
+    "discoverSwipeBody": "Swipe the card right to like and left to skip. The buttons below do the same.",
+    "discoverPlayTitle": "Hear a snippet",
+    "discoverPlayBody": "Tap play to hear 30 seconds of the song. The ring around it shows how much has played.",
+    "discoverLikedTitle": "Your likes are saved",
+    "discoverLikedBody": "Everything you like shows up in Liked songs, just below, and improves the next suggestions.",
+    "vibeNewTypeTitle": "Choose the type",
+    "vibeNewTypeBody": "A vibe can be a photo, video, text or song. Tap the buttons below to choose.",
+    "vibeNewTextTitle": "Write anywhere",
+    "vibeNewTextBody": "Tap the vibe to write. Then drag the text to move it.",
+    "vibeNewTimeTitle": "Gone in 24 hours",
+    "vibeNewTimeBody": "The vibe is visible for 24 hours and then disappears. You can see who viewed it.",
+    "vibeViewTitle": "How to watch vibes",
+    "vibeViewBody": "Tap the right side for the next one and the left side to go back. Hold the screen to pause."
+  },
+  "a11y": {
+    "musicLink": "Song link",
+    "albumLink": "Album link",
+    "songLink": "Favorite song link",
+    "genreSearch": "Search genres",
+    "comment": "Write a comment",
+    "vibeText": "Vibe text"
   }
 }

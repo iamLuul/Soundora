@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { type ReactElement, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, Platform, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { type AlbumReview, blockUser, deleteReview, report, trackLink } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -16,11 +16,10 @@ import { ReviewCard } from './ReviewCard';
 import { PostSkeleton } from './Skeleton';
 import { Spinner } from './Spinner';
 import { useStreamingOpener } from './StreamingOpener';
+import { confirmAction, notify } from '../lib/dialogs';
+import { showToast } from './Toast';
+import { ErrorState } from './ErrorState';
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Soundora', message);
-}
 
 /** Lista de reviews (da mais nova à mais velha), com curtir, menu e abrir o álbum. */
 export function ReviewList({
@@ -54,13 +53,15 @@ export function ReviewList({
     try {
       if (action.type === 'report') {
         await report('review', item.id, action.reason);
-        notify(t('feed.reported'));
+        showToast(t('feed.reported'));
       } else if (action.type === 'block') {
         await blockUser(item.author_id);
-        notify(t('feed.blocked', { username: item.author_username }));
+        showToast(t('feed.blocked', { username: item.author_username }));
         await qc.invalidateQueries();
       } else if (action.type === 'delete') {
+        if (!(await confirmAction(t('confirm.deleteReview'), t('confirm.delete'), t('common.cancel')))) return;
         await deleteReview(item.id);
+        showToast(t('toast.reviewDeleted'));
         removeReviewFromCache(qc, item.id);
         void qc.invalidateQueries({ queryKey: reviewKeys.all });
         void qc.invalidateQueries({ queryKey: ['top-albums'] });
@@ -94,9 +95,11 @@ export function ReviewList({
           ListEmptyComponent={
             reviews.isLoading ? (
               <PostSkeleton count={3} />
+            ) : reviews.isError ? (
+              <ErrorState message={formatError(t, reviews.error)} onRetry={() => reviews.refetch()} />
             ) : (
               <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl, paddingHorizontal: space.lg }]}>
-                {reviews.isError ? formatError(t, reviews.error) : (emptyText ?? t('reviews.empty'))}
+                {emptyText ?? t('reviews.empty')}
               </Text>
             )
           }

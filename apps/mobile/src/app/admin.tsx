@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 // ScrollView do gesture-handler: rolar os filtros não troca de aba.
 import { ScrollView } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -32,29 +32,17 @@ import { useDebouncedValue } from '../lib/hooks';
 import { exactTime } from '../lib/i18n';
 import { listPerf } from '../lib/list';
 import { colors, fonts, radius, space, text } from '../theme';
+import { confirmAction, notify } from '../lib/dialogs';
+import { ErrorState } from '../components/ErrorState';
 
 type Tab = 'reports' | 'users' | 'featured';
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Soundora', message);
-}
 
 /** O destaque já saiu do ar? */
 function hasEnded(endsAt: string | null): boolean {
   return !!endsAt && Date.parse(endsAt) < Date.now();
 }
 
-/** Pergunta antes de ações que não se desfazem. */
-function confirmAction(message: string, ok: string, cancel: string): Promise<boolean> {
-  if (Platform.OS === 'web') return Promise.resolve(window.confirm(message));
-  return new Promise((resolve) =>
-    Alert.alert('Soundora', message, [
-      { text: cancel, style: 'cancel', onPress: () => resolve(false) },
-      { text: ok, style: 'destructive', onPress: () => resolve(true) },
-    ]),
-  );
-}
 
 /**
  * Painel admin: denúncias, usuários (verificar e suspender) e destaques do Descobrir, sem SQL.
@@ -136,7 +124,7 @@ function ReportsTab() {
           reports.isLoading ? (
             <PeopleSkeleton count={4} />
           ) : (
-            <Text style={[text.body, styles.empty]}>{reports.isError ? formatError(t, reports.error) : t('admin.noReports')}</Text>
+            reports.isError ? <ErrorState message={formatError(t, reports.error)} onRetry={() => reports.refetch()} /> : <Text style={[text.body, styles.empty]}>{t('admin.noReports')}</Text>
           )
         }
       />
@@ -283,7 +271,7 @@ function UsersTab() {
         contentContainerStyle={{ paddingBottom: space.xxl }}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          users.isLoading ? <PeopleSkeleton count={5} /> : <Text style={[text.body, styles.empty]}>{users.isError ? formatError(t, users.error) : t('admin.noUsers')}</Text>
+          users.isLoading ? <PeopleSkeleton count={5} /> : users.isError ? <ErrorState message={formatError(t, users.error)} onRetry={() => users.refetch()} /> : <Text style={[text.body, styles.empty]}>{t('admin.noUsers')}</Text>
         }
       />
     </View>

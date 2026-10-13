@@ -43,14 +43,23 @@ const review = (over: Partial<AlbumReview> = {}): AlbumReview => ({
 });
 
 const mockCreate = jest.fn(async (_input: unknown) => 'new-id');
+const mockDelete = jest.fn(async (_id: string) => undefined);
 const mockLike = jest.fn(async (_id: string, _liked: boolean) => undefined);
 const mockPick = jest.fn(async (id: string) => ({ id: `card-${id}`, title: 'Discovery', artist: 'Daft Punk', image_url: null, release_year: 2001 }));
 let mockReviews: AlbumReview[] = [];
+let mockFailNext = false;
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
   createReview: (input: unknown) => mockCreate(input),
   setReviewLiked: (id: string, liked: boolean) => mockLike(id, liked),
-  fetchReviews: async () => mockReviews,
+  deleteReview: (id: string) => mockDelete(id),
+  fetchReviews: async () => {
+    if (mockFailNext) {
+      mockFailNext = false;
+      throw { message: 'TypeError: Network request failed' };
+    }
+    return mockReviews;
+  },
   searchAlbums: async (q: string) => (q.includes('disc') ? [{ id: '302127', title: 'Discovery', artist: 'Daft Punk', image_url: null, record_type: 'album' }] : []),
   pickAlbum: (id: string) => mockPick(id),
   getStreamingPlatform: async () => 'spotify',
@@ -164,4 +173,34 @@ test('na lista geral, tocar no álbum da review abre a tela do álbum', async ()
   await wrap(<ReviewList />);
   await fireEvent.press(await screen.findByTestId('review-album-r1'));
   expect(router.push).toHaveBeenCalledWith('/album/a1');
+});
+
+test('apagar a própria review pede confirmação; cancelar não apaga', async () => {
+  const { Alert } = jest.requireActual('react-native');
+  let answer = 'cancel';
+  const spy = jest.spyOn(Alert, 'alert').mockImplementation((...args: unknown[]) => {
+    const [, msg, buttons] = args as [unknown, unknown, { style?: string; onPress?: () => void }[] | undefined];
+    expect(String(msg)).toMatch(/Apagar esta review\?/);
+    buttons?.find((b) => (answer === 'ok' ? b.style === 'destructive' : b.style === 'cancel'))?.onPress?.();
+  });
+  mockReviews = [review({ author_id: 'me' })];
+  await wrap(<ReviewList />);
+  await fireEvent.press(await screen.findByTestId('review-more-r1'));
+  await fireEvent.press(await screen.findByText('Apagar review'));
+  await waitFor(() => expect(spy).toHaveBeenCalled());
+  expect(mockDelete).not.toHaveBeenCalled();
+  answer = 'ok';
+  await fireEvent.press(screen.getByTestId('review-more-r1'));
+  await fireEvent.press(await screen.findByText('Apagar review'));
+  await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('r1'));
+  spy.mockRestore();
+});
+
+test('falhou ao carregar: mostra o motivo e "Tentar de novo" carrega de novo', async () => {
+  mockFailNext = true;
+  mockReviews = [review()];
+  await wrap(<ReviewList />);
+  expect(await screen.findByText(/^Sem conexão. Confira sua internet e tente de novo./)).toBeTruthy();
+  await fireEvent.press(screen.getByTestId('error-state-retry'));
+  expect(await screen.findByText('Graduation')).toBeTruthy();
 });

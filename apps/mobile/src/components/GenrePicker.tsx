@@ -105,6 +105,7 @@ export function GenrePicker({
             <Ionicons name="search" size={15} color={colors.placeholder} />
             <TextInput
               testID="genre-search"
+              accessibilityLabel={t('a11y.genreSearch')}
               value={query}
               onChangeText={setQuery}
               placeholder={t('compose.genreSearch')}

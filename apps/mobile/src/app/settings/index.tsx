@@ -75,6 +75,11 @@ export default function SettingsScreen() {
         </SettingsSection>
       ) : null}
 
+      <SettingsSection title={t('legal.about')}>
+        <SettingsRow testID="settings-terms" icon="document-text-outline" label={t('legal.terms')} onPress={() => router.push('/legal/terms')} />
+        <SettingsRow testID="settings-privacy" icon="lock-closed-outline" label={t('legal.privacy')} onPress={() => router.push('/legal/privacy')} last />
+      </SettingsSection>
+
       <SettingsSection title={t('settings.session')}>
         <SettingsRow testID="settings-sign-out" icon="log-out-outline" label={t('profile.signOut')} onPress={signOut} />
         <SettingsRow testID="settings-delete" icon="trash-outline" label={t('settings.deleteAccount')} danger onPress={() => router.push('/settings/delete-account')} last />

@@ -13,6 +13,7 @@ import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { Verified } from '../../components/Verified';
+import { ErrorState } from '../../components/ErrorState';
 
 type List = 'followers' | 'following';
 
@@ -53,8 +54,10 @@ export default function PeopleScreen() {
             <View style={{ paddingHorizontal: space.lg }}>
               <PeopleSkeleton count={8} action />
             </View>
+          ) : people.isError ? (
+            <ErrorState message={formatError(t, people.error)} onRetry={() => people.refetch()} />
           ) : (
-            <Text style={styles.empty}>{people.isError ? formatError(t, people.error) : t(list === 'followers' ? 'people.noFollowers' : 'people.noFollowing')}</Text>
+            <Text style={styles.empty}>{t(list === 'followers' ? 'people.noFollowers' : 'people.noFollowing')}</Text>
           )
         }
         onEndReached={() => people.hasNextPage && !people.isFetchingNextPage && people.fetchNextPage()}

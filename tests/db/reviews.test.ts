@@ -159,3 +159,36 @@ describe('Top Reviews (álbuns com maior média)', () => {
     expect(diff[0]!.n).toBe(0);
   });
 });
+
+describe('notificação de curtida em review', () => {
+  type N = { kind: string; actor_username: string; review_album_id: string | null; preview_title: string | null; post_id: string | null };
+  const list = (as: string) => db.as<N>(as, `select * from public.notifications_list()`);
+
+  it('curtir avisa o autor uma vez (com o álbum); descurtir tira; curtir a própria não avisa', async () => {
+    const autora = await createUser(db, 'rvn_autora');
+    const fa = await createUser(db, 'rvn_fa');
+    const a = await album('Avisado');
+    const [r] = await review(autora, a);
+    const like = () => db.as(fa, `insert into public.review_likes (user_id, review_id) values ($1, $2)`, [fa, r!.id]);
+    const unlike = () => db.as(fa, `delete from public.review_likes where user_id = $1 and review_id = $2`, [fa, r!.id]);
+
+    await like();
+    let mine = (await list(autora)).filter((n) => n.kind === 'review_like');
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ actor_username: 'rvn_fa', review_album_id: a, preview_title: 'Avisado', post_id: null });
+
+    await unlike();
+    expect((await list(autora)).filter((n) => n.kind === 'review_like')).toEqual([]);
+    await like();
+    await unlike();
+    await like();
+    expect((await list(autora)).filter((n) => n.kind === 'review_like')).toHaveLength(1);
+
+    await db.as(autora, `insert into public.review_likes (user_id, review_id) values ($1, $2)`, [autora, r!.id]);
+    expect((await list(autora)).filter((n) => n.kind === 'review_like')).toHaveLength(1);
+
+    // Apagar a review leva o aviso junto.
+    await db.as(autora, `delete from public.album_reviews where id = $1`, [r!.id]);
+    expect((await list(autora)).filter((n) => n.kind === 'review_like')).toEqual([]);
+  });
+});

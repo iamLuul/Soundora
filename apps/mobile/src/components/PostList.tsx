@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, FlatList, Platform, Text } from 'react-native';
+import { FlatList, Text } from 'react-native';
 import { blockUser, deletePost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -16,11 +16,10 @@ import { PostSkeleton } from './Skeleton';
 import { listPerf } from '../lib/list';
 import { PullToRefresh } from './PullToRefresh';
 import { Spinner } from './Spinner';
+import { confirmAction, notify } from '../lib/dialogs';
+import { showToast } from './Toast';
+import { ErrorState } from './ErrorState';
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Soundora', message);
-}
 
 /** Linha da lista: um post ou o bloco extra no meio (ex.: contas sugeridas). */
 type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' };
@@ -34,6 +33,7 @@ export function PostList({
   loadingMore,
   header,
   emptyText,
+  errorText,
   empty,
   followable = false,
   interstitial,
@@ -46,6 +46,8 @@ export function PostList({
   loadingMore?: boolean;
   header?: ReactElement;
   emptyText: string;
+  /** Falhou ao carregar: mostra o motivo e "Tentar de novo" (que chama onRefresh). */
+  errorText?: string | null;
   /** No lugar do texto de lista vazia. */
   empty?: ReactElement;
   /** Botão "Seguir" nos posts de quem eu ainda não sigo. */
@@ -92,12 +94,14 @@ export function PostList({
     try {
       if (action.type === 'report') {
         await report('post', item.id, action.reason);
-        notify(t('feed.reported'));
+        showToast(t('feed.reported'));
       } else if (action.type === 'block') {
         await blockUser(item.author_id);
-        notify(t('feed.blocked', { username: item.author_username }));
+        showToast(t('feed.blocked', { username: item.author_username }));
       } else {
+        if (!(await confirmAction(t('confirm.deletePost'), t('confirm.delete'), t('common.cancel')))) return;
         await deletePost(item.id);
+        showToast(t('toast.postDeleted'));
       }
       await qc.invalidateQueries();
     } catch (err) {
@@ -129,7 +133,7 @@ export function PostList({
             );
           }}
           ListEmptyComponent={
-            loading ? <PostSkeleton /> : empty ?? <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
+            loading ? <PostSkeleton /> : errorText ? <ErrorState message={errorText} onRetry={onRefresh} /> : empty ?? <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}

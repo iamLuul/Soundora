@@ -129,9 +129,12 @@ describe('limite de ações por pessoa', () => {
     for (let i = 0; i < 30; i++) {
       await db.as(edu, `insert into public.posts (author_id, body, link_preview_id) values ($1, $2, $3)`, [edu, `post ${i}`, p]);
     }
-    await expect(
-      db.as(edu, `insert into public.posts (author_id, body, link_preview_id) values ($1, 'mais um', $2)`, [edu, p]),
-    ).rejects.toThrow(/rate_limited/);
+    const err = await db.as(edu, `insert into public.posts (author_id, body, link_preview_id) values ($1, 'mais um', $2)`, [edu, p]).catch((e: unknown) => e);
+    expect(String((err as Error).message)).toMatch(/rate_limited/);
+    // O erro diz em quantos segundos libera: até 1 hora (a janela do limite de posts).
+    const seconds = Number((err as { detail?: string }).detail);
+    expect(seconds).toBeGreaterThan(3500);
+    expect(seconds).toBeLessThanOrEqual(3600);
     // O limite é por pessoa: outra pessoa continua postando.
     await db.as(dani, `insert into public.posts (author_id, body, link_preview_id) values ($1, 'oi', $2)`, [dani, p]);
   });

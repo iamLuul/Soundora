@@ -8,6 +8,7 @@ import { formatRating } from '../lib/reviews';
 import { colors, fonts, space, text } from '../theme';
 import { PullToRefresh } from './PullToRefresh';
 import { TrackListSkeleton } from './Skeleton';
+import { ErrorState } from './ErrorState';
 
 /** Uma linha do Top Reviews: posição, capa, álbum, artista e ano, e a média ao lado. */
 export function TopAlbumRow({ item, onPress }: { item: TopAlbum; onPress: (item: TopAlbum) => void }) {
@@ -52,6 +53,7 @@ export function TopAlbumList({
   items,
   loading,
   error,
+  failed = false,
   onRefresh,
   onPress,
   header,
@@ -59,6 +61,8 @@ export function TopAlbumList({
   items: TopAlbum[];
   loading: boolean;
   error: string | null;
+  /** O carregamento falhou: `error` é o motivo e aparece o "Tentar de novo". */
+  failed?: boolean;
   onRefresh: () => unknown;
   onPress: (item: TopAlbum) => void;
   header: ReactElement;
@@ -74,6 +78,8 @@ export function TopAlbumList({
         ListEmptyComponent={
           loading ? (
             <TrackListSkeleton count={8} rank />
+          ) : failed ? (
+            <ErrorState message={error ?? ''} onRetry={onRefresh} />
           ) : (
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl }]}>{error}</Text>
           )

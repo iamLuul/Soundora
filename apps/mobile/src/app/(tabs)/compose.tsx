@@ -50,6 +50,7 @@ import { keys } from "../../lib/queries";
 import type { LinkPreviewRow } from "../../lib/types";
 import { colors, fonts, space } from "../../theme";
 import { webTouch } from "../../lib/touch";
+import { showToast } from "../../components/Toast";
 
 interface Picked {
   type: "photo" | "video";
@@ -288,6 +289,7 @@ export default function ComposeScreen() {
       // Sai da aba de postar antes de abrir o post: ao fechar o post, volta para onde a pessoa estava.
       goBack();
       router.push(`/post/${id}`);
+      showToast(t("toast.postPublished"));
     } catch (err) {
       setError(formatError(t, err));
     } finally {
@@ -434,6 +436,7 @@ export default function ComposeScreen() {
                 <View style={styles.linkBox}>
                   <TextInput
                     testID="link-input"
+                    accessibilityLabel={t("a11y.musicLink")}
                     value={link}
                     onChangeText={setLink}
                     placeholder={t("compose.linkPlaceholder")}

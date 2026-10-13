@@ -183,7 +183,7 @@ export function createHandler(deps: Deps) {
     if (body.action !== 'chart' && body.action !== 'link') return json({ error: 'invalid_request' }, 400);
 
     try {
-      if (!(await deps.rateLimit(userId, body.action))) return json({ error: 'rate_limited' }, 429);
+      if (!(await deps.rateLimit(userId, body.action))) return json({ error: 'rate_limited', retry_after: 60 }, 429);
       return body.action === 'chart' ? await chart() : await link(body);
     } catch (err) {
       log('music-charts: erro', err);

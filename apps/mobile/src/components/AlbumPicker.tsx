@@ -101,6 +101,7 @@ export function AlbumPicker({ onPick }: { onPick: (album: AlbumCard) => void }) 
       <View style={styles.linkRow}>
         <TextInput
           testID="album-link"
+          accessibilityLabel={t('a11y.albumLink')}
           value={link}
           onChangeText={setLink}
           placeholder="https://open.spotify.com/album/…"

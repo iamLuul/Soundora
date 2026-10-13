@@ -151,6 +151,17 @@ describe('<SignInForm />', () => {
     await waitFor(() => expect(screen.getByText('Enviamos um código de 6 dígitos para ra•••@gmail.com')).toBeTruthy());
   });
 
+  test('e-mail/@ inválido: o erro aparece embaixo do campo e some ao corrigir', async () => {
+    await render(<SignInForm onUnconfirmed={jest.fn()} />);
+    await fireEvent.changeText(screen.getByTestId('identifier-input'), 'não é email');
+    await fireEvent.changeText(screen.getByTestId('password-input'), 'qualquer-123');
+    await fireEvent.press(screen.getByTestId('sign-in'));
+    expect(screen.getByText('Digite um e-mail válido ou o seu @usuário.')).toBeTruthy();
+    expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+    await fireEvent.changeText(screen.getByTestId('identifier-input'), 'raul@gmail.com');
+    expect(screen.queryByText('Digite um e-mail válido ou o seu @usuário.')).toBeNull();
+  });
+
   test('senha errada mostra a mensagem', async () => {
     mockAuth.signInWithPassword.mockResolvedValue({ data: {}, error: { code: 'invalid_credentials', message: 'Invalid login credentials' } });
     await render(<SignInForm onUnconfirmed={jest.fn()} />);

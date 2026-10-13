@@ -6,7 +6,8 @@
     "save": "Salvar",
     "loading": "Carregando…",
     "error": "Algo deu errado. Tente de novo.",
-    "or": "ou"
+    "or": "ou",
+    "retry": "Tentar de novo"
   },
   "auth": {
     "welcome": "Boas-vindas ao Soundora!",
@@ -141,7 +142,11 @@
     "invalid_request": "Não deu para fazer isso. Atualize a tela e tente de novo.",
     "network": "Sem conexão. Confira sua internet e tente de novo.",
     "gone": "Esse conteúdo não existe mais. Ele pode ter sido apagado.",
-    "duplicate": "Isso já foi feito antes."
+    "duplicate": "Isso já foi feito antes.",
+    "rate_limited_minutes_one": "Você fez isso muitas vezes em pouco tempo. Tente de novo em {{count}} minuto.",
+    "rate_limited_minutes_other": "Você fez isso muitas vezes em pouco tempo. Tente de novo em {{count}} minutos.",
+    "rate_limited_hours_one": "Você fez isso muitas vezes hoje. Tente de novo em {{count}} hora.",
+    "rate_limited_hours_other": "Você fez isso muitas vezes hoje. Tente de novo em {{count}} horas."
   },
   "tabs": {
     "feed": "Para você",
@@ -240,7 +245,8 @@
     "tabReviews": "Reviews",
     "noReviews": "Nenhuma review ainda.",
     "genresLabel": "Gêneros",
-    "seeVibes": "Ver as vibes de {{name}}"
+    "seeVibes": "Ver as vibes de {{name}}",
+    "notFound": "Esse perfil não existe ou não está disponível."
   },
   "report": {
     "title": "Por que você está denunciando?",
@@ -373,7 +379,7 @@
     "title": "Notificações",
     "all": "Todas",
     "replies": "Respostas",
-    "empty": "Nada por aqui ainda. Quando curtirem, comentarem ou seguirem você, aparece aqui.",
+    "empty": "Nada por aqui ainda. Quando curtirem seus posts e reviews, comentarem ou seguirem você, aparece aqui.",
     "emptyReplies": "Nenhuma resposta ainda. Quando responderem seus comentários, elas aparecem aqui.",
     "like": "curtiu seu post",
     "comment": "comentou no seu post",
@@ -384,7 +390,8 @@
     "pushDenied": "As notificações estão bloqueadas. Libere nas configurações do celular.",
     "pushEnable": "Ativar",
     "comment_reply": "respondeu você",
-    "comment_like": "curtiu seu comentário"
+    "comment_like": "curtiu seu comentário",
+    "review_like": "curtiu sua review"
   },
   "music": {
     "liked": "Curtidas",
@@ -564,14 +571,12 @@
     "minChars": "Mínimo de {{min}} caracteres ({{count}}/{{min}})",
     "publish": "Publicar review",
     "publishing": "Publicando…",
-    "published": "Review publicada!",
     "less01": "Diminuir 0,1",
     "more01": "Aumentar 0,1",
     "starsHint": "Toque ou arraste nas estrelas; ajuste fino com − e +.",
     "like": "Curtir review",
     "unlike": "Descurtir review",
     "delete": "Apagar review",
-    "deleted": "Review apagada.",
     "recordType_album": "Álbum",
     "recordType_ep": "EP",
     "recordType_single": "Single",
@@ -594,5 +599,56 @@
     "down": "Descer {{title}}",
     "noResults": "Nenhuma música encontrada para “{{query}}”.",
     "empty": "Nenhuma música escolhida ainda."
+  },
+  "confirm": {
+    "deletePost": "Apagar este post? Ele some do feed e do seu perfil, com os comentários. Não dá para desfazer.",
+    "deleteReview": "Apagar esta review? A nota sai da média do álbum. Não dá para desfazer.",
+    "deleteVibe": "Apagar esta vibe? Não dá para desfazer.",
+    "delete": "Apagar"
+  },
+  "toast": {
+    "postPublished": "Post publicado.",
+    "postDeleted": "Post apagado.",
+    "reviewPublished": "Review publicada.",
+    "reviewDeleted": "Review apagada.",
+    "vibeDeleted": "Vibe apagada.",
+    "favoritesSaved": "Músicas favoritas salvas.",
+    "profileSaved": "Perfil salvo.",
+    "usernameSaved": "@ alterado."
+  },
+  "legal": {
+    "terms": "Termos de Uso",
+    "privacy": "Política de Privacidade",
+    "updatedAt": "Última atualização: {{date}}",
+    "readTerms": "Ler os Termos de Uso",
+    "readPrivacy": "Ler a Política de Privacidade",
+    "about": "Sobre"
+  },
+  "tips": {
+    "next": "Próxima",
+    "done": "Entendi",
+    "skip": "Pular",
+    "discoverSwipeTitle": "Curta ou pule",
+    "discoverSwipeBody": "Arraste o cartão para a direita para curtir e para a esquerda para pular. Os botões embaixo fazem o mesmo.",
+    "discoverPlayTitle": "Ouça um trecho",
+    "discoverPlayBody": "Toque no play para ouvir 30 segundos da música. O anel em volta mostra quanto já tocou.",
+    "discoverLikedTitle": "Suas curtidas ficam guardadas",
+    "discoverLikedBody": "Tudo o que você curte aparece em Músicas curtidas, logo abaixo, e vai melhorando as próximas sugestões.",
+    "vibeNewTypeTitle": "Escolha o tipo",
+    "vibeNewTypeBody": "Uma vibe pode ser foto, vídeo, texto ou música. Toque nos botões embaixo para escolher.",
+    "vibeNewTextTitle": "Escreva onde quiser",
+    "vibeNewTextBody": "Toque na vibe para escrever. Depois, arraste o texto para mudar o lugar.",
+    "vibeNewTimeTitle": "Some em 24 horas",
+    "vibeNewTimeBody": "A vibe fica visível por 24 horas e depois some. Você vê quem viu.",
+    "vibeViewTitle": "Como ver as vibes",
+    "vibeViewBody": "Toque na direita para a próxima e na esquerda para voltar. Segure a tela para pausar."
+  },
+  "a11y": {
+    "musicLink": "Link da música",
+    "albumLink": "Link do álbum",
+    "songLink": "Link da música favorita",
+    "genreSearch": "Buscar gênero",
+    "comment": "Escrever comentário",
+    "vibeText": "Texto da vibe"
   }
 }

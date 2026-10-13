@@ -20,6 +20,7 @@ import { uniqueBy } from '../lib/hooks';
 import { DeckSkeleton, TrackListSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
+import { CoachMarks, type CoachStep, useFirstTimeTip } from './CoachMarks';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -47,6 +48,8 @@ export function mergeDeck(forYou: DiscoverCard[], community: DiscoverCard[]): Di
 /** Figma: Search page › Discover — busca de gênero, pilha de cartões, controles e as curtidas. */
 export function DiscoverSection() {
   const { t, i18n } = useTranslation();
+  // Primeira vez no Descobrir: como curtir, pular e ouvir.
+  const [tipOpen, closeTip] = useFirstTimeTip('discover');
   const qc = useQueryClient();
   const { height } = useWindowDimensions();
   const genres = useGenres();
@@ -227,8 +230,15 @@ export function DiscoverSection() {
 
   const stackHeight = Math.max(320, Math.min(460, height * 0.52));
 
+  const discoverTips: CoachStep[] = [
+    { icon: 'swap-horizontal', title: t('tips.discoverSwipeTitle'), body: t('tips.discoverSwipeBody') },
+    { icon: 'play', title: t('tips.discoverPlayTitle'), body: t('tips.discoverPlayBody') },
+    { icon: 'star', title: t('tips.discoverLikedTitle'), body: t('tips.discoverLikedBody') },
+  ];
+
   return (
     <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
+      <CoachMarks testID="coach-discover" visible={tipOpen} steps={discoverTips} onClose={closeTip} />
       {/* Figma: "Search genres" — a pilha passa a ser só desse gênero. */}
       {genre ? (
         <View style={styles.genreChosen}>
@@ -301,7 +311,7 @@ export function DiscoverSection() {
                   genre
                   ? t('discover.genreEmpty', { genre: label(genre) })
                   : t('discover.empty')}</Text>
-          <Button testID="discover-reload" title={t('discover.reload')} variant="ghost" onPress={shuffle} />
+          <Button testID="discover-reload" title={base.isError ? t('common.retry') : t('discover.reload')} variant="ghost" onPress={shuffle} />
         </View>
       )}
       {opening ? <Spinner /> : null}

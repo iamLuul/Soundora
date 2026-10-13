@@ -45,10 +45,12 @@ export function SignInForm({ onUnconfirmed }: { onUnconfirmed: (email: string) =
   const [sentTo, setSentTo] = useState<{ id: Identifier; destination: string } | null>(null);
   const [busy, setBusy] = useState<null | 'password' | 'send' | 'verify'>(null);
   const [error, setError] = useState<string | null>(null);
+  // Erro de digitação no campo de e-mail/@ aparece embaixo dele, não no fim da tela.
+  const [identifierError, setIdentifierError] = useState<string | null>(null);
 
   const readIdentifier = (): Identifier | null => {
     const id = parseIdentifier(identifier);
-    if (!id) setError(t('auth.invalidIdentifier'));
+    setIdentifierError(id ? null : t('auth.invalidIdentifier'));
     return id;
   };
 
@@ -117,7 +119,11 @@ export function SignInForm({ onUnconfirmed }: { onUnconfirmed: (email: string) =
         label={t('auth.identifier')}
         placeholder={t('auth.identifierPlaceholder')}
         value={identifier}
-        onChangeText={setIdentifier}
+        onChangeText={(v) => {
+          setIdentifier(v);
+          setIdentifierError(null);
+        }}
+        error={identifierError}
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="username"

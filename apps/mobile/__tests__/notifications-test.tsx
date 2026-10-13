@@ -58,6 +58,7 @@ describe('Notificações', () => {
       { ...base, id: 3, kind: 'comment', comment_body: 'que som!' },
       { ...base, id: 2, kind: 'like' },
       { ...base, id: 1, kind: 'follow', post_id: null, actor_username: 'caio' },
+      { ...base, id: 4, kind: 'review_like', post_id: null, review_album_id: 'alb1', preview_title: 'Discovery' },
     ]);
     await renderScreen();
     await waitFor(() => expect(screen.getByLabelText('@bia comentou no seu post: que som!')).toBeTruthy());
@@ -69,6 +70,10 @@ describe('Notificações', () => {
     expect(mockPush).toHaveBeenCalledWith('/post/p1');
     await fireEvent.press(screen.getByTestId('notification-1'));
     expect(mockPush).toHaveBeenCalledWith('/u/caio');
+    // Curtida em review abre a tela do álbum.
+    expect(screen.getByLabelText('@bia curtiu sua review')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('notification-4'));
+    expect(mockPush).toHaveBeenCalledWith('/album/alb1');
   });
 
   test('aba Respostas pede só comentários; vazio mostra a mensagem', async () => {

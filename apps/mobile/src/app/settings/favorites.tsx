@@ -16,6 +16,7 @@ import { AppError, formatError } from '../../lib/errors';
 import { useDebouncedValue } from '../../lib/hooks';
 import { webTouch } from '../../lib/touch';
 import { colors, fonts, space, text } from '../../theme';
+import { showToast } from '../../components/Toast';
 
 type Song = Omit<FavoriteSong, 'slot'>;
 
@@ -85,6 +86,7 @@ export default function FavoritesScreen() {
     try {
       await setFavoriteSongs(list.map((s) => s.link_preview_id));
       await qc.invalidateQueries({ queryKey: profileKeys.favorites(me) });
+      showToast(t('toast.favoritesSaved'));
       router.back();
     } catch (err) {
       setError(formatError(t, err));
@@ -167,6 +169,7 @@ export default function FavoritesScreen() {
           <View style={styles.linkRow}>
             <TextInput
               testID="song-link"
+              accessibilityLabel={t('a11y.songLink')}
               value={link}
               onChangeText={setLink}
               placeholder="https://open.spotify.com/track/…"

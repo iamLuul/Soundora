@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy, type StreamingChoice } from '@soundora/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -32,6 +33,9 @@ export default function Onboarding() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [savedPassword, setSavedPassword] = useState<string | null>(null);
+  // Erros de digitação ficam embaixo do campo; os do servidor, no fim da tela.
+  const [fieldError, setFieldError] = useState<{ field: 'password' | 'confirm' | 'username' | 'displayName'; message: string } | null>(null);
+  const fieldMessage = (field: 'password' | 'confirm' | 'username' | 'displayName') => (fieldError?.field === field ? fieldError.message : null);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [day, setDay] = useState('');
@@ -55,10 +59,11 @@ export default function Onboarding() {
 
   const next = async () => {
     setError(null);
+    setFieldError(null);
     if (step === 'password') {
       const pw = passwordSchema.safeParse(password);
-      if (!pw.success) return setError(t(`errors.${pw.error.issues[0]?.message ?? 'password_too_short'}`));
-      if (confirm !== password) return setError(t('errors.passwords_differ'));
+      if (!pw.success) return setFieldError({ field: 'password', message: t(`errors.${pw.error.issues[0]?.message ?? 'password_too_short'}`) });
+      if (confirm !== password) return setFieldError({ field: 'confirm', message: t('errors.passwords_differ') });
       setCheckingNext(true);
       try {
         // Voltar e avançar de novo não regrava a mesma senha (o Supabase recusaria).
@@ -72,13 +77,13 @@ export default function Onboarding() {
     }
     if (step === 'profile') {
       const format = validateUsernameFormat(username);
-      if (!format.ok) return setError(t(`errors.${format.reason}`));
+      if (!format.ok) return setFieldError({ field: 'username', message: t(`errors.${format.reason}`) });
       const d = displayNameSchema.safeParse(displayName);
-      if (!d.success) return setError(t(`errors.${d.error.issues[0]?.message ?? 'generic'}`));
+      if (!d.success) return setFieldError({ field: 'displayName', message: t(`errors.${d.error.issues[0]?.message ?? 'generic'}`) });
       // Confere de novo no banco na hora de avançar (alguém pode ter pego o nome nesse meio-tempo).
       setCheckingNext(true);
       try {
-        if (!(await checkUsernameAvailable(format.username))) return setError(t('errors.username_taken'));
+        if (!(await checkUsernameAvailable(format.username))) return setFieldError({ field: 'username', message: t('errors.username_taken') });
       } catch (err) {
         return setError(formatError(t, err));
       } finally {
@@ -138,8 +143,29 @@ export default function Onboarding() {
         <>
           <Text style={styles.title}>{t('onboarding.passwordTitle')}</Text>
           <Text style={styles.hint}>{t('onboarding.passwordHint')}</Text>
-          <PasswordField testID="new-password-input" label={t('auth.password')} hint={t('auth.passwordHint')} value={password} onChangeText={setPassword} newPassword />
-          <PasswordField testID="confirm-password-input" label={t('auth.confirmPassword')} value={confirm} onChangeText={setConfirm} newPassword />
+          <PasswordField
+            testID="new-password-input"
+            label={t('auth.password')}
+            hint={t('auth.passwordHint')}
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              setFieldError(null);
+            }}
+            error={fieldMessage('password')}
+            newPassword
+          />
+          <PasswordField
+            testID="confirm-password-input"
+            label={t('auth.confirmPassword')}
+            value={confirm}
+            onChangeText={(v) => {
+              setConfirm(v);
+              setFieldError(null);
+            }}
+            error={fieldMessage('confirm')}
+            newPassword
+          />
         </>
       )}
 
@@ -151,22 +177,35 @@ export default function Onboarding() {
             label={t('onboarding.username')}
             hint={usernameStatus.state === 'checking' ? t('onboarding.usernameChecking') : t('onboarding.usernameHint')}
             error={
-              usernameStatus.state === 'invalid'
+              fieldMessage('username') ??
+              (usernameStatus.state === 'invalid'
                 ? t(`errors.${usernameStatus.reason}`)
                 : usernameStatus.state === 'taken'
                   ? t('errors.username_taken')
                   : usernameStatus.state === 'error'
                     ? usernameStatus.message
-                    : null
+                    : null)
             }
             success={usernameStatus.state === 'available' ? t('onboarding.usernameAvailable', { username: usernameStatus.username }) : null}
             value={username}
-            onChangeText={(v) => setUsername(v.toLowerCase())}
+            onChangeText={(v) => {
+              setUsername(v.toLowerCase());
+              setFieldError(null);
+            }}
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="@"
           />
-          <TextField testID="display-name-input" label={t('onboarding.displayName')} value={displayName} onChangeText={setDisplayName} />
+          <TextField
+            testID="display-name-input"
+            label={t('onboarding.displayName')}
+            value={displayName}
+            onChangeText={(v) => {
+              setDisplayName(v);
+              setFieldError(null);
+            }}
+            error={fieldMessage('displayName')}
+          />
         </>
       )}
 
@@ -216,6 +255,14 @@ export default function Onboarding() {
         <>
           <Text style={styles.title}>{t('onboarding.termsTitle')}</Text>
           <Text style={text.body}>{t('onboarding.termsBody')}</Text>
+          <View style={{ gap: space.sm }}>
+            <Text testID="read-terms" style={styles.legalLink} accessibilityRole="link" onPress={() => router.push('/legal/terms')}>
+              {t('legal.readTerms')}
+            </Text>
+            <Text testID="read-privacy" style={styles.legalLink} accessibilityRole="link" onPress={() => router.push('/legal/privacy')}>
+              {t('legal.readPrivacy')}
+            </Text>
+          </View>
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: accepted }}
@@ -269,4 +316,5 @@ const styles = StyleSheet.create({
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   footer: { alignItems: 'flex-end' },
   signOut: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, textAlign: 'center', textDecorationLine: 'underline', marginTop: space.lg },
+  legalLink: { fontFamily: fonts.semibold, fontSize: 14, color: colors.muted, textDecorationLine: 'underline' },
 });

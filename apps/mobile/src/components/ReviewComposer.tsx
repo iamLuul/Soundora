@@ -12,6 +12,7 @@ import { colors, fonts, space } from '../theme';
 import { AlbumPicker } from './AlbumPicker';
 import { StarRatingInput } from './StarRating';
 import { Button, ErrorText, KeyboardView } from './ui';
+import { showToast } from './Toast';
 
 /**
  * Postar › Review: escolher o álbum (obrigatório), dar a nota (0 a 10 nas 5 estrelas) e
@@ -42,6 +43,7 @@ export function ReviewComposer({ onPublished }: { onPublished: () => void }) {
       await qc.invalidateQueries({ queryKey: reviewKeys.all });
       void qc.invalidateQueries({ queryKey: ['top-albums'] });
       void qc.invalidateQueries({ queryKey: ['album-summary'] });
+      showToast(t('toast.reviewPublished'));
       onPublished();
     } catch (err) {
       setError(formatError(t, err));

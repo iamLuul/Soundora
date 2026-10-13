@@ -11,6 +11,7 @@ import type { PersonCard } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
+import { ErrorState } from '../../components/ErrorState';
 
 /** Quem eu bloqueei, com a opção de desbloquear. */
 export default function BlockedScreen() {
@@ -43,7 +44,7 @@ export default function BlockedScreen() {
       {blocked.isLoading ? (
         <PeopleSkeleton count={4} action />
       ) : blocked.isError ? (
-        <Text style={[text.body, styles.empty]}>{formatError(t, blocked.error)}</Text>
+        <ErrorState message={formatError(t, blocked.error)} onRetry={() => blocked.refetch()} />
       ) : !blocked.data?.length ? (
         <Text testID="blocked-empty" style={[text.body, styles.empty]}>
           {t('blocked.empty')}

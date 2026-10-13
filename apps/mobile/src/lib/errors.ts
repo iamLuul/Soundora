@@ -68,6 +68,8 @@ export class AppError extends Error {
     public readonly code: string,
     /** Motivo técnico (status HTTP, resposta do servidor). Mostrado só em desenvolvimento. */
     public readonly detail?: string,
+    /** Limite de ações: em quantos segundos dá para tentar de novo. */
+    public readonly retryAfter?: number,
   ) {
     super(detail ? `${code}: ${detail}` : code);
     this.name = 'AppError';
@@ -127,6 +129,26 @@ export function errorMessageKey(err: unknown): string {
   return `errors.${code}`;
 }
 
+/** Em quantos segundos dá para tentar de novo depois de um limite (null = não informado). */
+export function retryAfterSeconds(err: unknown): number | null {
+  if (!err || typeof err !== 'object') return null;
+  if (err instanceof AppError) return err.retryAfter ?? null;
+  const e = err as { details?: unknown; context?: unknown };
+  // Banco: raise 'rate_limited' com DETAIL = segundos (chega como "details").
+  if (typeof e.details === 'string' && /^\d{1,7}$/.test(e.details)) return Number(e.details);
+  // Edge Function: { error: 'rate_limited', retry_after: segundos }.
+  const ctx = e.context as { retry_after?: unknown } | undefined;
+  if (ctx && typeof ctx.retry_after === 'number' && ctx.retry_after > 0) return Math.ceil(ctx.retry_after);
+  return null;
+}
+
+/** "Tente de novo em X minutos/horas" quando o limite informa o tempo. */
+function rateLimitMessage(t: (key: string, vars?: Record<string, unknown>) => string, seconds: number): string {
+  const minutes = Math.max(1, Math.ceil(seconds / 60));
+  if (minutes <= 90) return t('errors.rate_limited_minutes', { count: minutes });
+  return t('errors.rate_limited_hours', { count: Math.ceil(minutes / 60) });
+}
+
 const logged = new WeakSet<object>();
 
 /** Mensagem traduzida + (em desenvolvimento) o motivo técnico na linha de baixo. */
@@ -140,6 +162,7 @@ export function formatError(t: (key: string, vars?: Record<string, unknown>) => 
   const detail = [errorCode(err) === 'server_outdated' && __DEV__ ? 'Banco sem as migrations: rode "npx supabase migration up" (local) ou "npx supabase db push" (nuvem).' : '', errorDetail(err)]
     .filter(Boolean)
     .join('\n');
-  const message = t(errorMessageKey(err), vars);
+  const wait = errorCode(err) === 'rate_limited' ? retryAfterSeconds(err) : null;
+  const message = wait ? rateLimitMessage(t, wait) : t(errorMessageKey(err), vars);
   return detail ? `${message}\n${detail}` : message;
 }

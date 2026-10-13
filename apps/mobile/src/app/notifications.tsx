@@ -19,6 +19,7 @@ import { listPerf } from '../lib/list';
 import { webTouch } from '../lib/touch';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { Spinner } from '../components/Spinner';
+import { ErrorState } from '../components/ErrorState';
 
 /** Notificações (Figma: Notifications page): Todas e Respostas, com push opcional no celular. */
 export default function NotificationsScreen() {
@@ -41,6 +42,7 @@ export default function NotificationsScreen() {
 
   const open = (item: NotificationItem) => {
     if (item.post_id) router.push(`/post/${item.post_id}`);
+    else if (item.review_album_id) router.push(`/album/${item.review_album_id}`);
     else router.push(`/u/${item.actor_username}`);
   };
 
@@ -75,7 +77,7 @@ export default function NotificationsScreen() {
                 <PeopleSkeleton count={8} avatar={40} />
               </View>
             ) : query.isError ? (
-              <Text style={[text.body, styles.empty]}>{formatError(t, query.error)}</Text>
+              <ErrorState message={formatError(t, query.error)} onRetry={() => query.refetch()} />
             ) : (
               <Text style={[text.body, styles.empty]}>{t(tab === 'replies' ? 'notifications.emptyReplies' : 'notifications.empty')}</Text>
             )

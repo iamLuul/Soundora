@@ -9,6 +9,7 @@ import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
 import { nextUsernameChange, useUsernameStatus, validateUsernameFormat } from '../../lib/username';
 import { colors, space, text } from '../../theme';
+import { showToast } from '../../components/Toast';
 
 export default function UsernameScreen() {
   const { t, i18n } = useTranslation();
@@ -34,6 +35,7 @@ export default function UsernameScreen() {
       await changeUsername(format.username);
       await refreshProfile();
       await qc.invalidateQueries();
+      showToast(t('toast.usernameSaved'));
       router.back();
     } catch (err) {
       setError(formatError(t, err));

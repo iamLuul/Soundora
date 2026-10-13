@@ -1,5 +1,6 @@
 import { toIsoDate } from '../src/lib/date';
-import { AppError, errorCode, errorMessageKey } from '../src/lib/errors';
+import { AppError, errorCode, errorMessageKey, formatError, retryAfterSeconds } from '../src/lib/errors';
+import i18n from '../src/lib/i18n';
 import { dedupePages, patchPostInCache, toggleLikePatch } from '../src/lib/queries';
 import type { FeedItem } from '../src/lib/types';
 
@@ -30,6 +31,9 @@ export const samplePost: FeedItem = {
 };
 
 describe('erros', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('pt-BR');
+  });
   test('erro levantado pelo banco vira chave de tradução', () => {
     expect(errorMessageKey({ message: 'username_taken', code: 'P0001' })).toBe('errors.username_taken');
     expect(errorMessageKey({ message: 'needs_guardian' })).toBe('age.needs_guardian');
@@ -49,6 +53,16 @@ describe('erros', () => {
     expect(errorCode({ code: '23503', message: 'insert or update on table violates foreign key constraint' })).toBe('gone');
     expect(errorCode({ code: '42501', message: 'new row violates row-level security policy' })).toBe('forbidden');
     expect(errorCode({ code: '23514', message: 'violates check constraint' })).toBe('invalid_request');
+  });
+  test('limite de ações diz quando dá para tentar de novo', () => {
+    const t = (key: string, vars?: Record<string, unknown>) => i18n.t(key, vars);
+    expect(retryAfterSeconds({ message: 'rate_limited', details: '125' })).toBe(125);
+    expect(formatError(t, { message: 'rate_limited', details: '125' })).toMatch(/^Você fez isso muitas vezes em pouco tempo\. Tente de novo em 3 minutos\./);
+    expect(formatError(t, { message: 'rate_limited', details: '30' })).toMatch(/em 1 minuto\./);
+    expect(formatError(t, { message: 'rate_limited', details: '20000' })).toMatch(/em 6 horas\./);
+    expect(formatError(t, new AppError('rate_limited', 'discover HTTP 429', 60))).toMatch(/em 1 minuto\./);
+    // Sem tempo informado: a mensagem de sempre.
+    expect(formatError(t, { message: 'rate_limited' })).toMatch(/^Muitas tentativas em pouco tempo/);
   });
   test('host bloqueado aparece como link não suportado', () => {
     expect(errorMessageKey(new AppError('blocked_host'))).toBe('errors.unsupported');
