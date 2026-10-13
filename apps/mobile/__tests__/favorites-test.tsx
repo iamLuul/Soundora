@@ -52,6 +52,6 @@ test('adiciona pela busca, sobe a nova para o topo, tira uma e salva na ordem', 
 test('com 5 escolhidas, a busca some e aparece o aviso', async () => {
   mockCurrent = ['a', 'b', 'c', 'd', 'e'].map((x) => song(x, `Música ${x}`));
   await wrap();
-  expect(await screen.findByText('Você já tem 5. Tire uma para adicionar outra.')).toBeTruthy();
+  expect(await screen.findByText('Você já escolheu 5. Remova uma para adicionar outra.')).toBeTruthy();
   expect(screen.queryByTestId('song-search')).toBeNull();
 });

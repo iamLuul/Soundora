@@ -118,7 +118,7 @@ describe('<SignUpForm />', () => {
     await fireEvent.changeText(screen.getByTestId('new-password-input'), 'senha-forte-1');
     await fireEvent.changeText(screen.getByTestId('confirm-password-input'), 'senha-forte-2');
     await fireEvent.press(screen.getByTestId('sign-up'));
-    expect(screen.getByText('As senhas não são iguais.')).toBeTruthy();
+    expect(screen.getByText('As senhas não são iguais. Digite a mesma senha nos dois campos.')).toBeTruthy();
     expect(mockAuth.signUp).not.toHaveBeenCalled();
   });
 

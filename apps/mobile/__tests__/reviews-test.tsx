@@ -118,7 +118,7 @@ test('escrever: sem álbum não publica; escolhe o álbum, dá nota, escreve e p
 
   // Sem nota e com texto curto: ainda não publica.
   await fireEvent.changeText(screen.getByTestId('review-body'), 'curto');
-  expect(screen.getByText('Mínimo de 20 letras (5/20)')).toBeTruthy();
+  expect(screen.getByText('Mínimo de 20 caracteres (5/20)')).toBeTruthy();
   expect(screen.getByTestId('publish-review')).toBeDisabled();
   await fireEvent.press(screen.getByTestId('rating-plus'));
   await fireEvent.changeText(screen.getByTestId('review-body'), 'Um disco que mudou a música eletrônica para sempre.');
@@ -146,7 +146,7 @@ test('lista: curtir muda na hora e chama o banco', async () => {
 
 test('lista vazia: convida a escrever', async () => {
   await wrap(<ReviewList />);
-  expect(await screen.findByText(/Ainda não tem reviews/)).toBeTruthy();
+  expect(await screen.findByText(/Ainda não há reviews/)).toBeTruthy();
 });
 
 test('tela do álbum: média, posição e as reviews dele', async () => {

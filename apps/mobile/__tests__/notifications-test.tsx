@@ -77,6 +77,6 @@ describe('Notificações', () => {
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith('all', null));
     await fireEvent.press(screen.getByTestId('tab-replies'));
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith('replies', null));
-    expect(await screen.findByText('Nenhum comentário ainda.')).toBeTruthy();
+    expect(await screen.findByText('Nenhuma resposta ainda. Quando responderem seus comentários, elas aparecem aqui.')).toBeTruthy();
   });
 });

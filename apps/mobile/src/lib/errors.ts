@@ -58,6 +58,9 @@ const KNOWN = new Set([
   'favorite_needs_song',
   'not_song',
   'invalid_request',
+  'network',
+  'gone',
+  'duplicate',
 ]);
 
 export class AppError extends Error {
@@ -94,6 +97,23 @@ export function errorCode(err: unknown): string {
     // Edge Function devolve { error: 'codigo' }
     const ctx = anyErr.context as { error?: unknown } | undefined;
     if (ctx && typeof ctx.error === 'string' && KNOWN.has(ctx.error)) return ctx.error;
+    // Sem internet / servidor fora do ar (fetch não chegou a responder).
+    const message = typeof anyErr.message === 'string' ? anyErr.message : '';
+    if (/Network request failed|Failed to fetch|NetworkError|Load failed|network error/i.test(message)) return 'network';
+    // Sessão vencida.
+    if (anyErr.code === 'PGRST301' || anyErr.code === 'PGRST303' || /JWT expired/i.test(message)) return 'not_authenticated';
+    // Erros do Postgres que a pessoa pode entender:
+    switch (anyErr.code) {
+      case '23505': // já existe (curtiu duas vezes, review repetida…)
+        return 'duplicate';
+      case '23503': // o conteúdo foi apagado enquanto a tela estava aberta
+        return 'gone';
+      case '42501': // RLS: bloqueio, conteúdo de outra pessoa
+        return 'forbidden';
+      case '23514': // regra do banco (tamanho, valor fora do limite)
+      case '22001':
+        return 'invalid_request';
+    }
   }
   return 'generic';
 }
@@ -116,7 +136,10 @@ export function formatError(t: (key: string, vars?: Record<string, unknown>) => 
     if (err !== null && typeof err === 'object') logged.add(err);
     console.warn('[Soundora]', err);
   }
-  const detail = errorDetail(err);
+  // Em desenvolvimento, o banco sem migrations ganha a instrução de como resolver.
+  const detail = [errorCode(err) === 'server_outdated' && __DEV__ ? 'Banco sem as migrations: rode "npx supabase migration up" (local) ou "npx supabase db push" (nuvem).' : '', errorDetail(err)]
+    .filter(Boolean)
+    .join('\n');
   const message = t(errorMessageKey(err), vars);
   return detail ? `${message}\n${detail}` : message;
 }

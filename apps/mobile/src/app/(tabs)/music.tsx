@@ -8,6 +8,7 @@ import { ReviewList } from '../../components/ReviewList';
 import { TrackRow } from '../../components/TrackRow';
 import { useStreamingOpener } from '../../components/StreamingOpener';
 import { fetchLikedTracks, fetchMyTracks, trackLink } from '../../lib/api';
+import { formatError } from '../../lib/errors';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { TrackListSkeleton } from '../../components/Skeleton';
@@ -93,7 +94,7 @@ export default function MusicScreen() {
                     },
                   ]}
                 >
-                  {tracks.isError ? t('common.error') : t('music.empty')}
+                  {tracks.isError ? formatError(t, tracks.error) : t(tab === 'liked' ? 'music.emptyLiked' : 'music.emptyMine')}
                 </Text>
               )
             }

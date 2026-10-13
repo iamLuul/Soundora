@@ -41,6 +41,15 @@ describe('erros', () => {
     expect(errorCode(new Error('boom'))).toBe('generic');
     expect(errorMessageKey(null)).toBe('errors.generic');
   });
+  test('sem internet, sessão vencida e erros do Postgres viram mensagens claras', () => {
+    expect(errorCode({ message: 'TypeError: Network request failed' })).toBe('network');
+    expect(errorCode(new TypeError('Failed to fetch'))).toBe('network');
+    expect(errorCode({ code: 'PGRST301', message: 'JWT expired' })).toBe('not_authenticated');
+    expect(errorCode({ code: '23505', message: 'duplicate key value violates unique constraint' })).toBe('duplicate');
+    expect(errorCode({ code: '23503', message: 'insert or update on table violates foreign key constraint' })).toBe('gone');
+    expect(errorCode({ code: '42501', message: 'new row violates row-level security policy' })).toBe('forbidden');
+    expect(errorCode({ code: '23514', message: 'violates check constraint' })).toBe('invalid_request');
+  });
   test('host bloqueado aparece como link não suportado', () => {
     expect(errorMessageKey(new AppError('blocked_host'))).toBe('errors.unsupported');
   });

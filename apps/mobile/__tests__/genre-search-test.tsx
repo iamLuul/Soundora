@@ -172,3 +172,12 @@ test('com 2 letras não busca nos posts (nem Enter, nem botão)', async () => {
   expect(screen.queryByText('Posts com “zz”')).toBeNull();
   expect(mockSearchPosts).not.toHaveBeenCalled();
 });
+
+test('pesquisar com 2 letras avisa que os posts pedem 3', async () => {
+  await wrap(<SearchPanel />);
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'zz');
+  await fireEvent(screen.getByTestId('search-input'), 'submitEditing');
+  expect(await screen.findByText('Para buscar nos posts, digite pelo menos 3 letras.')).toBeTruthy();
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'zzz');
+  expect(screen.queryByText('Para buscar nos posts, digite pelo menos 3 letras.')).toBeNull();
+});

@@ -190,7 +190,9 @@ export function SearchPanel() {
   const posts = useSearchPosts(showPosts ? postsFor : '');
   const submit = () => {
     const word = query.trim();
+    // Com menos de 3 letras não busca nos posts (o índice do banco não ajuda): avisa.
     if (word.length >= MIN_POST_QUERY) setPostsFor(word);
+    else if (word.length >= MIN_QUERY) setMessage(t('search.postsMinChars'));
   };
 
   const unblock = async (person: PersonCard) => {
@@ -217,6 +219,7 @@ export function SearchPanel() {
         onChangeText={(v) => {
           setQuery(v);
           setPostsFor(null);
+          setMessage(null);
         }}
         onSubmitEditing={submit}
         placeholder={t('search.placeholder')}
