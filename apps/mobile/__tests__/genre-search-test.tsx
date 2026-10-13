@@ -162,3 +162,13 @@ test('mesmo achando pessoa, Enter vai direto para os posts com o termo (e o bot�
   mockSearchPosts.mockReset();
   mockSearchPosts.mockImplementation(async () => []);
 });
+
+test('com 2 letras não busca nos posts (nem Enter, nem botão)', async () => {
+  await wrap(<SearchPanel />);
+  await fireEvent.changeText(screen.getByTestId('search-input'), 'zz');
+  expect(await screen.findByText('Nada encontrado para “zz”.')).toBeTruthy();
+  expect(screen.queryByTestId('search-posts')).toBeNull();
+  await fireEvent(screen.getByTestId('search-input'), 'submitEditing');
+  expect(screen.queryByText('Posts com “zz”')).toBeNull();
+  expect(mockSearchPosts).not.toHaveBeenCalled();
+});

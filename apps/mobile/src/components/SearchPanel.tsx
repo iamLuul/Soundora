@@ -17,6 +17,8 @@ import { PeopleSkeleton, TrackListSkeleton } from './Skeleton';
 import { Verified } from './Verified';
 
 export const MIN_QUERY = 2;
+/** Busca no texto dos posts: com menos letras o índice do banco não ajuda. */
+export const MIN_POST_QUERY = 3;
 
 /** Nome do gênero no idioma do app. */
 function genreName(g: { name_pt: string; name_en: string }, locale: string) {
@@ -188,7 +190,7 @@ export function SearchPanel() {
   const posts = useSearchPosts(showPosts ? postsFor : '');
   const submit = () => {
     const word = query.trim();
-    if (word.length >= MIN_QUERY) setPostsFor(word);
+    if (word.length >= MIN_POST_QUERY) setPostsFor(word);
   };
 
   const unblock = async (person: PersonCard) => {
@@ -243,7 +245,7 @@ export function SearchPanel() {
             onOpenGenre={openGenre}
             onUnblock={unblock}
             unblocking={unblocking}
-            onSearchPosts={() => setPostsFor(query.trim())}
+            onSearchPosts={query.trim().length >= MIN_POST_QUERY ? () => setPostsFor(query.trim()) : undefined}
           />
           {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
         </ScrollView>

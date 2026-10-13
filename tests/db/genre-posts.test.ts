@@ -91,3 +91,27 @@ describe('buscar posts pela palavra', () => {
     await expect(db.anon(`select * from public.search_posts('incrivel')`)).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('contagem de posts por gênero (guardada)', () => {
+  const count = async (g: string) =>
+    (await db.sql<{ n: number }>(`select coalesce((select n from public.genre_post_counts where genre = $1), 0) as n`, [g]))[0]!.n;
+  const real = async (g: string) => (await db.sql<{ n: number }>(`select count(*)::int as n from public.posts where genres @> array[$1]`, [g]))[0]!.n;
+
+  it('acompanha criar, mudar de gênero e apagar; o app não lê a tabela', async () => {
+    const before = await count('nu_gaze');
+    const p = await post(ana, ['nu_gaze', 'rock'], 1);
+    expect(await count('nu_gaze')).toBe(before + 1);
+    await db.as(ana, `update public.posts set genres = array['blackgaze'] where id = $1`, [p]);
+    expect(await count('nu_gaze')).toBe(before);
+    expect(await count('blackgaze')).toBe(await real('blackgaze'));
+    await db.as(ana, `delete from public.posts where id = $1`, [p]);
+    expect(await count('blackgaze')).toBe(await real('blackgaze'));
+    for (const g of ['rock', 'blackgaze', 'dream_pop', 'nu_gaze']) expect(await count(g)).toBe(await real(g));
+    await expect(db.as(ana, `select * from public.genre_post_counts`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('a busca de posts pede 3 letras', async () => {
+    expect(await db.as(me, `select id from public.search_posts('in')`)).toEqual([]);
+    expect((await db.as(me, `select id from public.search_posts('inc')`)).length).toBeGreaterThan(0);
+  });
+});
