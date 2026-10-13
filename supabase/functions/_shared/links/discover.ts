@@ -508,3 +508,22 @@ export async function deezerAlbumById(id: string, opts: Opts): Promise<DeezerAlb
   if (!hit || hit.error) return null;
   return toDeezerAlbum(hit);
 }
+
+// ---------------------------------------------------------------- músicas favoritas (Perfil)
+
+/** Busca músicas pelo nome e/ou artista na Deezer (para escolher as favoritas). 'quota' = esperar. */
+export async function searchDeezerTracks(query: string, opts: Opts, limit = 15): Promise<DeezerTrack[] | 'quota'> {
+  const q = query.replace(/\s+/g, ' ').trim().slice(0, 100);
+  if (q.length < 2) return [];
+  const data = (await getJson(opts.fetch, `${DEEZER}/search?q=${encodeURIComponent(q)}&limit=${Math.min(Math.max(limit, 1), 25)}`, opts.timeoutMs ?? 5000)) as {
+    data?: DeezerHit[];
+    error?: { code?: unknown };
+  } | null;
+  if (data?.error?.code === 4) return 'quota';
+  const out: DeezerTrack[] = [];
+  for (const hit of Array.isArray(data?.data) ? data.data : []) {
+    const track = toDeezerTrack(hit, { title: '', artist: '' });
+    if (track && track.title && track.artist && !out.some((t) => t.id === track.id)) out.push(track);
+  }
+  return out;
+}

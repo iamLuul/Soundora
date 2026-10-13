@@ -55,6 +55,9 @@ const KNOWN = new Set([
   'review_too_short',
   'review_too_long',
   'not_album',
+  'favorite_needs_song',
+  'not_song',
+  'invalid_request',
 ]);
 
 export class AppError extends Error {

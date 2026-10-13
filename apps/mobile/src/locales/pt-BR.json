@@ -137,7 +137,10 @@
     "review_exists": "Você já fez uma review desse álbum.",
     "review_too_short": "Escreva pelo menos 20 letras na review.",
     "review_too_long": "A review pode ter até 5000 letras.",
-    "not_album": "Esse link não é de um álbum. Cole o link de um álbum ou busque pelo nome."
+    "not_album": "Esse link não é de um álbum. Cole o link de um álbum ou busque pelo nome.",
+    "favorite_needs_song": "Escolha uma música (álbum não vale aqui).",
+    "not_song": "Esse link não é de uma música.",
+    "invalid_request": "Pedido inválido."
   },
   "tabs": {
     "feed": "Para você",
@@ -236,7 +239,16 @@
     "banner": "Banner do perfil",
     "options": "Opções do perfil",
     "followingButton": "Seguindo",
-    "verified": "Verificado"
+    "verified": "Verificado",
+    "favoriteSongs": "Músicas favoritas",
+    "editFavorites": "Editar músicas favoritas",
+    "addFavorites": "Adicionar músicas favoritas",
+    "favoritesEmptyMine": "Mostre as 5 músicas que mais te representam.",
+    "tabPosts": "Posts",
+    "tabReviews": "Reviews",
+    "noReviews": "Nenhuma review ainda.",
+    "genresLabel": "Gêneros",
+    "seeVibes": "Ver as vibes de {{name}}"
   },
   "report": {
     "title": "Por que você está denunciando?",
@@ -578,5 +590,19 @@
     "title": "Álbum",
     "noReviews": "Esse álbum ainda não tem reviews.",
     "average": "Média"
+  },
+  "favorites": {
+    "title": "Músicas favoritas",
+    "hint": "Até 5 músicas. Use as setas para mudar a ordem.",
+    "search": "Busque a música pelo nome ou artista",
+    "orPaste": "ou cole o link de uma música",
+    "full": "Você já tem 5. Tire uma para adicionar outra.",
+    "save": "Salvar",
+    "saved": "Músicas favoritas salvas.",
+    "remove": "Tirar {{title}}",
+    "up": "Subir {{title}}",
+    "down": "Descer {{title}}",
+    "noResults": "Nenhuma música encontrada para “{{query}}”.",
+    "empty": "Nenhuma música escolhida ainda."
   }
 }

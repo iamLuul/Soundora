@@ -8,7 +8,7 @@
 // Nuvem:  npx supabase functions deploy discover
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { chartKey, fetchPlatformLinks, LastfmKeyError } from '../_shared/links/charts.ts';
-import { deezerAlbumById, deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend, searchDeezerAlbums } from '../_shared/links/discover.ts';
+import { deezerAlbumById, deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend, searchDeezerAlbums, searchDeezerTracks } from '../_shared/links/discover.ts';
 import { isAllowedAudioUrl } from '../_shared/links/genres.ts';
 import type { FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
@@ -76,6 +76,31 @@ Deno.serve(
     findTrack: (ref) => findDeezerTrack(ref, opts),
     searchAlbums: (query) => searchDeezerAlbums(query, opts),
     albumById: (id) => deezerAlbumById(id, opts),
+    searchTracks: (query) => searchDeezerTracks(query, opts),
+    async saveSong(track) {
+      const { data, error } = await admin
+        .from('link_previews')
+        .upsert(
+          {
+            url: track.url,
+            platform: 'deezer',
+            kind: 'track',
+            provider_id: track.id,
+            title: track.title,
+            artist: track.artist,
+            album: track.album,
+            image_url: track.imageUrl,
+            artist_image_url: track.artistImageUrl,
+            audio_url: isAllowedAudioUrl(track.previewUrl) ? track.previewUrl : null,
+            store_checked_at: new Date().toISOString(),
+          },
+          { onConflict: 'url' },
+        )
+        .select('id, url, platform, title, artist, image_url')
+        .single();
+      if (error) throw error;
+      return data as { id: string; url: string; platform: string; title: string; artist: string | null; image_url: string | null };
+    },
     async saveAlbum(album) {
       const { data, error } = await admin
         .from('link_previews')

@@ -137,7 +137,10 @@
     "review_exists": "You already reviewed this album.",
     "review_too_short": "Write at least 20 characters in the review.",
     "review_too_long": "A review can have up to 5000 characters.",
-    "not_album": "That link isn't an album. Paste an album link or search by name."
+    "not_album": "That link isn't an album. Paste an album link or search by name.",
+    "favorite_needs_song": "Choose a song (albums don’t count here).",
+    "not_song": "That link isn't a song.",
+    "invalid_request": "Invalid request."
   },
   "tabs": {
     "feed": "For you",
@@ -236,7 +239,16 @@
     "banner": "Profile banner",
     "options": "Profile options",
     "followingButton": "Following",
-    "verified": "Verified"
+    "verified": "Verified",
+    "favoriteSongs": "Favorite songs",
+    "editFavorites": "Edit favorite songs",
+    "addFavorites": "Add favorite songs",
+    "favoritesEmptyMine": "Show the 5 songs that represent you the most.",
+    "tabPosts": "Posts",
+    "tabReviews": "Reviews",
+    "noReviews": "No reviews yet.",
+    "genresLabel": "Genres",
+    "seeVibes": "See {{name}}’s vibes"
   },
   "report": {
     "title": "Why are you reporting this?",
@@ -578,5 +590,19 @@
     "title": "Album",
     "noReviews": "This album has no reviews yet.",
     "average": "Average"
+  },
+  "favorites": {
+    "title": "Favorite songs",
+    "hint": "Up to 5 songs. Use the arrows to reorder.",
+    "search": "Search the song by name or artist",
+    "orPaste": "or paste a song link",
+    "full": "You already have 5. Remove one to add another.",
+    "save": "Save",
+    "saved": "Favorite songs saved.",
+    "remove": "Remove {{title}}",
+    "up": "Move {{title}} up",
+    "down": "Move {{title}} down",
+    "noResults": "No songs found for “{{query}}”.",
+    "empty": "No songs chosen yet."
   }
 }

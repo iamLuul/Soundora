@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chartKey, LastfmKeyError } from './charts.ts';
-import { deezerAlbumById, deezerAlbumGenres, searchDeezerAlbums, DEEZER_GENRES, deezerTrackById, findDeezerTrack, fitsGenre, lastfmTags, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
+import { deezerAlbumById, deezerAlbumGenres, searchDeezerAlbums, searchDeezerTracks, DEEZER_GENRES, deezerTrackById, findDeezerTrack, fitsGenre, lastfmTags, mixCandidates, previewExpiresAt, previewUsable, recommend, type Candidate } from './discover.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -211,5 +211,24 @@ describe('álbuns da Deezer (Reviews)', () => {
     expect(await deezerAlbumById('../x', { fetch })).toBeNull();
     const noDate = fakeFetch({ 'https://api.deezer.com/album/1': { id: 1, title: 'A', release_date: '0000-00-00', artist: { name: 'B' } } });
     expect((await deezerAlbumById('1', { fetch: noDate }))?.year).toBeNull();
+  });
+});
+
+describe('busca de músicas na Deezer (favoritas do perfil)', () => {
+  it('lista músicas válidas, sem repetir; cota; texto curto não busca', async () => {
+    const fetch = fakeFetch({
+      'https://api.deezer.com/search?q=': {
+        data: [
+          { id: 3135556, title: 'Harder, Better, Faster, Stronger', link: 'https://www.deezer.com/track/3135556', artist: { name: 'Daft Punk' }, album: { title: 'Discovery', cover_big: 'https://e-cdns-images.dzcdn.net/images/cover/x/500x500.jpg' } },
+          { id: 3135556, title: 'Duplicada', link: 'https://www.deezer.com/track/3135556', artist: { name: 'Daft Punk' } },
+          { id: 9, title: 'Sem link', artist: { name: 'X' } },
+        ],
+      },
+    });
+    const out = await searchDeezerTracks('daft punk harder', { fetch });
+    expect(out).not.toBe('quota');
+    expect((out as Exclude<typeof out, 'quota'>).map((t) => [t.id, t.title, t.album])).toEqual([['3135556', 'Harder, Better, Faster, Stronger', 'Discovery']]);
+    expect(await searchDeezerTracks('x', { fetch })).toEqual([]);
+    expect(await searchDeezerTracks('rock', { fetch: fakeFetch({ 'https://api.deezer.com/search?q=': { error: { code: 4 } } }) })).toBe('quota');
   });
 });

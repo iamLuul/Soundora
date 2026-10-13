@@ -23,7 +23,21 @@ function notify(message: string) {
 }
 
 /** Lista de reviews (da mais nova à mais velha), com curtir, menu e abrir o álbum. */
-export function ReviewList({ filter = {}, header }: { filter?: ReviewFilter; header?: ReactElement }) {
+export function ReviewList({
+  filter = {},
+  header,
+  padded = false,
+  emptyText,
+  onRefresh,
+}: {
+  filter?: ReviewFilter;
+  header?: ReactElement;
+  /** Margem dos lados (quando a tela não tem; o cabeçalho pode sangrar até a borda). */
+  padded?: boolean;
+  emptyText?: string;
+  /** Também recarrega o resto da tela ao puxar. */
+  onRefresh?: () => unknown;
+}) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { session } = useAuth();
@@ -59,7 +73,7 @@ export function ReviewList({ filter = {}, header }: { filter?: ReviewFilter; hea
 
   return (
     <>
-      <PullToRefresh onRefresh={() => reviews.refetch()}>
+      <PullToRefresh onRefresh={() => Promise.all([reviews.refetch(), onRefresh?.()])}>
         <FlatList
           {...listPerf}
           testID="review-list"
@@ -74,7 +88,7 @@ export function ReviewList({ filter = {}, header }: { filter?: ReviewFilter; hea
               onOpenAlbum={filter.album ? (r) => open({ key: r.album_id, title: r.album_title, artist: r.album_artist ?? '' }) : (r) => router.push(`/album/${r.album_id}`)}
             />
           )}
-          contentContainerStyle={{ paddingBottom: space.xxl }}
+          contentContainerStyle={{ paddingBottom: space.xxl, paddingHorizontal: padded ? space.lg : 0 }}
           onEndReached={() => reviews.hasNextPage && !reviews.isFetchingNextPage && reviews.fetchNextPage()}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
@@ -82,7 +96,7 @@ export function ReviewList({ filter = {}, header }: { filter?: ReviewFilter; hea
               <PostSkeleton count={3} />
             ) : (
               <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: space.xl, paddingHorizontal: space.lg }]}>
-                {reviews.isError ? formatError(t, reviews.error) : t('reviews.empty')}
+                {reviews.isError ? formatError(t, reviews.error) : (emptyText ?? t('reviews.empty'))}
               </Text>
             )
           }

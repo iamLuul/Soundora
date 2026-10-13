@@ -97,3 +97,51 @@ describe('utilitários do perfil', () => {
     expect(nextUsernameChange('2026-10-01T12:00:00Z', now)?.toISOString()).toBe('2026-10-31T12:00:00.000Z');
   });
 });
+
+describe('perfil: gêneros, músicas favoritas, vibes e abas', () => {
+  const api = jest.requireActual('../src/lib/api');
+  beforeEach(() => {
+    jest.spyOn(api, 'fetchUserGenres').mockResolvedValue(['rock', 'mpb', 'jazz', 'pop', 'indie', 'emo', 'funk_br']);
+    jest.spyOn(api, 'fetchFavoriteSongs').mockResolvedValue([
+      { slot: 1, link_preview_id: 'p1', title: 'Espresso', artist: 'Sabrina Carpenter', image_url: null, url: 'https://x', platform: 'deezer' },
+      { slot: 2, link_preview_id: 'p2', title: 'antes', artist: 'Link do Zap', image_url: null, url: 'https://y', platform: 'deezer' },
+    ]);
+    jest.spyOn(api, 'fetchVibesOf').mockResolvedValue([]);
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  test('até 5 gêneros acima da bio; tocar abre o gênero', async () => {
+    await render(<ProfileHeader profile={me} />, { wrapper });
+    const chips = await screen.findAllByTestId(/^profile-genre-/);
+    expect(chips).toHaveLength(5);
+    await fireEvent.press(chips[0]!);
+    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/genre\//));
+  });
+
+  test('músicas favoritas: aparecem na ordem; o dono edita no ⋯', async () => {
+    await render(<ProfileHeader profile={me} />, { wrapper });
+    expect(await screen.findByText('Músicas favoritas')).toBeTruthy();
+    expect(screen.getByTestId('favorite-1')).toHaveTextContent(/Espresso/);
+    expect(screen.getByTestId('favorite-2')).toHaveTextContent(/antes/);
+    await fireEvent.press(screen.getByTestId('edit-favorites'));
+    expect(mockPush).toHaveBeenCalledWith('/settings/favorites');
+  });
+
+  test('quem visita sem favoritas não vê o bloco; o dono vê o convite', async () => {
+    jest.spyOn(api, 'fetchFavoriteSongs').mockResolvedValue([]);
+    await render(<ProfileHeader profile={{ ...me, is_me: false }} />, { wrapper });
+    await screen.findAllByTestId(/^profile-genre-/);
+    expect(screen.queryByTestId('favorite-songs')).toBeNull();
+    await render(<ProfileHeader profile={me} />, { wrapper });
+    expect(await screen.findByTestId('add-favorites')).toBeTruthy();
+  });
+
+  test('com vibes ativas: argola na foto e tocar abre as vibes', async () => {
+    jest.spyOn(api, 'fetchVibesOf').mockResolvedValue([{ id: 'v1', seen: false }]);
+    await render(<ProfileHeader profile={{ ...me, is_me: false }} />, { wrapper });
+    expect(await screen.findByTestId('profile-vibes-ring')).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByTestId('profile-avatar').props.style)).toMatchObject({ borderWidth: 3 });
+    await fireEvent.press(screen.getByTestId('profile-avatar'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/vibes/[author]', params: { author: me.id } });
+  });
+});

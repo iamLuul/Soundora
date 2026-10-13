@@ -11,10 +11,13 @@ import { useAuth } from '../lib/auth';
 import { bannerUrl } from '../lib/avatar';
 import { formatError } from '../lib/errors';
 import { pickAndUploadProfileImage } from '../lib/pick-image';
-import { keys, useProfilePosts } from '../lib/queries';
+import { keys, useProfilePosts, useVibesOf } from '../lib/queries';
 import type { ProfileSummary } from '../lib/types';
 import { colors, fonts, space, text } from '../theme';
+import { TopTabs } from './figma';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
+import { FavoriteSongs, ProfileGenres, profileKeys } from './ProfileExtras';
+import { ReviewList } from './ReviewList';
 import { PostList } from './PostList';
 import { Avatar } from './ui';
 import { ProfileSkeleton } from './Skeleton';
@@ -46,6 +49,8 @@ export function compactNumber(n: number, locale: string): string {
  */
 export function ProfileView({ username, underStatusBar = false }: { username: string; underStatusBar?: boolean }) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [tab, setTab] = useState<'posts' | 'reviews'>('posts');
   const summary = useQuery({ queryKey: keys.profile(username), queryFn: () => fetchProfileSummary(username) });
   const posts = useProfilePosts(summary.data?.id);
 
@@ -53,12 +58,41 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
   const p = summary.data;
   if (!p) return <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl }]}>{t('common.error')}</Text>;
 
+  // Ao puxar: números, gêneros, favoritas e vibes também.
+  const refreshExtras = () =>
+    Promise.all([
+      summary.refetch(),
+      qc.invalidateQueries({ queryKey: profileKeys.favorites(p.id) }),
+      qc.invalidateQueries({ queryKey: profileKeys.genres(p.id) }),
+      qc.invalidateQueries({ queryKey: keys.vibesOf(p.id) }),
+    ]);
+
+  // Figma (Profile page): duas seções embaixo, Posts e Reviews.
+  const header = (
+    <View>
+      <ProfileHeader profile={p} underStatusBar={underStatusBar} />
+      <TopTabs<'posts' | 'reviews'>
+        value={tab}
+        onChange={setTab}
+        showBell={false}
+        style={styles.tabs}
+        tabs={[
+          { value: 'posts', label: t('profile.tabPosts') },
+          { value: 'reviews', label: t('profile.tabReviews') },
+        ]}
+      />
+    </View>
+  );
+
+  if (tab === 'reviews') {
+    return <ReviewList filter={{ author: p.id }} header={header} padded emptyText={t('profile.noReviews')} onRefresh={refreshExtras} />;
+  }
   return (
     <PostList
-      header={<ProfileHeader profile={p} underStatusBar={underStatusBar} />}
+      header={header}
       items={posts.data?.pages.flat() ?? []}
       loading={false}
-      onRefresh={() => Promise.all([summary.refetch(), posts.refetch()])}
+      onRefresh={() => Promise.all([refreshExtras(), posts.refetch()])}
       onEndReached={() => posts.hasNextPage && !posts.isFetchingNextPage && posts.fetchNextPage()}
       loadingMore={posts.isFetchingNextPage}
       emptyText={t('profile.noPosts')}
@@ -74,6 +108,9 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
   const [menuOpen, setMenuOpen] = useState(false);
   const [uploading, setUploading] = useState<ProfileImageKind | null>(null);
 
+  const vibes = useVibesOf(p.id);
+  const hasVibes = (vibes.data?.length ?? 0) > 0;
+  const unseenVibes = !!vibes.data?.some((v) => !v.seen);
   const topInset = underStatusBar ? insets.top : 0;
   const bannerHeight = Math.max(PROFILE_LAYOUT.banner, topInset + 76);
   const banner = bannerUrl(p.banner_url);
@@ -181,22 +218,40 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         </View>
 
         <View style={styles.center}>
-          <Pressable
-            testID="profile-avatar"
-            disabled={!p.is_me || !!uploading}
-            onPress={() => changeImage('avatar')}
-            accessibilityRole={p.is_me ? 'button' : 'image'}
-            accessibilityLabel={p.is_me ? t('profile.changePhoto') : p.display_name}
-            style={styles.avatarRing}
-          >
-            <Avatar uri={p.avatar_url} name={p.display_name} size={PROFILE_LAYOUT.avatar} />
-            {uploading === 'avatar' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
-            {p.is_me ? (
+          <View>
+            {/* Com vibes ativas: argola (roxa se tem vibe não vista) e tocar abre as vibes. */}
+            <Pressable
+              testID="profile-avatar"
+              disabled={hasVibes ? false : !p.is_me || !!uploading}
+              onPress={() => (hasVibes ? router.push({ pathname: '/vibes/[author]', params: { author: p.id } }) : changeImage('avatar'))}
+              accessibilityRole={hasVibes || p.is_me ? 'button' : 'image'}
+              accessibilityLabel={hasVibes ? t('profile.seeVibes', { name: p.display_name }) : p.is_me ? t('profile.changePhoto') : p.display_name}
+              style={[styles.avatarRing, hasVibes && { borderWidth: 3, borderColor: unseenVibes || p.is_me ? colors.primary : colors.handle }]}
+            >
+              <View testID={hasVibes ? 'profile-vibes-ring' : undefined} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <Avatar uri={p.avatar_url} name={p.display_name} size={PROFILE_LAYOUT.avatar} />
+              </View>
+              {uploading === 'avatar' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
+            </Pressable>
+            {p.is_me && !hasVibes ? (
               <View style={styles.avatarEdit} pointerEvents="none">
                 <Ionicons name="camera" size={12} color={colors.text} />
               </View>
+            ) : p.is_me ? (
+              // Com vibes, tocar na foto abre as vibes; a câmera continua trocando a foto.
+              <Pressable
+                testID="change-avatar"
+                accessibilityRole="button"
+                accessibilityLabel={t('profile.changePhoto')}
+                disabled={!!uploading}
+                onPress={() => changeImage('avatar')}
+                hitSlop={6}
+                style={styles.avatarEdit}
+              >
+                <Ionicons name="camera" size={12} color={colors.text} />
+              </Pressable>
             ) : null}
-          </Pressable>
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
               {p.display_name}
@@ -230,11 +285,15 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         </View>
       </View>
 
+      <ProfileGenres userId={p.id} />
+
       {p.bio ? (
         <View style={styles.bioCard}>
           <Text style={styles.bio}>{p.bio}</Text>
         </View>
       ) : null}
+
+      <FavoriteSongs userId={p.id} isMe={p.is_me} />
 
       <OptionsSheet visible={menuOpen} title={`@${p.username}`} options={options} onClose={() => setMenuOpen(false)} />
     </View>
@@ -353,5 +412,6 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
   bioCard: { marginHorizontal: L.margin, borderRadius: 10, backgroundColor: colors.card, paddingHorizontal: space.sm + 4, paddingVertical: space.sm },
   bio: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 15, color: colors.text },
+  tabs: { justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.handle, marginBottom: space.sm },
 });
 

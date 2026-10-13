@@ -646,6 +646,72 @@ export async function fetchAlbumSummary(albumId: string): Promise<TopAlbum | nul
   return row ? toTopAlbum(row) : null;
 }
 
+// ---------------------------------------------------------------- perfil: favoritas e gêneros
+
+/** Até 5 músicas favoritas no perfil. */
+export const FAVORITE_SONGS_MAX = 5;
+/** Gêneros mostrados no perfil (a pessoa pode ter mais). */
+export const PROFILE_GENRES_MAX = 5;
+
+export interface FavoriteSong {
+  slot: number;
+  link_preview_id: string;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+  url: string;
+  platform: string;
+}
+
+/** Música achada na busca (Deezer), antes de escolher. */
+export interface SongHit {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  image_url: string | null;
+}
+
+export async function fetchFavoriteSongs(userId: string): Promise<FavoriteSong[]> {
+  const { data, error } = await supabase.rpc('favorite_songs', { p_user: userId });
+  if (error) throw error;
+  return (data ?? []) as FavoriteSong[];
+}
+
+/** Troca a lista de favoritas (a ordem da lista é a ordem no perfil). */
+export async function setFavoriteSongs(previewIds: string[]): Promise<void> {
+  if (previewIds.length > FAVORITE_SONGS_MAX) throw new AppError('invalid_request');
+  const { error } = await supabase.rpc('set_favorite_songs', { p_ids: previewIds });
+  if (error) throw error;
+}
+
+export async function searchSongs(query: string): Promise<SongHit[]> {
+  const { data, error } = await invokeFunction<{ tracks: SongHit[] }>('discover', { body: { action: 'tracks', query } });
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  return data?.tracks ?? [];
+}
+
+/** Escolhe uma música da busca: o servidor guarda o cartão e devolve. */
+export async function pickSong(trackId: string): Promise<Omit<FavoriteSong, 'slot'>> {
+  const { data, error } = await invokeFunction<{ song: { id: string; title: string; artist: string | null; image_url: string | null; url: string; platform: string } }>('discover', {
+    body: { action: 'track', trackId },
+  });
+  if (error) throw await functionError('discover', error, 'discover_unavailable');
+  if (!data?.song) throw new AppError('discover_unavailable');
+  const s = data.song;
+  return { link_preview_id: s.id, title: s.title, artist: s.artist, image_url: s.image_url, url: s.url, platform: s.platform };
+}
+
+/** Gêneros que a pessoa escolheu (destaques primeiro). */
+export async function fetchUserGenres(userId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('user_genres').select('genre, genres(featured, rank)').eq('user_id', userId);
+  if (error) throw error;
+  type Row = { genre: string; genres: { featured: boolean; rank: number | null } | null };
+  return ((data ?? []) as unknown as Row[])
+    .sort((a, b) => Number(!!b.genres?.featured) - Number(!!a.genres?.featured) || (a.genres?.rank ?? 1e9) - (b.genres?.rank ?? 1e9) || a.genre.localeCompare(b.genre))
+    .map((r) => r.genre);
+}
+
 export const BIO_MAX = 160;
 
 export async function updateProfile(input: { displayName: string; bio: string }): Promise<void> {

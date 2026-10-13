@@ -96,6 +96,8 @@ function setup(overrides: Partial<Deps> = {}) {
         : [{ id: '302127', url: 'https://www.deezer.com/album/302127', title: 'Discovery', artist: 'Daft Punk', imageUrl: null, recordType: 'album', year: null, releaseDate: null }],
     albumById: async (id): Promise<DeezerAlbum | null> =>
       id === '302127' ? { id, url: `https://www.deezer.com/album/${id}`, title: 'Discovery', artist: 'Daft Punk', imageUrl: null, recordType: 'album', year: 2001, releaseDate: '2001-03-07' } : null,
+    searchTracks: async (q) => (q === 'cota' ? 'quota' : [deezer(3135556, 'Daft Punk', 'Harder, Better, Faster, Stronger')]),
+    saveSong: async (t) => ({ id: 'song-1', url: t.url, platform: 'deezer', title: t.title, artist: t.artist, image_url: t.imageUrl }),
     saveAlbum: async (a) => ({ id: 'alb-1', url: a.url, platform: 'deezer', kind: 'album', title: a.title, artist: a.artist, image_url: a.imageUrl, release_year: a.year }),
     ...overrides,
   };
@@ -272,4 +274,15 @@ Deno.test('álbuns: respeita o limite de pedidos', async () => {
   const { handler } = setup({ rateLimit: async (_u, a) => (seen.push(a), a !== 'albums') });
   assertEquals((await handler(post({ action: 'albums', query: 'discovery' }))).status, 429);
   assertEquals(seen, ['albums']);
+});
+
+Deno.test('músicas favoritas: busca pelo nome e guarda a escolhida; entradas inválidas', async () => {
+  const { handler } = setup();
+  const found = await (await handler(post({ action: 'tracks', query: 'harder' }))).json();
+  assertEquals(found.tracks[0], { id: '3135556', title: 'Harder, Better, Faster, Stronger', artist: 'Daft Punk', album: 'Harder, Better, Faster, Stronger (álbum)', image_url: 'https://e-cdns-images.dzcdn.net/images/cover/x/500x500.jpg' });
+  assertEquals((await handler(post({ action: 'tracks', query: 'cota' }))).status, 429);
+  assertEquals((await handler(post({ action: 'tracks' }))).status, 400);
+  const saved = await (await handler(post({ action: 'track', trackId: '3135556' }))).json();
+  assertEquals(saved.song.id, 'song-1');
+  assertEquals((await handler(post({ action: 'track', trackId: 'abc' }))).status, 400);
 });

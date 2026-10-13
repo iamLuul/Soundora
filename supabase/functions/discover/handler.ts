@@ -6,6 +6,8 @@
 // { action: 'audio', previewId }          → prévia renovada (Deezer) ou achada na Deezer (outras plataformas)
 // { action: 'albums', query }             → álbuns da Deezer pelo nome (para escolher na review)
 // { action: 'album', albumId }            → guarda o álbum escolhido como cartão e devolve o cartão
+// { action: 'tracks', query }             → músicas da Deezer pelo nome (favoritas do perfil)
+// { action: 'track', trackId }            → guarda a música escolhida como cartão e devolve o cartão
 import { readJsonLimited } from '../_shared/body.ts';
 import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl } from '../_shared/links/charts.ts';
 import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerAlbum, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
@@ -22,7 +24,7 @@ export const AUDIO_TTL_MS = 6 * 3600_000;
 export const AUDIO_MARGIN_MS = 10 * 60_000;
 export const LINKS_TTL_MS = 30 * 86_400_000;
 /** Pedidos por pessoa (por minuto). */
-export const RATE = { deck: 12, link: 30, audio: 30, albums: 40, album: 20 } as const;
+export const RATE = { deck: 12, link: 30, audio: 30, albums: 40, album: 20, tracks: 40, track: 20 } as const;
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,6 +62,16 @@ export interface AlbumRow {
   release_year: number | null;
 }
 
+/** Cartão de música guardado (favoritas do perfil). */
+export interface SongRow {
+  id: string;
+  url: string;
+  platform: string;
+  title: string;
+  artist: string | null;
+  image_url: string | null;
+}
+
 export interface Deps {
   getUserId(authHeader: string): Promise<string | null>;
   rateLimit(userId: string, action: keyof typeof RATE): Promise<boolean>;
@@ -85,6 +97,10 @@ export interface Deps {
   albumById(id: string): Promise<DeezerAlbum | null>;
   /** Guarda o álbum como cartão (link_previews, tipo álbum) e devolve o cartão. */
   saveAlbum(album: DeezerAlbum): Promise<AlbumRow>;
+  /** Músicas da Deezer pelo nome ('quota' = esperar). */
+  searchTracks(query: string): Promise<DeezerTrack[] | 'quota'>;
+  /** Guarda a música como cartão (link_previews, tipo faixa) e devolve o cartão. */
+  saveSong(track: DeezerTrack): Promise<SongRow>;
   findLinks(sourceUrl: string): Promise<{ links: Partial<Record<Platform, string>>; checked_at: string } | null>;
   saveLinks(sourceUrl: string, links: Partial<Record<Platform, string>>): Promise<void>;
   fetchLinks(sourceUrl: string): Promise<Partial<Record<Platform, string>> | null>;
@@ -272,6 +288,22 @@ export function createHandler(deps: Deps) {
     return json({ album: await deps.saveAlbum(found) });
   }
 
+  async function tracks(body: { query?: unknown }): Promise<Response> {
+    if (typeof body.query !== 'string') return json({ error: 'invalid_request' }, 400);
+    const query = body.query.trim();
+    if (query.length < 2 || query.length > 100) return json({ tracks: [] });
+    const found = await deps.searchTracks(query);
+    if (found === 'quota') return json({ error: 'rate_limited' }, 429);
+    return json({ tracks: found.map((t) => ({ id: t.id, title: t.title, artist: t.artist, album: t.album, image_url: t.imageUrl })) });
+  }
+
+  async function track(body: { trackId?: unknown }): Promise<Response> {
+    if (typeof body.trackId !== 'string' || !/^\d{1,15}$/.test(body.trackId)) return json({ error: 'invalid_request' }, 400);
+    const found = await deps.trackById(body.trackId);
+    if (!found) return json({ error: 'not_found' }, 404);
+    return json({ song: await deps.saveSong(found) });
+  }
+
   async function link(body: { previewId?: unknown; platform?: unknown }): Promise<Response> {
     if (typeof body.previewId !== 'string' || !UUID_RE.test(body.previewId) || !isStreamingChoice(body.platform)) {
       return json({ error: 'invalid_request' }, 400);
@@ -312,8 +344,8 @@ export function createHandler(deps: Deps) {
 
     const read = await readJsonLimited(req, MAX_BODY_BYTES);
     if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
-    const body = (read.value ?? {}) as { action?: unknown; genre?: unknown; previewId?: unknown; platform?: unknown; query?: unknown; albumId?: unknown };
-    const actions = ['deck', 'link', 'audio', 'albums', 'album'] as const;
+    const body = (read.value ?? {}) as { action?: unknown; genre?: unknown; previewId?: unknown; platform?: unknown; query?: unknown; albumId?: unknown; trackId?: unknown };
+    const actions = ['deck', 'link', 'audio', 'albums', 'album', 'tracks', 'track'] as const;
     if (!actions.includes(body.action as (typeof actions)[number])) return json({ error: 'invalid_request' }, 400);
     const action = body.action as (typeof actions)[number];
     if (body.action === 'deck' && body.genre != null && !isGenre(body.genre)) return json({ error: 'invalid_request' }, 400);
@@ -323,6 +355,8 @@ export function createHandler(deps: Deps) {
       if (action === 'deck') return await deck(userId, isGenre(body.genre) ? body.genre : null);
       if (action === 'albums') return await albums(body);
       if (action === 'album') return await album(body);
+      if (action === 'tracks') return await tracks(body);
+      if (action === 'track') return await track(body);
       return action === 'audio' ? await audio(body) : await link(body);
     } catch (err) {
       log('discover: erro', err);
