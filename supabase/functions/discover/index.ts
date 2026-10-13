@@ -37,7 +37,7 @@ Deno.serve(
       return data === true;
     },
     async seeds(userId) {
-      const [genres, swipes] = await Promise.all([
+      const [genres, swipes, muted] = await Promise.all([
         admin.from('user_genres').select('genre').eq('user_id', userId),
         admin
           .from('discover_swipes')
@@ -45,8 +45,10 @@ Deno.serve(
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(1000),
+        admin.from('muted_genres').select('genre').eq('user_id', userId),
       ]);
       if (genres.error) throw genres.error;
+      if (muted.error) throw muted.error;
       if (swipes.error) throw swipes.error;
       type Swipe = { liked: boolean; link_previews: { id: string; title: string; artist: string | null } | null };
       const rows = (swipes.data as unknown as Swipe[]).filter((s) => s.link_previews);
@@ -58,6 +60,7 @@ Deno.serve(
           .map((s) => ({ title: s.link_previews!.title, artist: s.link_previews!.artist! })),
         seenKeys: rows.map((s) => chartKey(s.link_previews!.artist ?? '', s.link_previews!.title)),
         seenPreviewIds: rows.map((s) => s.link_previews!.id),
+        mutedGenres: muted.data.map((g) => g.genre as string),
       };
     },
     recommend(seeds, size, onlyGenre) {

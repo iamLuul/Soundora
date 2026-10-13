@@ -94,6 +94,12 @@ export interface ProfileSummary {
   likes: number;
   is_me: boolean;
   i_follow: boolean;
+  /** Conta privada: só seguidores aprovados veem o conteúdo. */
+  is_private: boolean;
+  /** Pedi para seguir e a pessoa ainda não respondeu. */
+  requested: boolean;
+  /** Conteúdo trancado para mim (privada e eu não sigo). */
+  locked: boolean;
 }
 
 /** Linha de post_comments: principais na ordem, cada um seguido das suas respostas. */

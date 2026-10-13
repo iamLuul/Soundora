@@ -1,4 +1,4 @@
-// Termos de Uso e Política de Privacidade do Soundora.
+// Termos de Uso, Política de Privacidade, Termo de responsáveis, cookies e anúncios do Soundora.
 //
 // RASCUNHO: escrito a partir do que o app faz hoje (dados guardados, serviços usados, regras de
 // idade e exclusão de conta). Antes de publicar nas lojas, peça a revisão de um advogado e
@@ -8,7 +8,8 @@
 export const LEGAL_CONTACT: string | null = null;
 export const LEGAL_UPDATED_AT = '2026-10-12';
 
-export type LegalDoc = 'terms' | 'privacy';
+export type LegalDoc = 'terms' | 'privacy' | 'guardians' | 'cookies' | 'ads';
+export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'guardians', 'cookies', 'ads'];
 export interface LegalSection {
   title: string;
   paragraphs: string[];
@@ -108,6 +109,68 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     },
     { title: '7. Contato', paragraphs: [contactPt] },
   ],
+  guardians: [
+    {
+      title: '1. Para quem é este termo',
+      paragraphs: [
+        'Para quem tem entre 13 e 17 anos e para o pai, a mãe ou o responsável legal dessa pessoa. Quem tem menos de 13 anos não pode usar o Soundora.',
+        'Contas de quem tem menos de 16 anos precisarão do vínculo com um responsável; enquanto esse recurso não existir, essas idades não conseguem se cadastrar.',
+      ],
+    },
+    {
+      title: '2. O que o responsável precisa saber',
+      paragraphs: [
+        'O Soundora é uma rede social: o que a pessoa publica (posts, reviews, vibes, comentários) pode ser visto por outras pessoas. Recomendamos ativar a conta privada em Configurações › Privacidade, para que só seguidores aprovados vejam o conteúdo.',
+        'A pessoa pode bloquear e denunciar quem quiser. Denúncias são analisadas pela equipe.',
+        'O Soundora não tem compras dentro do app nem mostra anúncios.',
+      ],
+    },
+    {
+      title: '3. Dados de menores',
+      paragraphs: [
+        'Guardamos só o necessário para a conta funcionar (veja a Política de Privacidade). A data de nascimento serve só para aplicar as regras de idade e nunca aparece no perfil.',
+        'Dados de menores não são usados para anúncios nem vendidos.',
+        'O responsável pode pedir acesso, correção ou exclusão dos dados da pessoa pelo contato abaixo, e a própria pessoa pode excluir a conta em Configurações › Excluir conta.',
+      ],
+    },
+    { title: '4. Contato', paragraphs: [contactPt] },
+  ],
+  cookies: [
+    {
+      title: '1. O que guardamos no navegador',
+      paragraphs: [
+        'Na versão Web, o Soundora guarda no seu navegador (armazenamento local) só o necessário para funcionar: a sessão de login, o idioma, as dicas que você já viu e as preferências de acessibilidade.',
+        'No celular, as mesmas informações ficam guardadas no próprio aparelho; a sessão de login fica criptografada.',
+      ],
+    },
+    {
+      title: '2. O que não usamos',
+      paragraphs: [
+        'Não usamos cookies de publicidade, de rastreamento entre sites nem de análise de terceiros.',
+        'As prévias de música vêm da Deezer e as capas, de serviços de música. Ao tocar uma prévia, o navegador busca o arquivo nesses serviços, que seguem as próprias políticas.',
+      ],
+    },
+    {
+      title: '3. Como apagar',
+      paragraphs: ['Sair da conta apaga a sessão deste aparelho. Limpar os dados do site no navegador apaga todo o resto; você só precisa entrar de novo.'],
+    },
+    { title: '4. Contato', paragraphs: [contactPt] },
+  ],
+  ads: [
+    {
+      title: '1. Hoje',
+      paragraphs: ['O Soundora não mostra anúncios. Nenhum post, review ou música é patrocinado.'],
+    },
+    {
+      title: '2. Se um dia houver anúncios',
+      paragraphs: [
+        'Eles serão marcados como "Patrocinado" e você será avisado no app antes de começarem.',
+        'Anúncios personalizados só com o seu consentimento, que poderá ser retirado a qualquer momento em Configurações.',
+        'Nunca usaremos dados de menores de idade, mensagens, data de nascimento, gênero ou contas bloqueadas para escolher anúncios, nem venderemos seus dados.',
+      ],
+    },
+    { title: '3. Contato', paragraphs: [contactPt] },
+  ],
 };
 
 const EN: Record<LegalDoc, LegalSection[]> = {
@@ -195,9 +258,75 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     },
     {
       title: '6. Minors',
-      paragraphs: ['Soundora is for people 13 and older. Accounts of people under 16 will need a linked guardian; until that exists, those ages can’t sign up.'],
+      paragraphs: [
+        'Soundora is for people 13 and older. Accounts of people under 16 will need a linked guardian; until that exists, those ages can’t sign up.',
+      ],
     },
     { title: '7. Contact', paragraphs: [contactEn] },
+  ],
+  guardians: [
+    {
+      title: '1. Who these terms are for',
+      paragraphs: [
+        'People aged 13 to 17 and their parent or legal guardian. People under 13 can’t use Soundora.',
+        'Accounts of people under 16 will need a linked guardian; until that feature exists, those ages can’t sign up.',
+      ],
+    },
+    {
+      title: '2. What the guardian needs to know',
+      paragraphs: [
+        'Soundora is a social network: what the person publishes (posts, reviews, vibes, comments) can be seen by other people. We recommend turning on the private account in Settings › Privacy, so only approved followers can see the content.',
+        'The person can block and report anyone. Reports are reviewed by the team.',
+        'Soundora has no in-app purchases and shows no ads.',
+      ],
+    },
+    {
+      title: '3. Data of minors',
+      paragraphs: [
+        'We only store what the account needs to work (see the Privacy Policy). The date of birth is only used to apply age rules and never appears on the profile.',
+        'Data of minors is never used for ads or sold.',
+        'The guardian can request access, correction or deletion of the person’s data through the contact below, and the person can delete the account in Settings › Delete account.',
+      ],
+    },
+    { title: '4. Contact', paragraphs: [contactEn] },
+  ],
+  cookies: [
+    {
+      title: '1. What we store in your browser',
+      paragraphs: [
+        'On the Web, Soundora stores in your browser (local storage) only what it needs to work: your sign-in session, language, the tips you’ve seen and your accessibility preferences.',
+        'On your phone, the same information is stored on the device itself; the sign-in session is encrypted.',
+      ],
+    },
+    {
+      title: '2. What we don’t use',
+      paragraphs: [
+        'We don’t use advertising cookies, cross-site tracking or third-party analytics.',
+        'Music previews come from Deezer and covers from music services. When you play a preview, your browser fetches the file from those services, which follow their own policies.',
+      ],
+    },
+    {
+      title: '3. How to clear it',
+      paragraphs: [
+        'Signing out deletes the session from this device. Clearing the site data in your browser deletes everything else; you just need to sign in again.',
+      ],
+    },
+    { title: '4. Contact', paragraphs: [contactEn] },
+  ],
+  ads: [
+    {
+      title: '1. Today',
+      paragraphs: ['Soundora shows no ads. No post, review or song is sponsored.'],
+    },
+    {
+      title: '2. If there are ever ads',
+      paragraphs: [
+        'They will be labeled "Sponsored" and you’ll be told in the app before they start.',
+        'Personalized ads only with your consent, which you’ll be able to withdraw at any time in Settings.',
+        'We will never use data of minors, messages, date of birth, gender or blocked accounts to choose ads, nor sell your data.',
+      ],
+    },
+    { title: '3. Contact', paragraphs: [contactEn] },
   ],
 };
 

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
-import { compactNumber, ProfileHeader, PROFILE_LAYOUT } from '../src/components/ProfileView';
+import { compactNumber, ProfileHeader, ProfileView, PROFILE_LAYOUT } from '../src/components/ProfileView';
 import i18n from '../src/lib/i18n';
 import type { ProfileSummary } from '../src/lib/types';
 import { nextUsernameChange } from '../src/lib/username';
@@ -29,6 +29,9 @@ const me: ProfileSummary = {
   likes: 139,
   is_me: true,
   i_follow: false,
+  is_private: false,
+  requested: false,
+  locked: false,
 };
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -143,5 +146,31 @@ describe('perfil: gêneros, músicas favoritas, vibes e abas', () => {
     expect(StyleSheet.flatten(screen.getByTestId('profile-avatar').props.style)).toMatchObject({ borderWidth: 3 });
     await fireEvent.press(screen.getByTestId('profile-avatar'));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/vibes/[author]', params: { author: me.id } });
+  });
+});
+
+describe('conta privada', () => {
+  const api = jest.requireActual('../src/lib/api');
+  beforeEach(() => {
+    jest.spyOn(api, 'fetchUserGenres').mockResolvedValue([]);
+    jest.spyOn(api, 'fetchFavoriteSongs').mockResolvedValue([]);
+    jest.spyOn(api, 'fetchVibesOf').mockResolvedValue([]);
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  test('quem não segue vê o cabeçalho e o cadeado; pedido pendente mostra "Solicitado"', async () => {
+    const locked = { ...me, is_me: false, is_private: true, locked: true, requested: true };
+    jest.spyOn(api, 'fetchProfileSummary').mockResolvedValue(locked);
+    const posts = jest.spyOn(api, 'fetchProfilePosts').mockResolvedValue([]);
+    await render(<ProfileView username="luul" />, { wrapper });
+    expect(await screen.findByTestId('profile-locked')).toBeTruthy();
+    expect(screen.getByText('Esta conta é privada')).toBeTruthy();
+    expect(screen.getByText(/Pedido enviado/)).toBeTruthy();
+    expect(screen.getByText('Solicitado')).toBeTruthy();
+    // Sem abas de posts/reviews; seguidores não abrem.
+    expect(screen.queryByText('Reviews')).toBeNull();
+    await fireEvent.press(screen.getByTestId('stat-followers'));
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(posts).not.toHaveBeenCalled();
   });
 });

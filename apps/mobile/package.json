@@ -1,6 +1,6 @@
 {
   "name": "@soundora/mobile",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",

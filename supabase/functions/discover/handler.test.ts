@@ -286,3 +286,22 @@ Deno.test('músicas favoritas: busca pelo nome e guarda a escolhida; entradas in
   assertEquals(saved.song.id, 'song-1');
   assertEquals((await handler(post({ action: 'track', trackId: 'abc' }))).status, 400);
 });
+
+Deno.test('gênero silenciado: some do deck e não puxa sugestões; buscar o gênero de propósito mostra', async () => {
+  const seedsSeen: string[][] = [];
+  const muted = setup({
+    seeds: async () => ({ genres: ['rock', 'jazz'], liked: [{ artist: 'Banda', title: 'Curtida' }], seenKeys: [], seenPreviewIds: [], mutedGenres: ['rock'] }),
+    recommend: async (s, _size, genre) => {
+      seedsSeen.push(s.genres);
+      return [
+        cand('Banda', 'Parecida', { kind: 'similar', because: { artist: 'Banda', title: 'Curtida' } }),
+        cand('Outra', 'Do Gênero', { kind: 'genre', genre: genre ?? 'rock' }),
+      ];
+    },
+  });
+  const titles = async (body: unknown) => (await (await muted.handler(post(body))).json()).cards.map((c: { title: string }) => c.title);
+  assertEquals(await titles({ action: 'deck' }), ['Parecida']);
+  assertEquals(seedsSeen[0], ['jazz']);
+  // Busca do gênero no topo da tela: a pessoa pediu, então aparece.
+  assertEquals(await titles({ action: 'deck', genre: 'rock' }), ['Parecida', 'Do Gênero']);
+});

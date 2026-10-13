@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Animated, Dimensions, Easing, Platform, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { display } from '../lib/display';
 
 /** Abas que se alcançam arrastando para os lados, da esquerda para a direita (o + fica de fora). */
 export const SWIPE_TABS = ['index', 'discover', 'music', 'me'] as const;
@@ -74,7 +75,8 @@ let lastFocused = 'index';
 let releasing = false;
 
 /** Mesma curva para a troca da aba e para o resto do arrasto: as duas andam juntas. */
-const SLIDE_CONFIG = { duration: 300, easing: Easing.out(Easing.cubic) };
+// Acessibilidade › Reduzir movimento: a troca é instantânea e a tela não acompanha o dedo.
+const SLIDE_CONFIG = { duration: display.reduceMotion ? 0 : 300, easing: Easing.out(Easing.cubic) };
 
 /** Opções de cada aba no navegador: o + não tem animação; as outras, o carrossel. */
 export function carouselOptions(name: string) {
@@ -125,6 +127,7 @@ function startDrag(route: string) {
 }
 
 function moveDrag(route: string, dx: number) {
+  if (display.reduceMotion) return;
   if (dragging) drag.setValue(dragOffset(route, dx));
 }
 

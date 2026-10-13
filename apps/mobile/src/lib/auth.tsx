@@ -167,3 +167,41 @@ export async function signInWithProvider(provider: 'google' | 'apple'): Promise<
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
   if (exchangeError) throw exchangeError;
 }
+
+export type LoginProvider = 'google' | 'apple';
+
+/** Contas de login ligadas à conta (e-mail, Google, Apple). */
+export async function fetchIdentities() {
+  const { data, error } = await supabase.auth.getUserIdentities();
+  if (error) throw error;
+  return data.identities;
+}
+
+/**
+ * Conecta Google ou Apple à conta logada (Configurações › Segurança). Mesmo caminho do login:
+ * navegador do sistema e volta para o app com o código (na web, volta para a mesma página).
+ */
+export async function linkProvider(provider: LoginProvider): Promise<void> {
+  if (Platform.OS === 'web') {
+    const { error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo: window.location.href } });
+    if (error) throw error;
+    return;
+  }
+  const redirectTo = Linking.createURL('auth/callback');
+  const { data, error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+  if (error) throw error;
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type !== 'success') return;
+  const code = new URL(result.url).searchParams.get('code');
+  if (!code) throw new Error('missing_code');
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+  if (exchangeError) throw exchangeError;
+}
+
+export async function unlinkProvider(provider: LoginProvider): Promise<void> {
+  const identities = await fetchIdentities();
+  const identity = identities.find((i) => i.provider === provider);
+  if (!identity) return;
+  const { error } = await supabase.auth.unlinkIdentity(identity);
+  if (error) throw error;
+}

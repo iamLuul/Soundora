@@ -76,7 +76,7 @@ export interface Deps {
   getUserId(authHeader: string): Promise<string | null>;
   rateLimit(userId: string, action: keyof typeof RATE): Promise<boolean>;
   /** Gêneros, curtidas e o que a pessoa já viu (por chave e por cartão). */
-  seeds(userId: string): Promise<Seeds & { seenPreviewIds: string[] }>;
+  seeds(userId: string): Promise<Seeds & { seenPreviewIds: string[]; mutedGenres?: string[] }>;
   /** Sugestões do Last.fm (LastfmKeyError = chave ausente ou recusada). */
   recommend(seeds: Seeds, size: number, onlyGenre: string | null): Promise<Candidate[]>;
   /** Buscas já feitas: chave → cartão (null = procurada e não achada). Chave ausente = nunca procurada. */
@@ -125,10 +125,16 @@ export function createHandler(deps: Deps) {
   const now = deps.now ?? (() => new Date());
 
   async function deck(userId: string, genre: string | null): Promise<Response> {
-    const seeds = await deps.seeds(userId);
+    const { mutedGenres = [], ...seeds } = await deps.seeds(userId);
+    // Gêneros silenciados: não puxam sugestões nem aparecem no deck (a não ser que a pessoa
+    // busque o gênero de propósito, no topo da tela).
+    const muted = new Set(genre ? [] : mutedGenres);
+    const isMuted = (row: TrackRow, c: Candidate) =>
+      (c.reason.kind === 'genre' && muted.has(c.reason.genre)) || (row.genres ?? []).some((g) => muted.has(g));
+    seeds.genres = seeds.genres.filter((g) => !muted.has(g));
     let candidates: Candidate[];
     try {
-      candidates = await deps.recommend(seeds, CANDIDATES, genre);
+      candidates = (await deps.recommend(seeds, CANDIDATES, genre)).filter((c) => !(c.reason.kind === 'genre' && muted.has(c.reason.genre)));
     } catch (err) {
       if (err instanceof LastfmKeyError) {
         log('discover: chave do Last.fm ausente ou recusada (LASTFM_API_KEY)');
@@ -145,7 +151,7 @@ export function createHandler(deps: Deps) {
     for (const c of candidates) {
       const row = known.get(c.key);
       if (row === undefined) pending.push(c);
-      else if (row && !seenIds.has(row.id)) knownCards.push({ row, candidate: c });
+      else if (row && !seenIds.has(row.id) && !isMuted(row, c)) knownCards.push({ row, candidate: c });
     }
     // Sugestão de gênero: confere na Deezer se a música é mesmo daquele gênero (ex.: pedir funk
     // brasileiro e vir funk americano). As já conhecidas, todas juntas.
@@ -165,7 +171,7 @@ export function createHandler(deps: Deps) {
         }
         const c = batch[j]!;
         const row = await deps.saveTrack(c.key, track, c.reason.kind === 'genre' ? c.reason.genre : null);
-        if (row && !seenIds.has(row.id) && (await genreOk(row, c, track?.albumId ?? null))) cards.push({ row, candidate: c });
+        if (row && !seenIds.has(row.id) && !isMuted(row, c) && (await genreOk(row, c, track?.albumId ?? null))) cards.push({ row, candidate: c });
       }
     }
 

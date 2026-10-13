@@ -13,6 +13,7 @@ import { colors, fonts, space } from '../theme';
 import { useUnreadNotifications } from '../lib/queries';
 import { Avatar } from './ui';
 import { webTouch } from '../lib/touch';
+import { iconScale } from '../lib/display';
 
 /** Tamanho natural de cada SVG (do viewBox), para manter a proporção. */
 function svgSize(xml: string): { w: number; h: number } {
@@ -21,7 +22,9 @@ function svgSize(xml: string): { w: number; h: number } {
 }
 
 /** Ícone do Figma. `size` é a altura; a largura segue a proporção do desenho. */
-export function Icon({ name, size = 20, color = colors.text }: { name: IconName; size?: number; color?: string }) {
+export function Icon({ name, size: base = 20, color = colors.text }: { name: IconName; size?: number; color?: string }) {
+  // Configurações › Acessibilidade › Tamanho dos ícones.
+  const size = base * iconScale;
   const xml = icons[name];
   const { w, h } = svgSize(xml);
   return <SvgXml xml={xml} width={(size * w) / h} height={size} color={color} />;

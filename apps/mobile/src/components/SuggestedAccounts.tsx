@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 // ScrollView do gesture-handler: rolar o carrossel não troca de aba.
 import { ScrollView } from 'react-native-gesture-handler';
 import type { SuggestedAccount } from '../lib/api';
-import { genreLabel, useFollow, useFollowingIds, useGenres, useSuggestedAccounts } from '../lib/queries';
+import { genreLabel, useFollow, useFollowingIds, useGenres, useRequestedIds, useSuggestedAccounts } from '../lib/queries';
 import { colors, fonts, space } from '../theme';
 import { RingAvatar } from './figma';
 import { Verified } from './Verified';
@@ -19,6 +19,7 @@ export function SuggestedAccounts({ testID = 'suggested-accounts' }: { testID?: 
   const suggested = useSuggestedAccounts();
   const followingIds = useFollowingIds();
   const follow = useFollow();
+  const requestedIds = useRequestedIds();
   const genres = useGenres();
   const list = suggested.data ?? [];
   if (!list.length) return null;
@@ -39,6 +40,7 @@ export function SuggestedAccounts({ testID = 'suggested-accounts' }: { testID?: 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {list.map((a) => {
           const following = followingIds.data?.has(a.id) ?? false;
+          const requested = !following && (requestedIds.data?.has(a.id) ?? false);
           return (
             <View key={a.id} style={styles.card}>
               <Pressable accessibilityRole="link" accessibilityLabel={`@${a.username}`} onPress={() => router.push(`/u/${a.username}`)} style={styles.who}>
@@ -59,12 +61,12 @@ export function SuggestedAccounts({ testID = 'suggested-accounts' }: { testID?: 
               <Pressable
                 testID={`suggest-follow-${a.username}`}
                 accessibilityRole="button"
-                accessibilityState={{ selected: following }}
+                accessibilityState={{ selected: following || requested }}
                 accessibilityLabel={following ? t('profile.unfollow') : t('feed.followUser', { username: a.username })}
-                onPress={() => follow.mutate({ userId: a.id, follow: !following })}
-                style={({ pressed }) => [styles.button, following && styles.buttonFollowing, pressed && { opacity: 0.7 }]}
+                onPress={() => follow.mutate({ userId: a.id, follow: !(following || requested) })}
+                style={({ pressed }) => [styles.button, (following || requested) && styles.buttonFollowing, pressed && { opacity: 0.7 }]}
               >
-                <Text style={styles.buttonText}>{following ? t('profile.followingButton') : t('feed.follow')}</Text>
+                <Text style={styles.buttonText}>{following ? t('profile.followingButton') : requested ? t('profile.requested') : t('feed.follow')}</Text>
               </Pressable>
             </View>
           );

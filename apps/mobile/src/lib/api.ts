@@ -289,12 +289,108 @@ export async function setLiked(postId: string, liked: boolean): Promise<void> {
   if (error && error.code !== '23505') throw error;
 }
 
-export async function setFollowing(followeeId: string, follow: boolean): Promise<void> {
+/** Resultado de seguir: segue na hora (conta pública), pediu (privada) ou não segue mais. */
+export type FollowStatus = 'following' | 'requested' | 'none';
+
+/**
+ * Seguir: conta pública segue na hora; conta privada vira pedido. Deixar de seguir também
+ * desiste de um pedido pendente.
+ */
+export async function setFollowing(followeeId: string, follow: boolean): Promise<FollowStatus> {
+  if (follow) {
+    const { data, error } = await supabase.rpc('request_follow', { p_target: followeeId });
+    if (error) throw error;
+    return data === 'requested' ? 'requested' : 'following';
+  }
   const userId = await currentUserId();
-  const { error } = follow
-    ? await supabase.from('follows').insert({ follower_id: userId, followee_id: followeeId })
-    : await supabase.from('follows').delete().eq('follower_id', userId).eq('followee_id', followeeId);
-  if (error && error.code !== '23505') throw error;
+  const [unfollow, cancel] = await Promise.all([
+    supabase.from('follows').delete().eq('follower_id', userId).eq('followee_id', followeeId),
+    supabase.rpc('cancel_follow_request', { p_target: followeeId }),
+  ]);
+  if (unfollow.error) throw unfollow.error;
+  if (cancel.error) throw cancel.error;
+  return 'none';
+}
+
+/** Contas privadas para as quais eu pedi para seguir (ainda sem resposta). */
+export async function fetchRequestedIds(): Promise<Set<string>> {
+  const userId = await currentUserId();
+  const { data, error } = await supabase.from('follow_requests').select('target_id').eq('requester_id', userId).limit(5000);
+  if (error) throw error;
+  return new Set(data.map((r) => r.target_id as string));
+}
+
+export interface FollowRequest {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  requested_at: string;
+}
+
+/** Pedidos para seguir que eu recebi (conta privada). */
+export async function fetchFollowRequests(): Promise<FollowRequest[]> {
+  const { data, error } = await supabase.rpc('my_follow_requests', { p_limit: 100 });
+  if (error) throw error;
+  return data as FollowRequest[];
+}
+
+export async function respondFollowRequest(requesterId: string, accept: boolean): Promise<void> {
+  const { error } = await supabase.rpc('respond_follow_request', { p_requester: requesterId, p_accept: accept });
+  if (error) throw error;
+}
+
+export async function setPrivateAccount(isPrivate: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_private', { p_private: isPrivate });
+  if (error) throw error;
+}
+
+export type Gender = 'female' | 'male' | 'non_binary' | 'other';
+
+/** Dados da tela "Sua conta" (só da própria pessoa). */
+export interface MyAccount {
+  created_at: string;
+  birthdate: string;
+  age: number;
+  is_minor: boolean;
+  has_guardian: boolean;
+  gender: Gender | null;
+  is_private: boolean;
+}
+
+export async function fetchMyAccount(): Promise<MyAccount | null> {
+  const { data, error } = await supabase.rpc('my_account');
+  if (error) throw error;
+  return (data as MyAccount[])[0] ?? null;
+}
+
+export async function setGender(gender: Gender | null): Promise<void> {
+  const { error } = await supabase.rpc('set_gender', { p_gender: gender });
+  if (error) throw error;
+}
+
+/** Gêneros silenciados (somem do Para você e do Descobrir). */
+export async function fetchMutedGenres(): Promise<string[]> {
+  const { data, error } = await supabase.from('muted_genres').select('genre').order('created_at');
+  if (error) throw error;
+  return data.map((r) => r.genre as string);
+}
+
+export async function setMutedGenres(genres: string[]): Promise<void> {
+  const { error } = await supabase.rpc('set_muted_genres', { p_genres: genres });
+  if (error) throw error;
+}
+
+/** Tipos de notificação desligados. */
+export async function fetchMutedNotificationKinds(): Promise<NotificationKind[]> {
+  const { data, error } = await supabase.from('notification_settings').select('muted_kinds').maybeSingle();
+  if (error) throw error;
+  return (data?.muted_kinds ?? []) as NotificationKind[];
+}
+
+export async function setMutedNotificationKinds(kinds: NotificationKind[]): Promise<void> {
+  const { error } = await supabase.rpc('set_notification_settings', { p_muted_kinds: kinds });
+  if (error) throw error;
 }
 
 export async function blockUser(blockedId: string): Promise<void> {
@@ -376,10 +472,9 @@ export interface ChartTrack {
 
 /** Sugestões do algoritmo para o Descobrir (ou só de um gênero). */
 export async function fetchRecommendations(genre: string | null): Promise<DiscoverCard[]> {
-  const { data, error } = await invokeFunction<{ cards: Omit<DiscoverCard, 'kind' | 'source' | 'note' | 'post_id' | 'recommender_username' | 'recommender_display_name' | 'recommender_avatar_url'>[] }>(
-    'discover',
-    { body: { action: 'deck', ...(genre ? { genre } : {}) } },
-  );
+  const { data, error } = await invokeFunction<{
+    cards: Omit<DiscoverCard, 'kind' | 'source' | 'note' | 'post_id' | 'recommender_username' | 'recommender_display_name' | 'recommender_avatar_url'>[];
+  }>('discover', { body: { action: 'deck', ...(genre ? { genre } : {}) } });
   if (error) throw await functionError('discover', error, 'discover_unavailable');
   return (data?.cards ?? []).map((c) => ({
     ...c,
@@ -693,7 +788,9 @@ export async function searchSongs(query: string): Promise<SongHit[]> {
 
 /** Escolhe uma música da busca: o servidor guarda o cartão e devolve. */
 export async function pickSong(trackId: string): Promise<Omit<FavoriteSong, 'slot'>> {
-  const { data, error } = await invokeFunction<{ song: { id: string; title: string; artist: string | null; image_url: string | null; url: string; platform: string } }>('discover', {
+  const { data, error } = await invokeFunction<{
+    song: { id: string; title: string; artist: string | null; image_url: string | null; url: string; platform: string };
+  }>('discover', {
     body: { action: 'track', trackId },
   });
   if (error) throw await functionError('discover', error, 'discover_unavailable');
@@ -708,7 +805,10 @@ export async function fetchUserGenres(userId: string): Promise<string[]> {
   if (error) throw error;
   type Row = { genre: string; genres: { featured: boolean; rank: number | null } | null };
   return ((data ?? []) as unknown as Row[])
-    .sort((a, b) => Number(!!b.genres?.featured) - Number(!!a.genres?.featured) || (a.genres?.rank ?? 1e9) - (b.genres?.rank ?? 1e9) || a.genre.localeCompare(b.genre))
+    .sort(
+      (a, b) =>
+        Number(!!b.genres?.featured) - Number(!!a.genres?.featured) || (a.genres?.rank ?? 1e9) - (b.genres?.rank ?? 1e9) || a.genre.localeCompare(b.genre),
+    )
     .map((r) => r.genre);
 }
 
@@ -758,10 +858,7 @@ export type ProfileImageKind = 'avatar' | 'banner';
  * Converte no aparelho (recorte, tamanho exato, JPEG sem metadados: lib/image-convert) e
  * envia só o resultado para a Edge Function, que confere tudo de novo antes de gravar.
  */
-export async function uploadProfileImage(
-  kind: ProfileImageKind,
-  image: { uri: string; width: number; height: number },
-): Promise<string> {
+export async function uploadProfileImage(kind: ProfileImageKind, image: { uri: string; width: number; height: number }): Promise<string> {
   const bytes = await convertProfileImage(kind, image.uri, image.width, image.height);
   // ArrayBuffer (não Uint8Array): com Content-Type próprio, o supabase-js transformaria um
   // Uint8Array em JSON.
@@ -874,7 +971,8 @@ export async function fetchMyTracks(): Promise<TrackItem[]> {
 
 // ---------- Notificações ----------
 
-export type NotificationKind = 'like' | 'comment' | 'reply' | 'follow' | 'comment_reply' | 'comment_like' | 'review_like';
+export type NotificationKind =
+  'like' | 'comment' | 'reply' | 'follow' | 'comment_reply' | 'comment_like' | 'review_like' | 'follow_request' | 'follow_accepted';
 export type NotificationFilter = 'all' | 'replies';
 
 export interface NotificationItem {

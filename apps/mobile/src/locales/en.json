@@ -7,7 +7,8 @@
     "loading": "Loading…",
     "error": "Something went wrong. Please try again.",
     "or": "or",
-    "retry": "Try again"
+    "retry": "Try again",
+    "confirm": "Confirm"
   },
   "auth": {
     "welcome": "Welcome to Soundora!",
@@ -148,7 +149,11 @@
     "rate_limited_minutes_one": "You did this too many times in a short time. Try again in {{count}} minute.",
     "rate_limited_minutes_other": "You did this too many times in a short time. Try again in {{count}} minutes.",
     "rate_limited_hours_one": "You did this too many times today. Try again in {{count}} hour.",
-    "rate_limited_hours_other": "You did this too many times today. Try again in {{count}} hours."
+    "rate_limited_hours_other": "You did this too many times today. Try again in {{count}} hours.",
+    "request_not_found": "That request no longer exists.",
+    "identity_not_found": "That account isn’t connected.",
+    "single_identity_not_deletable": "This is the only way to sign in to your account. Connect another one first.",
+    "manual_linking_disabled": "Connecting accounts isn’t enabled on the server."
   },
   "tabs": {
     "feed": "For you",
@@ -248,7 +253,13 @@
     "noReviews": "No reviews yet.",
     "genresLabel": "Genres",
     "seeVibes": "See {{name}}’s vibes",
-    "notFound": "This profile doesn't exist or isn't available."
+    "notFound": "This profile doesn't exist or isn't available.",
+    "requested": "Requested",
+    "cancelRequest": "Tap to cancel the request",
+    "privateTitle": "This account is private",
+    "privateBody": "Follow to see their posts, reviews and vibes.",
+    "privateRequested": "Request sent. When they accept, their content shows up here.",
+    "privateBadge": "Private account"
   },
   "report": {
     "title": "Why are you reporting this?",
@@ -375,7 +386,90 @@
     "streaming": "Streaming platform",
     "streamingNone": "Not chosen",
     "blocked": "Blocked accounts",
-    "blockedHint": "People you blocked"
+    "blockedHint": "People you blocked",
+    "catAccount": "Your account",
+    "catAccountHint": "Profile, @, email and personal info",
+    "catSecurity": "Security",
+    "catSecurityHint": "Password and connected accounts",
+    "catPrivacy": "Privacy",
+    "catPrivacyHint": "Private account, blocked and muted genres",
+    "catPreferences": "Preferences",
+    "catPreferencesHint": "Language and streaming platform",
+    "catNotifications": "Notifications",
+    "catNotificationsHint": "Choose what notifies you",
+    "catAccessibility": "Accessibility",
+    "catAccessibilityHint": "Text size, icon size and motion",
+    "catAbout": "About",
+    "catAboutHint": "Terms, privacy, cookies and ads",
+    "email": "Email",
+    "emailNone": "No email (signed in with Google or Apple)",
+    "createdAt": "Account created on",
+    "gender": "Gender",
+    "genderNone": "Prefer not to say",
+    "gender_female": "Female",
+    "gender_male": "Male",
+    "gender_non_binary": "Non-binary",
+    "gender_other": "Other",
+    "birthdate": "Date of birth",
+    "age": "Age",
+    "ageValue_one": "{{count}} year old",
+    "ageValue_other": "{{count}} years old",
+    "personalNote": "Only you can see your gender, date of birth and age; they don’t appear on your profile. Your date of birth sets your account’s age rules.",
+    "minorTitle": "Underage account",
+    "minorBody": "You’re under 18. Your use of Soundora follows the Guardian Terms: a parent or guardian needs to know about and follow your account.",
+    "minorLink": "Read the Guardian Terms",
+    "connected": "Connected accounts",
+    "connectedHint": "Google and Apple",
+    "connectedIntro": "Accounts you can use to sign in to Soundora.",
+    "connectedOn": "Connected",
+    "connectedOff": "Not connected",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "disconnectConfirm": "Disconnect your {{provider}} account? You won’t be able to sign in with it anymore.",
+    "onlyLogin": "This is the only way to sign in to your account. Connect another one before disconnecting this one.",
+    "streamingLinks": "Streaming platforms",
+    "streamingLinksBody": "Coming soon: connect Spotify, Apple Music and others to bring your music into Soundora.",
+    "private": "Private account",
+    "privateHint": "Only followers you approve can see your posts, reviews and vibes.",
+    "privateOnConfirm": "Make your account private? People who already follow you will keep following; new people will need to request.",
+    "privateOffConfirm": "Make your account public? Pending requests will be accepted and anyone will be able to see your content.",
+    "requests": "Follow requests",
+    "requestsCount_one": "{{count}} pending",
+    "requestsCount_other": "{{count}} pending",
+    "requestsNone": "No pending requests",
+    "muted": "Muted genres",
+    "mutedHint": "Hidden from For you and Discover",
+    "mutedCount_one": "{{count}} muted",
+    "mutedCount_other": "{{count}} muted",
+    "mutedIntro": "Posts and songs from these genres stop showing in For you and Discover. Searching for the genre on purpose still shows them.",
+    "mutedPick": "Mute genres",
+    "mutedSaved": "Muted genres saved.",
+    "notifIntro": "Off: the notification doesn’t show in the list or on your phone.",
+    "notifLikes": "Likes",
+    "notifLikesHint": "On posts, comments and reviews",
+    "notifComments": "Comments",
+    "notifCommentsHint": "On your posts and in conversations you commented on",
+    "notifReplies": "Replies",
+    "notifRepliesHint": "When someone replies to your comments",
+    "notifFollows": "New followers",
+    "notifRequests": "Follow requests",
+    "notifRequestsHint": "Requests received and requests accepted",
+    "notifTypes": "What notifies you",
+    "notifDevice": "On this device",
+    "textSize": "Text size",
+    "iconSize": "Icon size",
+    "size_small": "Small",
+    "size_default": "Default",
+    "size_large": "Large",
+    "size_xlarge": "Extra large",
+    "reduceMotion": "Reduce motion",
+    "reduceMotionHint": "Switch tabs without sliding",
+    "preview": "Preview",
+    "previewText": "This is how post and comment text will look.",
+    "apply": "Apply",
+    "applyHint": "The app reloads to apply the new size.",
+    "systemNote": "The text size set on your phone also applies here, on top of this one.",
+    "version": "Version"
   },
   "notifications": {
     "title": "Notifications",
@@ -393,7 +487,9 @@
     "pushEnable": "Turn on",
     "comment_reply": "replied to you",
     "comment_like": "liked your comment",
-    "review_like": "liked your review"
+    "review_like": "liked your review",
+    "follow_request": "requested to follow you",
+    "follow_accepted": "accepted your follow request"
   },
   "music": {
     "liked": "Liked",
@@ -606,7 +702,8 @@
     "deletePost": "Delete this post? It disappears from the feed and your profile, along with its comments. This can’t be undone.",
     "deleteReview": "Delete this review? Its rating leaves the album’s average. This can’t be undone.",
     "deleteVibe": "Delete this vibe? This can’t be undone.",
-    "delete": "Delete"
+    "delete": "Delete",
+    "signOut": "Sign out of your account on this device?"
   },
   "toast": {
     "postPublished": "Post published.",
@@ -616,7 +713,11 @@
     "vibeDeleted": "Vibe deleted.",
     "favoritesSaved": "Favorite songs saved.",
     "profileSaved": "Profile saved.",
-    "usernameSaved": "@ changed."
+    "usernameSaved": "@ changed.",
+    "followRequested": "Follow request sent.",
+    "requestAccepted": "@{{username}} now follows you.",
+    "requestDeclined": "Request from @{{username}} declined.",
+    "saved": "Saved."
   },
   "legal": {
     "terms": "Terms of Use",
@@ -624,7 +725,10 @@
     "updatedAt": "Last updated: {{date}}",
     "readTerms": "Read the Terms of Use",
     "readPrivacy": "Read the Privacy Policy",
-    "about": "About"
+    "about": "About",
+    "guardians": "Guardian Terms",
+    "cookies": "Cookie Policy",
+    "ads": "Ads"
   },
   "tips": {
     "next": "Next",
@@ -652,5 +756,11 @@
     "genreSearch": "Search genres",
     "comment": "Write a comment",
     "vibeText": "Vibe text"
+  },
+  "requests": {
+    "title": "Follow requests",
+    "accept": "Accept",
+    "decline": "Decline",
+    "empty": "No pending requests. When your account is private, people who want to follow you show up here."
   }
 }

@@ -3,13 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../../components/figma';
-import { LEGAL_UPDATED_AT, legalSections, type LegalDoc } from '../../lib/legal';
+import { LEGAL_DOCS, LEGAL_UPDATED_AT, legalSections, type LegalDoc } from '../../lib/legal';
 import { colors, fonts, space } from '../../theme';
 
-/** Termos de Uso (/legal/terms) e Política de Privacidade (/legal/privacy). Abrem sem login. */
+/** Textos legais (/legal/terms, privacy, guardians, cookies, ads). Abrem sem login. */
 export default function LegalScreen() {
   const { doc: raw } = useLocalSearchParams<{ doc: string }>();
-  const doc: LegalDoc = raw === 'privacy' ? 'privacy' : 'terms';
+  const doc: LegalDoc = LEGAL_DOCS.includes(raw as LegalDoc) ? (raw as LegalDoc) : 'terms';
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const updated = new Date(`${LEGAL_UPDATED_AT}T12:00:00Z`).toLocaleDateString(i18n.language === 'pt-BR' ? 'pt-BR' : 'en-US', {
@@ -24,7 +24,7 @@ export default function LegalScreen() {
       <View style={styles.top}>
         <BackHeader />
         <Text style={styles.topTitle} accessibilityRole="header" numberOfLines={1}>
-          {t(doc === 'privacy' ? 'legal.privacy' : 'legal.terms')}
+          {t(`legal.${doc}`)}
         </Text>
       </View>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}>

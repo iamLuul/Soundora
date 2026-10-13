@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader, RingAvatar, TopTabs } from '../../components/figma';
-import { setFollowing, type PersonRow } from '../../lib/api';
+import { setFollowing, type FollowStatus, type PersonRow } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import { keys, usePeople } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
@@ -71,14 +71,15 @@ export default function PeopleScreen() {
 function PersonItem({ person, username, list }: { person: PersonRow; username: string; list: List }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [following, setFollowingState] = useState(person.i_follow);
+  // 'following' | 'requested' (conta privada, esperando resposta) | 'none'
+  const [status, setStatus] = useState<FollowStatus>(person.i_follow ? 'following' : 'none');
+  const following = status !== 'none';
   const [busy, setBusy] = useState(false);
 
   const toggle = async () => {
     setBusy(true);
     try {
-      await setFollowing(person.id, !following);
-      setFollowingState(!following);
+      setStatus(await setFollowing(person.id, !following));
       void qc.invalidateQueries({ queryKey: ['following'] });
       void qc.invalidateQueries({ queryKey: keys.people(username, list) });
       void qc.invalidateQueries({ queryKey: ['profile'] });
@@ -116,7 +117,7 @@ function PersonItem({ person, username, list }: { person: PersonRow; username: s
           disabled={busy}
           style={[styles.follow, following && styles.followingBtn, busy && { opacity: 0.6 }]}
         >
-          <Text style={[styles.followText, following && { color: colors.text }]}>{following ? t('profile.followingButton') : t('profile.follow')}</Text>
+          <Text style={[styles.followText, following && { color: colors.text }]}>{status === 'following' ? t('profile.followingButton') : status === 'requested' ? t('profile.requested') : t('profile.follow')}</Text>
         </Pressable>
       ) : null}
     </Pressable>

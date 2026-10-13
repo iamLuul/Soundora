@@ -1,16 +1,31 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Stack } from 'expo-router';
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, space } from '../theme';
+import { Screen } from './ui';
 
-/** Grupo de opções com título (ex.: "Conta", "Preferências"), no cartão do perfil. */
-export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
+/** Uma tela de Configurações (título no cabeçalho, coluna centralizada). */
+export function SettingsScreen({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Screen scroll style={{ maxWidth: 560, width: '100%', alignSelf: 'center', gap: space.xl }}>
+      <Stack.Screen options={{ title }} />
+      {children}
+    </Screen>
+  );
+}
+
+/** Grupo de opções (com título opcional, ex.: "Neste aparelho"), num cartão. */
+export function SettingsSection({ title, children, note }: { title?: string; children: ReactNode; note?: string }) {
   return (
     <View style={{ gap: space.sm }}>
-      <Text style={styles.sectionTitle} accessibilityRole="header">
-        {title}
-      </Text>
+      {title ? (
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          {title}
+        </Text>
+      ) : null}
       <View style={styles.card}>{children}</View>
+      {note ? <Text style={styles.note}>{note}</Text> : null}
     </View>
   );
 }
@@ -59,6 +74,34 @@ export function SettingsRow({
   );
 }
 
+/** Opção de escolha única (rádio) dentro de um cartão de configurações. */
+export function ChoiceRow({
+  label,
+  selected,
+  onPress,
+  testID,
+  last,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  testID?: string;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, !last && styles.divider, pressed && { opacity: 0.7 }]}
+    >
+      <Text style={[styles.label, { flex: 1, color: colors.text }]}>{label}</Text>
+      <Ionicons name={selected ? 'radio-button-on' : 'radio-button-off'} size={20} color={selected ? colors.primary : colors.muted} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: space.xs },
   card: { backgroundColor: colors.card, borderRadius: 10, overflow: 'hidden' },
@@ -66,4 +109,5 @@ const styles = StyleSheet.create({
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   label: { fontFamily: fonts.semibold, fontSize: 15 },
   value: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMutedOnSurface, marginTop: 2 },
+  note: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: colors.textMuted, marginHorizontal: space.xs },
 });

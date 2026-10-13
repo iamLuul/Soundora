@@ -39,6 +39,8 @@ jwt_expiry = 3600
 minimum_password_length = 10
 password_requirements = "letters_digits"
 enable_anonymous_sign_ins = false
+# Configurações › Segurança › Contas conectadas: ligar Google/Apple a uma conta que já existe.
+enable_manual_linking = true
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 

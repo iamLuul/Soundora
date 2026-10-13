@@ -61,6 +61,11 @@ const KNOWN = new Set([
   'network',
   'gone',
   'duplicate',
+  'request_not_found',
+  // Erros do login (Supabase Auth devolvem o código em `code`).
+  'identity_not_found',
+  'single_identity_not_deletable',
+  'manual_linking_disabled',
 ]);
 
 export class AppError extends Error {
@@ -96,6 +101,8 @@ export function errorCode(err: unknown): string {
     if (anyErr.code === 'PGRST202' || anyErr.code === 'PGRST205') return 'server_outdated';
     // Funções do banco usam "raise exception 'codigo'"
     if (typeof anyErr.message === 'string' && KNOWN.has(anyErr.message)) return anyErr.message;
+    // Supabase Auth: código em `code` (ex.: single_identity_not_deletable).
+    if (typeof anyErr.code === 'string' && KNOWN.has(anyErr.code)) return anyErr.code;
     // Edge Function devolve { error: 'codigo' }
     const ctx = anyErr.context as { error?: unknown } | undefined;
     if (ctx && typeof ctx.error === 'string' && KNOWN.has(ctx.error)) return ctx.error;

@@ -7,7 +7,9 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader, RingAvatar, TopTabs } from '../components/figma';
 import { Button } from '../components/ui';
-import { markNotificationsRead, type NotificationFilter, type NotificationItem } from '../lib/api';
+import { markNotificationsRead, respondFollowRequest, type NotificationFilter, type NotificationItem } from '../lib/api';
+import { notify } from '../lib/dialogs';
+import { showToast } from '../components/Toast';
 import { formatError } from '../lib/errors';
 import { relativeTime } from '../lib/i18n';
 import { enablePush, pushAvailability, pushEnabled } from '../lib/push';
@@ -98,30 +100,88 @@ function NotificationRow({ item, onPress }: { item: NotificationItem; onPress: (
   const label = `@${item.actor_username} ${action}${item.comment_body ? `: ${item.comment_body}` : ''}`;
   // Foto (abre o perfil) e o resto (abre a notificação) lado a lado: um link dentro de um
   // botão não funciona com teclado/leitor de tela (e na web vira <button> dentro de <button>).
+  const request = item.kind === 'follow_request';
   return (
-    <View style={[styles.row, !item.read && styles.unread]}>
-      <Pressable accessibilityRole="link" accessibilityLabel={`@${item.actor_username}`} onPress={() => router.push(`/u/${item.actor_username}`)} hitSlop={6} style={webTouch(6)}>
-        <RingAvatar uri={item.actor_avatar_url} name={item.actor_display_name} size={44} />
-      </Pressable>
-      <Pressable
-        testID={`notification-${item.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={onPress}
-        style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.8 }]}
-      >
-      <View style={styles.rowText}>
-        <Text style={styles.line} numberOfLines={3}>
-          <Text style={styles.bold}>@{item.actor_username}</Text> {action}
-          {item.comment_body ? <Text style={styles.quote}>{`: ${item.comment_body}`}</Text> : null}
-        </Text>
-        <Text style={styles.time}>{relativeTime(item.created_at)}</Text>
+    <View style={[styles.item, !item.read && styles.unread]}>
+      <View style={styles.row}>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`@${item.actor_username}`}
+          onPress={() => router.push(`/u/${item.actor_username}`)}
+          hitSlop={6}
+          style={webTouch(6)}
+        >
+          <RingAvatar uri={item.actor_avatar_url} name={item.actor_display_name} size={44} />
+        </Pressable>
+        <Pressable
+          testID={`notification-${item.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          onPress={onPress}
+          style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.8 }]}
+        >
+          <View style={styles.rowText}>
+            <Text style={styles.line} numberOfLines={3}>
+              <Text style={styles.bold}>@{item.actor_username}</Text> {action}
+              {item.comment_body ? <Text style={styles.quote}>{`: ${item.comment_body}`}</Text> : null}
+            </Text>
+            <Text style={styles.time}>{relativeTime(item.created_at)}</Text>
+          </View>
+          {item.preview_image_url ? (
+            <Image source={{ uri: item.preview_image_url }} style={styles.cover} accessibilityLabel={item.preview_title ?? undefined} />
+          ) : null}
+          {!item.read ? <View style={styles.dot} /> : null}
+        </Pressable>
       </View>
-      {item.preview_image_url ? (
-        <Image source={{ uri: item.preview_image_url }} style={styles.cover} accessibilityLabel={item.preview_title ?? undefined} />
+      {/* Pedido para seguir: aceitar/recusar embaixo do texto (ao lado, espremia o nome). */}
+      {request ? (
+        <View style={styles.requestRow}>
+          <RequestActions requesterId={item.actor_id} username={item.actor_username} />
+        </View>
       ) : null}
-      {!item.read ? <View style={styles.dot} /> : null}
-      </Pressable>
+    </View>
+  );
+}
+
+/** Pedido para seguir (conta privada): aceitar ou recusar ali mesmo. */
+export function RequestActions({ requesterId, username, onDone }: { requesterId: string; username: string; onDone?: () => void }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<'accept' | 'decline' | null>(null);
+  const respond = async (accept: boolean) => {
+    setBusy(accept ? 'accept' : 'decline');
+    try {
+      await respondFollowRequest(requesterId, accept);
+      showToast(t(accept ? 'toast.requestAccepted' : 'toast.requestDeclined', { username }));
+      onDone?.();
+      for (const queryKey of [['notifications'], keys.followRequests, ['profile'], ['people']]) void qc.invalidateQueries({ queryKey });
+    } catch (err) {
+      notify(formatError(t, err));
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <View style={styles.requestActions}>
+      <Button
+        testID={`accept-${username}`}
+        size="sm"
+        title={t('requests.accept')}
+        onPress={() => respond(true)}
+        loading={busy === 'accept'}
+        disabled={!!busy}
+        style={{ alignSelf: 'auto' }}
+      />
+      <Button
+        testID={`decline-${username}`}
+        size="sm"
+        variant="ghost"
+        title={t('requests.decline')}
+        onPress={() => respond(false)}
+        loading={busy === 'decline'}
+        disabled={!!busy}
+        style={{ alignSelf: 'auto' }}
+      />
     </View>
   );
 }
@@ -149,9 +209,7 @@ function PushCard() {
       <Text style={styles.pushTitle}>{t('notifications.pushTitle')}</Text>
       <Text style={styles.pushBody}>{state === 'denied' ? t('notifications.pushDenied') : t('notifications.pushBody')}</Text>
       {error ? <Text style={[text.small, { color: colors.danger }]}>{error}</Text> : null}
-      {state !== 'denied' ? (
-        <Button testID="enable-push" title={t('notifications.pushEnable')} size="sm" onPress={enable} loading={state === 'busy'} />
-      ) : null}
+      {state !== 'denied' ? <Button testID="enable-push" title={t('notifications.pushEnable')} size="sm" onPress={enable} loading={state === 'busy'} /> : null}
     </View>
   );
 }
@@ -161,15 +219,9 @@ const styles = StyleSheet.create({
   header: { justifyContent: 'center' },
   title: { position: 'absolute', alignSelf: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   empty: { textAlign: 'center', marginTop: space.lg },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
-    paddingHorizontal: space.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.tabBar,
-  },
+  item: { paddingVertical: space.md, paddingHorizontal: space.sm, borderBottomWidth: 1, borderBottomColor: colors.tabBar, gap: space.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  requestRow: { paddingLeft: 44 + space.md },
   unread: { backgroundColor: 'rgba(108, 98, 255, 0.10)', borderRadius: 10 },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md },
   rowText: { flex: 1, gap: 2 },
@@ -179,6 +231,7 @@ const styles = StyleSheet.create({
   time: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
   cover: { width: 44, height: 44, borderRadius: 5, backgroundColor: colors.card },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  requestActions: { flexDirection: 'row', gap: space.xs },
   pushCard: { backgroundColor: colors.card, borderRadius: 10, padding: space.lg, gap: space.sm, marginVertical: space.md },
   pushTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
   pushBody: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },

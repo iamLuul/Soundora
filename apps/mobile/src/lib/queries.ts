@@ -9,6 +9,7 @@ import {
   fetchMyFollowingIds,
   fetchSuggestedAccounts,
   setFollowing,
+  fetchRequestedIds,
   fetchProfileLikedSongs,
   LIKED_SONGS_PAGE,
   fetchNotifications,
@@ -33,6 +34,10 @@ export const keys = {
   followingFeed: ['feed-following'] as const,
   genrePosts: (slug: string) => ['genre-posts', slug] as const,
   followingIds: ['following-ids'] as const,
+  /** Contas privadas para as quais pedi para seguir. */
+  requestedIds: ['requested-ids'] as const,
+  /** Pedidos para seguir que eu recebi. */
+  followRequests: ['follow-requests'] as const,
   suggested: ['suggested-accounts'] as const,
   profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
   profile: (username: string) => ['profile', username] as const,
@@ -102,8 +107,7 @@ export function useFeed() {
       return { items: await fetchFeed(pageParam.page, openedAt), openedAt };
     },
     initialPageParam: { page: 0, openedAt: null } as FeedPage,
-    getNextPageParam: (last, pages) =>
-      last.items.length === FEED_PAGE_SIZE ? { page: pages.length, openedAt: last.openedAt } : undefined,
+    getNextPageParam: (last, pages) => (last.items.length === FEED_PAGE_SIZE ? { page: pages.length, openedAt: last.openedAt } : undefined),
     // Telas recebem só a lista de posts, sem repetidos (por segurança, caso o servidor repita).
     select: (data) => ({ ...data, pages: dedupePages(data.pages.map((p) => p.items)) }),
   });
@@ -180,6 +184,11 @@ export function useFollowingIds(enabled = true) {
   });
 }
 
+/** Contas privadas para as quais pedi para seguir (o botão mostra "Solicitado"). */
+export function useRequestedIds(enabled = true) {
+  return useQuery({ queryKey: keys.requestedIds, queryFn: fetchRequestedIds, enabled });
+}
+
 /**
  * Seguir/deixar de seguir com atualização otimista: o botão muda na hora. Depois atualiza o
  * que depende disso (aba Seguindo, perfis, listas de seguidores, fila de vibes). O Para você
@@ -199,6 +208,17 @@ export function useFollow() {
       return { before };
     },
     onError: (_err, _vars, ctx) => qc.setQueryData(keys.followingIds, ctx?.before),
+    // Conta privada: não segue ainda, vira "Solicitado".
+    onSuccess: (status, { userId }) => {
+      const requested = new Set(qc.getQueryData<Set<string>>(keys.requestedIds) ?? []);
+      if (status === 'requested') {
+        const following = new Set(qc.getQueryData<Set<string>>(keys.followingIds) ?? []);
+        following.delete(userId);
+        qc.setQueryData(keys.followingIds, following);
+        requested.add(userId);
+      } else requested.delete(userId);
+      qc.setQueryData(keys.requestedIds, requested);
+    },
     onSettled: () => {
       for (const queryKey of [keys.followingFeed, keys.vibesTray, ['profile'], ['people'], ['following']]) void qc.invalidateQueries({ queryKey });
     },
@@ -253,7 +273,9 @@ export function useToggleLike() {
       await qc.cancelQueries({ queryKey: keys.feed });
       await qc.cancelQueries({ queryKey: ['profile-posts'] });
       await qc.cancelQueries({ queryKey: keys.followingFeed });
-      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({ predicate: (q) => ['feed', 'feed-following', 'genre-posts', 'search-posts', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])) });
+      const lists = qc.getQueriesData<InfiniteData<CachedPage>>({
+        predicate: (q) => ['feed', 'feed-following', 'genre-posts', 'search-posts', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])),
+      });
       for (const [key, data] of lists) qc.setQueryData(key, patchPostInCache(data, item.id, toggleLikePatch));
       // O post aberto em tela cheia.
       const single = qc.getQueryData<FeedItem | null>(keys.post(item.id));
@@ -291,7 +313,14 @@ export function useGenres() {
 
 /** Pesquisa no catálogo inteiro de gêneros (no servidor), com uma pausa enquanto digita. */
 export function useGenreSearch(query: string, limit = 20) {
-  const q = useDebouncedValue(query.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), 250);
+  const q = useDebouncedValue(
+    query
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''),
+    250,
+  );
   return useQuery({
     queryKey: ['genre-search', q, limit],
     enabled: q.length >= 1,
@@ -333,7 +362,8 @@ export function useProfileLikedSongs(userId: string | undefined) {
     enabled: !!userId,
     queryFn: async ({ pageParam }: { pageParam: { liked_at: string; link_preview_id: string } | null }) => fetchProfileLikedSongs(userId!, pageParam),
     initialPageParam: null as { liked_at: string; link_preview_id: string } | null,
-    getNextPageParam: (last) => (last.length < LIKED_SONGS_PAGE ? undefined : { liked_at: last[last.length - 1]!.liked_at, link_preview_id: last[last.length - 1]!.link_preview_id }),
+    getNextPageParam: (last) =>
+      last.length < LIKED_SONGS_PAGE ? undefined : { liked_at: last[last.length - 1]!.liked_at, link_preview_id: last[last.length - 1]!.link_preview_id },
   });
 }
 

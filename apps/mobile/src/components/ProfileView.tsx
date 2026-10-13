@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockUser, fetchProfileSummary, setFollowing, type ProfileImageKind } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -31,7 +31,6 @@ import { ErrorState } from './ErrorState';
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
 
-
 /** Números grandes como no Figma: 1.7k, 16.6k. */
 export function compactNumber(n: number, locale: string): string {
   if (n < 1000) return String(n);
@@ -51,7 +50,8 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
   const qc = useQueryClient();
   const [tab, setTab] = useState<'posts' | 'reviews'>('posts');
   const summary = useQuery({ queryKey: keys.profile(username), queryFn: () => fetchProfileSummary(username) });
-  const posts = useProfilePosts(summary.data?.id);
+  // Conta privada trancada para mim: nem busca os posts.
+  const posts = useProfilePosts(summary.data?.locked ? undefined : summary.data?.id);
 
   if (summary.isLoading) return <ProfileSkeleton />;
   const p = summary.data;
@@ -83,6 +83,20 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
       />
     </View>
   );
+
+  // Conta privada que eu não sigo: o cabeçalho aparece, o conteúdo não.
+  if (p.locked) {
+    return (
+      <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }}>
+        <ProfileHeader profile={p} underStatusBar={underStatusBar} />
+        <View testID="profile-locked" style={styles.locked}>
+          <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
+          <Text style={styles.lockedTitle}>{t('profile.privateTitle')}</Text>
+          <Text style={styles.lockedBody}>{p.requested ? t('profile.privateRequested') : t('profile.privateBody')}</Text>
+        </View>
+      </ScrollView>
+    );
+  }
 
   if (tab === 'reviews') {
     return <ReviewList filter={{ author: p.id }} header={header} padded emptyText={t('profile.noReviews')} onRefresh={refreshExtras} />;
@@ -138,10 +152,12 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
 
   const toggleFollow = async () => {
     try {
-      await setFollowing(p.id, !p.i_follow);
+      // Seguindo ou com pedido pendente: o botão desfaz (deixa de seguir ou desiste do pedido).
+      const status = await setFollowing(p.id, !(p.i_follow || p.requested));
+      if (status === 'requested') showToast(t('toast.followRequested'));
       await refresh();
       // A fila de quem você segue, no topo da Home.
-      for (const queryKey of [['following'], keys.followingIds, keys.followingFeed, keys.vibesTray]) void qc.invalidateQueries({ queryKey });
+      for (const queryKey of [['following'], keys.followingIds, keys.requestedIds, keys.followingFeed, keys.vibesTray]) void qc.invalidateQueries({ queryKey });
     } catch (err) {
       notify(formatError(t, err));
     }
@@ -184,7 +200,11 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         accessibilityLabel={p.is_me ? t('profile.changeBanner') : t('profile.banner')}
         style={[styles.banner, { height: bannerHeight }]}
       >
-        {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityIgnoresInvertColors /> : <BannerPlaceholder />}
+        {banner ? (
+          <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityIgnoresInvertColors />
+        ) : (
+          <BannerPlaceholder />
+        )}
         {uploading === 'banner' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
       </Pressable>
 
@@ -207,13 +227,13 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
             testID="stat-followers"
             label={t('profile.followers')}
             value={n(p.followers)}
-            onPress={() => router.push({ pathname: '/people/[username]', params: { username: p.username, list: 'followers' } })}
+            onPress={p.locked ? undefined : () => router.push({ pathname: '/people/[username]', params: { username: p.username, list: 'followers' } })}
           />
           <StatCard
             testID="stat-following"
             label={t('profile.following')}
             value={n(p.following)}
-            onPress={() => router.push({ pathname: '/people/[username]', params: { username: p.username, list: 'following' } })}
+            onPress={p.locked ? undefined : () => router.push({ pathname: '/people/[username]', params: { username: p.username, list: 'following' } })}
           />
         </View>
 
@@ -266,9 +286,9 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
           ) : (
             <Pill
               testID="follow-button"
-              accessibilityHint={p.i_follow ? t('profile.unfollow') : undefined}
-              label={p.i_follow ? t('profile.followingButton') : t('profile.follow')}
-              variant={p.i_follow ? 'outline' : 'primary'}
+              accessibilityHint={p.i_follow ? t('profile.unfollow') : p.requested ? t('profile.cancelRequest') : undefined}
+              label={p.i_follow ? t('profile.followingButton') : p.requested ? t('profile.requested') : t('profile.follow')}
+              variant={p.i_follow || p.requested ? 'outline' : 'primary'}
               onPress={toggleFollow}
             />
           )}
@@ -280,7 +300,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
             testID="stat-likes"
             label={t('profile.likes')}
             value={n(p.likes)}
-            onPress={() => router.push({ pathname: '/liked/[username]', params: { username: p.username, id: p.id } })}
+            onPress={p.locked ? undefined : () => router.push({ pathname: '/liked/[username]', params: { username: p.username, id: p.id } })}
           />
         </View>
       </View>
@@ -359,6 +379,9 @@ const L = PROFILE_LAYOUT;
 const ringSize = L.avatar + L.ring * 2;
 
 const styles = StyleSheet.create({
+  locked: { alignItems: 'center', gap: space.sm, paddingHorizontal: space.xl, marginTop: space.xl },
+  lockedTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text, textAlign: 'center' },
+  lockedBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.textMuted, textAlign: 'center' },
   // Sangra as margens da lista para o banner ir de ponta a ponta.
   header: { marginHorizontal: -space.lg, marginBottom: space.lg, gap: space.lg },
   banner: { width: '100%', backgroundColor: colors.surface, overflow: 'hidden' },
@@ -404,7 +427,15 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: fonts.bold, fontSize: 16, color: colors.text, textAlign: 'center' },
   handle: { fontFamily: fonts.regular, fontSize: 12, color: colors.handle, textAlign: 'center', marginTop: 2 },
-  pill: { marginTop: space.md, minHeight: 28, paddingHorizontal: space.lg, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  pill: {
+    marginTop: space.md,
+    minHeight: 28,
+    paddingHorizontal: space.lg,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pillOutline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
   pillText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
   statCard: { minHeight: L.card, borderRadius: 10, backgroundColor: colors.card, paddingHorizontal: space.md, paddingVertical: 5, justifyContent: 'center' },
@@ -414,4 +445,3 @@ const styles = StyleSheet.create({
   bio: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 15, color: colors.text },
   tabs: { justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.handle, marginBottom: space.sm },
 });
-
