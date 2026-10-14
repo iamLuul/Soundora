@@ -13,13 +13,16 @@ jest.mock('../src/lib/supabase', () => ({
     rpc: jest.fn(async () => ({ data: [], error: null })),
     from: () => ({
       select: () => {
-        const q = { eq: () => q, order: async () => ({
-          data: [
-            { slug: 'rock', name_pt: 'Rock', name_en: 'Rock' },
-            { slug: 'funk_br', name_pt: 'Funk', name_en: 'Brazilian funk' },
-          ],
-          error: null,
-        }) };
+        const q = {
+          eq: () => q,
+          order: async () => ({
+            data: [
+              { slug: 'rock', name_pt: 'Rock', name_en: 'Rock' },
+              { slug: 'funk_br', name_pt: 'Funk', name_en: 'Brazilian funk' },
+            ],
+            error: null,
+          }),
+        };
         return q;
       },
     }),
@@ -33,6 +36,8 @@ const mockRecs = jest.fn();
 const mockSwipe = jest.fn(async (_card: unknown, _liked: boolean) => undefined);
 const mockLink = jest.fn(async (_id: string, _platform: string) => 'https://open.spotify.com/track/abc');
 let mockLiked: LikedSong[] = [];
+// Plataforma da pessoa: a prévia só toca na Deezer e na Apple Music.
+let mockPlatform: string | null = 'deezer';
 const mockRefresh = jest.fn(async (id: string) => `https://cdnt-preview.dzcdn.net/${id}-nova.mp3`);
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
@@ -42,7 +47,7 @@ jest.mock('../src/lib/api', () => ({
   swipeDiscover: (card: unknown, liked: boolean) => mockSwipe(card, liked),
   trackLink: (id: string, platform: string) => mockLink(id, platform),
   refreshDiscoverAudio: (id: string) => mockRefresh(id),
-  getStreamingPlatform: async () => 'spotify',
+  getStreamingPlatform: async () => mockPlatform,
 }));
 
 const rec = (id: string, title: string, extra: Partial<DiscoverCard> = {}): DiscoverCard => ({
@@ -80,6 +85,7 @@ beforeEach(async () => {
   await i18n.changeLanguage('pt-BR');
   jest.clearAllMocks();
   mockLiked = [];
+  mockPlatform = 'deezer';
   mockRecs.mockResolvedValue([rec('11', 'One More Time'), rec('12', 'Digital Love')]);
 });
 
@@ -102,7 +108,18 @@ describe('Descobrir', () => {
   });
 
   test('play alterna a prévia; tocar na música curtida abre na plataforma da pessoa', async () => {
-    mockLiked = [{ link_preview_id: '99', url: 'https://www.deezer.com/track/99', platform: 'deezer', title: 'Get Lucky', artist: 'Daft Punk', album: 'RAM', image_url: null, liked_at: '' }];
+    mockLiked = [
+      {
+        link_preview_id: '99',
+        url: 'https://www.deezer.com/track/99',
+        platform: 'deezer',
+        title: 'Get Lucky',
+        artist: 'Daft Punk',
+        album: 'RAM',
+        image_url: null,
+        liked_at: '',
+      },
+    ];
     await wrap();
     await waitFor(() => expect(screen.getByLabelText('Ouvir a prévia')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('discover-play'));
@@ -111,7 +128,9 @@ describe('Descobrir', () => {
     await waitFor(() => expect(screen.getByText('Get Lucky')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('liked-99'));
     await waitFor(() => expect(mockOpenURL).toHaveBeenCalledWith('https://open.spotify.com/track/abc'));
-    expect(mockLink).toHaveBeenCalledWith('99', 'spotify');
+    expect(mockLink).toHaveBeenCalledWith('99', 'deezer');
+    // Crédito da prévia junto do áudio.
+    expect(screen.getAllByText('Prévia: Deezer').length).toBeGreaterThan(0);
 
     // A estrela descurte.
     await fireEvent.press(screen.getByTestId('unlike-99'));
@@ -119,9 +138,17 @@ describe('Descobrir', () => {
     await waitFor(() => expect(screen.queryByText('Get Lucky')).toBeNull());
   });
 
-  test('indicação da comunidade (link do Spotify, sem prévia): o play pede a prévia, não abre o streaming', async () => {
+  test('indicação da comunidade (link do Spotify) para quem usa Deezer: sem a capa do Spotify; o play pede a prévia da Deezer', async () => {
     mockRecs.mockResolvedValue([
-      rec('c1', 'Midnight City', { platform: 'spotify', url: 'https://open.spotify.com/track/x', audio_url: null, source: 'community', reason: null as never, because: null }),
+      rec('c1', 'Midnight City', {
+        platform: 'spotify',
+        url: 'https://open.spotify.com/track/x',
+        image_url: 'https://i.scdn.co/image/capa',
+        audio_url: null,
+        source: 'community',
+        reason: null as never,
+        because: null,
+      }),
     ]);
     await wrap();
     await waitFor(() => expect(screen.getByLabelText('Ouvir a prévia')).toBeTruthy());
@@ -129,6 +156,30 @@ describe('Descobrir', () => {
     await waitFor(() => expect(mockRefresh).toHaveBeenCalledWith('c1'));
     expect(screen.getByLabelText('Pausar a prévia')).toBeTruthy();
     expect(mockOpenURL).not.toHaveBeenCalled();
+    // A capa do Spotify não aparece para quem usa a Deezer.
+    expect(screen.queryByLabelText('Midnight City')).toBeNull();
+  });
+
+  test('quem usa Spotify: sem prévia nem crédito; o botão grande abre a música no Spotify', async () => {
+    mockPlatform = 'spotify';
+    await wrap();
+    await waitFor(() => expect(screen.getAllByLabelText('Ouvir no Spotify').length).toBeGreaterThan(0));
+    expect(screen.queryByLabelText('Ouvir a prévia')).toBeNull();
+    expect(screen.queryByText('Prévia: Deezer')).toBeNull();
+    await fireEvent.press(screen.getByTestId('discover-play'));
+    await waitFor(() => expect(mockLink).toHaveBeenCalledWith('11', 'spotify'));
+    expect(mockRefresh).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('discover-choose-platform')).toBeNull();
+  });
+
+  test('sem plataforma escolhida: pede para escolher e não toca prévia', async () => {
+    mockPlatform = null;
+    await wrap();
+    await waitFor(() => expect(screen.getByTestId('discover-choose-platform')).toBeTruthy());
+    expect(screen.queryByLabelText('Ouvir a prévia')).toBeNull();
+    const { router } = jest.requireMock('expo-router') as { router: { push: jest.Mock } };
+    await fireEvent.press(screen.getByTestId('discover-choose-platform-button'));
+    expect(router.push).toHaveBeenCalledWith('/settings/streaming');
   });
 
   test('a mesma indicação sem prévia nem na Deezer: avisa e não abre o streaming', async () => {
@@ -157,7 +208,10 @@ describe('Descobrir', () => {
 
   test('mistura: duas sugestões para cada indicação da comunidade, sem repetir', () => {
     const a = [rec('1', 'a'), rec('2', 'b'), rec('3', 'c')];
-    const b = [{ ...rec('9', 'comunidade'), source: 'community' as const }, { ...rec('2', 'repetida'), source: 'community' as const }];
+    const b = [
+      { ...rec('9', 'comunidade'), source: 'community' as const },
+      { ...rec('2', 'repetida'), source: 'community' as const },
+    ];
     expect(mergeDeck(a, b).map((c) => c.link_preview_id)).toEqual(['1', '2', '9', '3']);
   });
 

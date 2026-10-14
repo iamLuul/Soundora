@@ -69,3 +69,24 @@ describe('Descobrir: músicas curtidas', () => {
     await expect(db.anon(`select * from public.profile_liked_songs($1)`, [carla])).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('capas na plataforma de quem vê', () => {
+  it('Deezer vê a capa do cartão; Apple vê a da Apple; sem plataforma ou sem capa achada, nenhuma', async () => {
+    const user = await createUser(db, 'dl_cover');
+    const id = await createPreview(db, 'https://www.deezer.com/track/9000099', 'Capa');
+    await db.sql(`update public.link_previews set platform = 'deezer', image_url = 'https://e-cdns-images.dzcdn.net/capa.jpg' where id = $1`, [id]);
+    await db.as(user, `select public.discover_swipe($1, true)`, [id]);
+    const cover = async () => (await db.as<{ image_url: string | null }>(user, `select image_url from public.discover_liked()`))[0]!.image_url;
+
+    // Sem plataforma escolhida: nenhuma capa.
+    expect(await cover()).toBeNull();
+    await db.as(user, `select public.set_streaming_platform('deezer')`);
+    expect(await cover()).toBe('https://e-cdns-images.dzcdn.net/capa.jpg');
+    await db.as(user, `select public.set_streaming_platform('apple_music')`);
+    expect(await cover()).toBeNull();
+    await db.sql(`insert into public.platform_tracks (link_preview_id, platform, found, url, image_url) values ($1, 'apple_music', true, 'https://music.apple.com/x', 'https://is1-ssl.mzstatic.com/capa.jpg')`, [id]);
+    expect(await cover()).toBe('https://is1-ssl.mzstatic.com/capa.jpg');
+    // O app não lê a tabela direto.
+    await expect(db.as(user, `select * from public.platform_tracks`)).rejects.toThrow(/permission denied/);
+  });
+});

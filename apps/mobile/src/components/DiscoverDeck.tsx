@@ -140,8 +140,8 @@ export function DiscoverDeck({
         >
           <SvgXml xml={icons.skipButton} width={52} height={52} />
         </Pressable>
-        {/* Play: toca a prévia de 30 s (a de músicas de outras plataformas vem da Deezer, pelo
-            servidor). Sem quem cuide do play (onTogglePlay), abre a música na plataforma. */}
+        {/* Play: toca a prévia de 30 s da plataforma da pessoa (Deezer ou Apple Music). Sem
+            prévia na plataforma dela (onTogglePlay ausente), abre a música nela. */}
         <Pressable
           testID="discover-play"
           accessibilityRole="button"

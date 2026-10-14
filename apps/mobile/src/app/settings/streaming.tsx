@@ -25,6 +25,8 @@ export default function StreamingSettingsScreen() {
     try {
       await setStreamingPlatform(p);
       qc.setQueryData(keys.streamingPlatform, p);
+      // O Descobrir e as curtidas mudam de prévia, link e capa.
+      for (const queryKey of [['discover-deck'], ['discover-liked'], ['liked-songs']]) void qc.invalidateQueries({ queryKey });
     } catch (err) {
       setError(formatError(t, err));
     } finally {

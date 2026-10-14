@@ -146,6 +146,8 @@ export interface DiscoverCard {
   album?: string | null;
   artist_image_url?: string | null;
   audio_url?: string | null;
+  /** De qual plataforma é a prévia (o cartão mostra o crédito). */
+  preview_platform?: 'deezer' | 'apple_music' | null;
   reason?: 'similar' | 'genre' | 'popular' | null;
   /** "Artista – Música" curtida que levou a esta sugestão. */
   because?: string | null;

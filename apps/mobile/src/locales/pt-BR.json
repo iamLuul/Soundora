@@ -303,7 +303,10 @@
     "becausePopular": "Em alta no mundo",
     "previewAt": "Prévia: {{s}} de 30 segundos",
     "previewUnavailable": "Prévia indisponível para esta música.",
-    "genreEmpty": "Acabaram as sugestões de {{genre}} por agora. Tente outro gênero ou volte mais tarde."
+    "genreEmpty": "Acabaram as sugestões de {{genre}} por agora. Tente outro gênero ou volte mais tarde.",
+    "previewBy": "Prévia: {{platform}}",
+    "choosePlatform": "Escolha sua plataforma de streaming para ouvir as prévias. Cada prévia vem da plataforma que você usa.",
+    "choosePlatformAction": "Escolher plataforma"
   },
   "trending": {
     "title": "Mais tocadas no mundo",

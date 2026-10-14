@@ -3,6 +3,7 @@
 import { chartKey, LastfmKeyError } from '../_shared/links/charts.ts';
 import type { Candidate, DeezerAlbum, DeezerTrack } from '../_shared/links/discover.ts';
 import { createHandler, type Deps, type TrackRow } from './handler.ts';
+import type { StreamingChoice } from '../_shared/links/charts.ts';
 
 function assertEquals(actual: unknown, expected: unknown, msg = '') {
   const a = JSON.stringify(actual);
@@ -304,4 +305,102 @@ Deno.test('gênero silenciado: some do deck e não puxa sugestões; buscar o gê
   assertEquals(seedsSeen[0], ['jazz']);
   // Busca do gênero no topo da tela: a pessoa pediu, então aparece.
   assertEquals(await titles({ action: 'deck', genre: 'rock' }), ['Parecida', 'Do Gênero']);
+});
+
+/** Plataforma da pessoa + guarda do que foi achado nas plataformas (platform_tracks). */
+function withPlatform(platform: StreamingChoice | null, extra: Partial<Deps> = {}) {
+  const saved = new Map<string, { found: boolean; url: string | null; image_url: string | null; audio_url: string | null }>();
+  const calls = { apple: 0, cover: 0, songlink: 0 };
+  const base = setup({
+    platformOf: async () => platform,
+    findPlatformTracks: async (ids, p) => new Map(ids.filter((id) => saved.has(`${p}:${id}`)).map((id) => [id, saved.get(`${p}:${id}`)!])),
+    savePlatformTrack: async (id, p, t) => void saved.set(`${p}:${id}`, t),
+    appleTrack: async (ref) => {
+      calls.apple++;
+      return ref.title === 'Parecida'
+        ? { url: 'https://music.apple.com/br/album/x/1?i=2', imageUrl: 'https://is1-ssl.mzstatic.com/a/600x600bb.jpg', previewUrl: 'https://audio-ssl.itunes.apple.com/p.m4a' }
+        : null;
+    },
+    coverOf: async (url) => {
+      calls.cover++;
+      return url.includes('spotify') ? 'https://i.scdn.co/image/capa' : null;
+    },
+    fetchLinks: async () => {
+      calls.songlink++;
+      return { spotify: 'https://open.spotify.com/track/abc' };
+    },
+    ...extra,
+  });
+  return { ...base, saved, platformCalls: calls };
+}
+
+type Card = { link_preview_id: string; title: string; url: string; platform: string; image_url: string | null; artist_image_url: string | null; audio_url: string | null; preview_platform: string | null };
+const deckOf = async (h: (r: Request) => Promise<Response>) => (await (await h(post({ action: 'deck' }))).json()).cards as Card[];
+
+Deno.test('Apple Music: link, capa e prévia da Apple; o que não está na Apple fica de fora; da segunda vez, do cache', async () => {
+  const s = withPlatform('apple_music');
+  const cards = await deckOf(s.handler);
+  assertEquals(
+    cards.map((c) => [c.title, c.platform, c.url, c.image_url, c.audio_url, c.preview_platform, c.artist_image_url]),
+    [['Parecida', 'apple_music', 'https://music.apple.com/br/album/x/1?i=2', 'https://is1-ssl.mzstatic.com/a/600x600bb.jpg', 'https://audio-ssl.itunes.apple.com/p.m4a', 'apple_music', null]],
+  );
+  const before = s.platformCalls.apple;
+  await deckOf(s.handler);
+  assertEquals(s.platformCalls.apple, before, 'segunda pilha sem buscar na Apple de novo');
+  // Nenhuma prévia da Deezer foi renovada para quem usa Apple.
+  assertEquals(s.calls.byId, 0);
+});
+
+Deno.test('Spotify (sem prévia): link e capa do Spotify, nunca áudio nem capa da Deezer', async () => {
+  const s = withPlatform('spotify');
+  const cards = await deckOf(s.handler);
+  assertEquals(cards.length, 2);
+  for (const c of cards) {
+    assertEquals([c.platform, c.url, c.image_url, c.audio_url, c.preview_platform, c.artist_image_url], ['spotify', 'https://open.spotify.com/track/abc', 'https://i.scdn.co/image/capa', null, null, null]);
+  }
+});
+
+Deno.test('Spotify: música que o song.link não achou abre a busca do Spotify, sem capa', async () => {
+  const s = withPlatform('spotify', { fetchLinks: async () => ({ deezer: 'https://www.deezer.com/track/1' }) });
+  const cards = await deckOf(s.handler);
+  for (const c of cards) {
+    assertEquals([c.platform, c.url.startsWith('https://open.spotify.com/search/'), c.image_url, c.audio_url], ['spotify', true, null, null]);
+  }
+});
+
+Deno.test('sem plataforma escolhida: sem prévia e sem capa', async () => {
+  const s = withPlatform(null);
+  const cards = await deckOf(s.handler);
+  assertEquals(cards.length, 2);
+  for (const c of cards) assertEquals([c.image_url, c.audio_url, c.preview_platform], [null, null, null]);
+});
+
+Deno.test('prévia renovada só da plataforma da pessoa', async () => {
+  // Spotify: nenhuma prévia (nem a da Deezer).
+  const spotify = withPlatform('spotify');
+  const sid = (await deckOf(spotify.handler))[0]!.link_preview_id;
+  assertEquals((await (await spotify.handler(post({ action: 'audio', previewId: sid }))).json()).audio_url, null);
+  // Apple: a prévia da Apple.
+  const apple = withPlatform('apple_music');
+  const aid = (await deckOf(apple.handler))[0]!.link_preview_id;
+  assertEquals((await (await apple.handler(post({ action: 'audio', previewId: aid }))).json()).audio_url, 'https://audio-ssl.itunes.apple.com/p.m4a');
+});
+
+Deno.test('abrir no Spotify guarda o link e a capa: a próxima pilha já mostra a capa', async () => {
+  let songlinkUp = false;
+  const s = withPlatform('spotify', {
+    fetchLinks: async () => {
+      if (!songlinkUp) throw new Error('fora do ar');
+      return { spotify: 'https://open.spotify.com/track/abc' };
+    },
+  });
+  // song.link fora: cartões com a busca do Spotify e sem capa (nada guardado).
+  const first = await deckOf(s.handler);
+  assertEquals(first.map((c) => c.image_url), [null, null]);
+  assertEquals(s.saved.size, 0);
+  // Volta; abrir a música resolve o link exato e guarda link + capa do Spotify.
+  songlinkUp = true;
+  const id = first[0]!.link_preview_id;
+  assertEquals(await (await s.handler(post({ action: 'link', previewId: id, platform: 'spotify' }))).json(), { url: 'https://open.spotify.com/track/abc', exact: true });
+  assertEquals(s.saved.get(`spotify:${id}`), { found: true, url: 'https://open.spotify.com/track/abc', image_url: 'https://i.scdn.co/image/capa', audio_url: null });
 });

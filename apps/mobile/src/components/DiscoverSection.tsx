@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { previewUsable } from '@soundora/core';
+import { previewUsable, type StreamingChoice } from '@soundora/core';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -21,7 +21,7 @@ import { DeckSkeleton, TrackListSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
 import { CoachMarks, type CoachStep, useFirstTimeTip } from './CoachMarks';
-import { useIsFocused } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -30,6 +30,21 @@ const REFILL_AT = 3;
  * Junta as sugestões do algoritmo com as indicações da comunidade e os destaques:
  * a cada duas sugestões, uma da comunidade (sem repetir música).
  */
+/** Plataformas que oferecem prévia a apps (as outras: só o link e a capa delas). */
+export function hasPreviews(platform: StreamingChoice | null | undefined): boolean {
+  return platform === 'deezer' || platform === 'apple_music';
+}
+
+/**
+ * O cartão só com o que é da plataforma da pessoa: indicações da comunidade (links de qualquer
+ * plataforma) perdem a capa e a foto do artista quando o link é de outra plataforma. As
+ * sugestões do algoritmo já chegam assim do servidor.
+ */
+export function onlyPlatform(card: DiscoverCard, platform: StreamingChoice | null | undefined): DiscoverCard {
+  if (card.source === 'for_you' || card.platform === platform) return card;
+  return { ...card, image_url: null, artist_image_url: null, audio_url: null };
+}
+
 export function mergeDeck(forYou: DiscoverCard[], community: DiscoverCard[]): DiscoverCard[] {
   const out: DiscoverCard[] = [];
   const ids = new Set<string>();
@@ -78,8 +93,12 @@ export function DiscoverSection() {
   });
   const deck = useMemo(() => {
     const ids = new Set<string>();
-    return [...(base.data ?? []), ...extra].filter((c) => !gone.has(c.link_preview_id) && !ids.has(c.link_preview_id) && !!ids.add(c.link_preview_id));
-  }, [base.data, extra, gone]);
+    return [...(base.data ?? []), ...extra]
+      .filter((c) => !gone.has(c.link_preview_id) && !ids.has(c.link_preview_id) && !!ids.add(c.link_preview_id))
+      .map((c) => onlyPlatform(c, platform));
+  }, [base.data, extra, gone, platform]);
+  // Prévia só de quem ouve pela Deezer ou pela Apple Music (cada um a da sua plataforma).
+  const canPreview = hasPreviews(platform);
   const top = deck[0];
   const playing = !!top && playingId === top.link_preview_id;
 
@@ -271,6 +290,16 @@ export function DiscoverSection() {
         </View>
       ) : null}
 
+      {/* Sem plataforma escolhida: sem prévias (cada prévia é da plataforma de quem ouve). */}
+      {!platform ? (
+        <View testID="discover-choose-platform" style={styles.choose}>
+          <Text style={styles.chooseText}>{t('discover.choosePlatform')}</Text>
+          <Pressable testID="discover-choose-platform-button" accessibilityRole="button" onPress={() => router.push('/settings/streaming')} hitSlop={6}>
+            <Text style={styles.chooseLink}>{t('discover.choosePlatformAction')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {base.isLoading || base.isRefetching ? (
         <View style={{ gap: space.sm }}>
           <DeckSkeleton height={stackHeight} />
@@ -289,11 +318,12 @@ export function DiscoverSection() {
             playing={playing}
             progress={ringProgress}
             seconds={progress && progress.id === top.link_preview_id ? { position: progress.position, duration: progress.duration } : null}
-            onTogglePlay={() => (playing ? setPlayingId(null) : play(top))}
+            // Sem prévia na plataforma da pessoa, o botão grande abre a música nela.
+            onTogglePlay={canPreview ? () => (playing ? setPlayingId(null) : play(top)) : undefined}
             height={stackHeight}
           />
           {/* Prévia de 30 s do cartão de cima (a key recomeça a música a cada cartão). */}
-          {topAudio && previewUsable(topAudio) ? (
+          {canPreview && topAudio && previewUsable(topAudio) ? (
             <VibeAudio
               key={`discover-audio-${top.link_preview_id}-${topAudio}`}
               url={topAudio}
@@ -345,6 +375,9 @@ export function DiscoverSection() {
 }
 
 const styles = StyleSheet.create({
+  choose: { backgroundColor: colors.card, borderRadius: 10, padding: space.md, gap: space.xs },
+  chooseText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.text },
+  chooseLink: { fontFamily: fonts.semibold, fontSize: 13, color: colors.primary },
   center: { alignItems: 'center', justifyContent: 'center', gap: space.md },
   genreChosen: {
     flexDirection: 'row',

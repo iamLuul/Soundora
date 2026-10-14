@@ -7,12 +7,12 @@
 // Local:  supabase/functions/.env com LASTFM_API_KEY=...  e  npx supabase functions serve
 // Nuvem:  npx supabase functions deploy discover
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { chartKey, fetchPlatformLinks, LastfmKeyError } from '../_shared/links/charts.ts';
+import { chartKey, fetchPlatformLinks, isStreamingChoice, LastfmKeyError } from '../_shared/links/charts.ts';
 import { deezerAlbumById, deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend, searchDeezerAlbums, searchDeezerTracks } from '../_shared/links/discover.ts';
-import { isAllowedAudioUrl } from '../_shared/links/genres.ts';
-import type { FetchLike } from '../_shared/links/preview.ts';
+import { isAllowedAudioUrl, sameTrack } from '../_shared/links/genres.ts';
+import { buildLinkPreview, type FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
-import { createHandler, RATE, type TrackRow } from './handler.ts';
+import { createHandler, RATE, type PlatformTrack, type TrackRow } from './handler.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const admin = createClient(supabaseUrl, apiKey('secret'), { auth: { persistSession: false, autoRefreshToken: false } });
@@ -185,5 +185,57 @@ Deno.serve(
       if (error) throw error;
     },
     fetchLinks: (sourceUrl) => fetchPlatformLinks(sourceUrl, { fetch: http, timeoutMs: 6000 }),
+    async platformOf(userId) {
+      const { data, error } = await admin.from('profile_private').select('streaming_platform').eq('user_id', userId).maybeSingle();
+      if (error) throw error;
+      return isStreamingChoice(data?.streaming_platform) ? data.streaming_platform : null;
+    },
+    async findPlatformTracks(ids, platform) {
+      const map = new Map<string, PlatformTrack>();
+      if (!ids.length) return map;
+      const { data, error } = await admin
+        .from('platform_tracks')
+        .select('link_preview_id, found, url, image_url, audio_url')
+        .eq('platform', platform)
+        .in('link_preview_id', ids);
+      if (error) throw error;
+      for (const r of data as (PlatformTrack & { link_preview_id: string })[]) map.set(r.link_preview_id, r);
+      return map;
+    },
+    async savePlatformTrack(id, platform, t) {
+      const https = (u: string | null) => (u && u.startsWith('https://') ? u : null);
+      const { error } = await admin.from('platform_tracks').upsert({
+        link_preview_id: id,
+        platform,
+        found: t.found,
+        url: https(t.url),
+        image_url: https(t.image_url),
+        audio_url: isAllowedAudioUrl(t.audio_url) ? t.audio_url : null,
+        checked_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
+    // A mesma música na Apple (iTunes Search, sem chave): link, capa (600 px) e prévia oficiais.
+    async appleTrack(ref) {
+      const term = `${ref.artist} ${ref.title}`.slice(0, 200);
+      const res = await http(`https://itunes.apple.com/search?entity=song&limit=5&term=${encodeURIComponent(term)}`, { signal: AbortSignal.timeout(5000) });
+      if (res.status === 403 || res.status === 429) return 'quota';
+      if (!res.ok) throw new Error(`itunes ${res.status}`);
+      type Song = { trackName?: unknown; artistName?: unknown; trackViewUrl?: unknown; artworkUrl100?: unknown; previewUrl?: unknown };
+      const body = JSON.parse(await res.text()) as { results?: Song[] };
+      const song = (body.results ?? []).find((r) => sameTrack(ref, { title: r.trackName, artist: r.artistName }));
+      if (!song || typeof song.trackViewUrl !== 'string') return null;
+      const art = typeof song.artworkUrl100 === 'string' ? song.artworkUrl100.replace('100x100bb', '600x600bb') : null;
+      return {
+        url: song.trackViewUrl,
+        imageUrl: art?.startsWith('https://') ? art : null,
+        previewUrl: isAllowedAudioUrl(song.previewUrl) ? song.previewUrl : null,
+      };
+    },
+    // Capa oficial do link da plataforma (oEmbed/og, a mesma leitura do cartão de um post).
+    async coverOf(url) {
+      const preview = await buildLinkPreview(url, { fetch: http, timeoutMs: 5000 });
+      return preview.imageUrl;
+    },
   }),
 );

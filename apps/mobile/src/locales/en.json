@@ -303,7 +303,10 @@
     "becausePopular": "Popular worldwide",
     "previewAt": "Preview: {{s}} of 30 seconds",
     "previewUnavailable": "Preview unavailable for this song.",
-    "genreEmpty": "No more {{genre}} suggestions for now. Try another genre or come back later."
+    "genreEmpty": "No more {{genre}} suggestions for now. Try another genre or come back later.",
+    "previewBy": "Preview: {{platform}}",
+    "choosePlatform": "Choose your streaming platform to hear previews. Each preview comes from the platform you use.",
+    "choosePlatformAction": "Choose platform"
   },
   "trending": {
     "title": "Most played worldwide",

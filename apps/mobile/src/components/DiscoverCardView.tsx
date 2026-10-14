@@ -31,6 +31,8 @@ export function DiscoverCardView({
   const target = platform ?? card.platform;
   const label = PLATFORM_LABELS[target];
   const open = () => (onOpen ? onOpen(card) : Linking.openURL(card.url));
+  // De onde é a prévia: a que veio no cartão, ou a plataforma da pessoa se ela tem prévias.
+  const credit = card.preview_platform ?? (platform === 'deezer' || platform === 'apple_music' ? platform : null);
 
   const reason =
     card.source === 'for_you'
@@ -101,6 +103,12 @@ export function DiscoverCardView({
           </View>
           <View style={styles.right}>
             {genreName && card.source !== 'for_you' ? <Text style={styles.genre}>{genreName}</Text> : null}
+            {/* Crédito da prévia (os termos da Deezer e da Apple pedem a marca junto do áudio). */}
+            {credit ? (
+              <Text testID="discover-preview-credit" style={styles.credit}>
+                {t('discover.previewBy', { platform: PLATFORM_LABELS[credit] })}
+              </Text>
+            ) : null}
             <Pressable testID="discover-platform" accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform: label })} onPress={open} hitSlop={8} style={webTouch(8)}>
               <PlatformLogo platform={target} size={24} />
             </Pressable>
@@ -140,6 +148,7 @@ const styles = StyleSheet.create({
   recommender: { fontFamily: fonts.bold, fontSize: 12, color: colors.text, flexShrink: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   genre: { fontFamily: fonts.semibold, fontSize: 10, color: colors.muted, textTransform: 'uppercase' },
+  credit: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMutedOnSurface },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: space.sm, paddingVertical: 2, borderRadius: 999 },
   badgeText: { fontFamily: fonts.semibold, fontSize: 11, color: colors.text },
 });
