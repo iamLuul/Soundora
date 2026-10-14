@@ -132,8 +132,9 @@ describe('Ver vibes em sequência', () => {
 });
 
 describe('Vibe de música', () => {
-  test('o link é colado na própria vibe e gera o card; tocar no card abre o link de novo', async () => {
-    mockPreviewLink.mockResolvedValue({ id: 'lp1', url: 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC', platform: 'spotify', kind: 'track', title: 'Midnight City', artist: 'M83', image_url: null, audio_url: null });
+  test('o link é colado na própria vibe e gera o card (sem prévia de áudio); tocar no card abre o link de novo', async () => {
+    // Mesmo que venha uma prévia antiga do servidor, a vibe não toca áudio (licenças das lojas).
+    mockPreviewLink.mockResolvedValue({ id: 'lp1', url: 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC', platform: 'spotify', kind: 'track', title: 'Midnight City', artist: 'M83', image_url: null, audio_url: 'https://audio-ssl.itunes.apple.com/p.m4a' });
     await wrap(<NewVibeScreen />);
     await fireEvent.press(screen.getByTestId('vibe-mode-music'));
     // Campo do link já aberto na vibe; nada de caixa embaixo.
@@ -141,6 +142,7 @@ describe('Vibe de música', () => {
     await waitFor(() => expect(mockPreviewLink).toHaveBeenCalledWith('https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC'));
     await waitFor(() => expect(screen.getByText('Midnight City')).toBeTruthy());
     expect(screen.queryByTestId('vibe-link')).toBeNull();
+    expect(screen.queryByTestId('vibe-mute')).toBeNull();
     await fireEvent.press(screen.getByTestId('vibe-publish'));
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'music', linkPreviewId: 'lp1', text: '', style: 'violet', textPos: null }));
   });

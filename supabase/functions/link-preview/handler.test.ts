@@ -171,7 +171,7 @@ Deno.test('corpo grande demais: 413 sem ler tudo', async () => {
   assertEquals(calls, []);
 });
 
-Deno.test('gêneros: detectados e gravados com o cartão', async () => {
+Deno.test('gêneros: detectados e gravados com o cartão; a prévia das lojas não vem (licenças)', async () => {
   const { fetch } = fakeFetch({ [`https://open.spotify.com/oembed?url=${encodeURIComponent(TRACK)}`]: { body: SPOTIFY_OEMBED } });
   const asked: string[] = [];
   const { deps, store } = makeDeps(fetch, {
@@ -182,7 +182,8 @@ Deno.test('gêneros: detectados e gravados com o cartão', async () => {
   });
   const res = await createHandler(deps)(post({ url: TRACK }));
   const body = await res.json();
-  assertEquals([body.preview.genres, body.preview.audio_url], [['pop', 'dance'], 'https://audio-ssl.itunes.apple.com/p.m4a']);
+  assertEquals([body.preview.genres, body.preview.audio_url], [['pop', 'dance'], null]);
+  assertEquals(store.get(TRACK)?.audio_url ?? null, null);
   assertEquals(store.get(TRACK)?.genres, ['pop', 'dance']);
   assertEquals(asked.length, 1);
 });

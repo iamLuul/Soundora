@@ -99,7 +99,10 @@ export function createHandler(deps: Deps) {
     // Artista e playlist não têm gênero nem prévia de uma faixa.
     if (ref.kind === 'artist' || ref.kind === 'playlist') return { genres: [], audioUrl: null };
     try {
-      return await deps.detectStore(ref);
+      // Só os gêneros: a prévia de 30 s das lojas não é mais usada no cartão (as licenças da
+      // Apple e da Deezer não cobrem tocar a prévia numa vibe, nem junto do link de outra loja).
+      const { genres } = await deps.detectStore(ref);
+      return { genres, audioUrl: null };
     } catch (err) {
       log('link-preview: lojas indisponíveis', err);
       return null;
@@ -150,7 +153,7 @@ export function createHandler(deps: Deps) {
               return json({ preview: { ...cached, genres: info.genres, audio_url: info.audioUrl, store_checked_at: new Date().toISOString() }, cached: true });
             }
           }
-          return json({ preview: cached, cached: true });
+          return json({ preview: { ...cached, audio_url: null }, cached: true });
         }
       }
 

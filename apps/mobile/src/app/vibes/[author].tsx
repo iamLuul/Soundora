@@ -9,7 +9,6 @@ import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar } from '../../components/figma';
 import { OptionsSheet, type SheetOption } from '../../components/OptionsSheet';
-import { VibeAudio } from '../../components/vibes/VibeAudio';
 import { VibeContent } from '../../components/vibes/VibeContent';
 import { deleteVibe, fetchVibesOf, fetchVibeViewers, markVibeSeen, report, vibeMediaUrl, type Vibe } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -30,7 +29,6 @@ import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
 /** Vibe de música com prévia: 15 s tocando, como nos Stories. */
-const MUSIC_MS = 15_000;
 const TICK_MS = 50;
 
 
@@ -47,8 +45,6 @@ export default function VibeViewerScreen() {
   const qc = useQueryClient();
   const [authors] = useState(() => [...new Set([author, ...(queue ?? '').split(',')].filter(Boolean))]);
   const [pos, setPos] = useState(0);
-  // Sem som vale para a fila toda, não só para a pessoa atual.
-  const [muted, setMuted] = useState(false);
 
   const close = useCallback(() => {
     void qc.invalidateQueries({ queryKey: keys.vibesTray });
@@ -79,8 +75,6 @@ export default function VibeViewerScreen() {
         fallbackUsername={pos === 0 ? username : undefined}
         fallbackAvatar={pos === 0 ? avatar : undefined}
         hasPrevious={pos > 0}
-        muted={muted}
-        onToggleMute={() => setMuted((m) => !m)}
         onDone={next}
         onPrevious={previous}
         onClose={close}
@@ -106,8 +100,6 @@ function AuthorVibes({
   fallbackUsername,
   fallbackAvatar,
   hasPrevious,
-  muted,
-  onToggleMute,
   onDone,
   onPrevious,
   onClose: close,
@@ -116,8 +108,6 @@ function AuthorVibes({
   fallbackUsername?: string;
   fallbackAvatar?: string;
   hasPrevious: boolean;
-  muted: boolean;
-  onToggleMute: () => void;
   onDone: () => void;
   onPrevious: () => void;
   onClose: () => void;
@@ -155,8 +145,8 @@ function AuthorVibes({
   const current: Vibe | undefined = index !== null ? list[index] : undefined;
   const media = useVibeMedia(current?.media_path ?? null);
   const mediaReady = !current?.media_path || !!media.data;
-  const audioUrl = current?.kind === 'music' ? current.preview_audio_url : null;
-  const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : audioUrl ? MUSIC_MS : STILL_MS;
+  // Vibe de música não toca prévia (as licenças das lojas não cobrem esse uso): é só o cartão.
+  const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : STILL_MS;
   const paused = holding || !!menu || !!viewersFor || !mediaReady || tipOpen;
 
   const resetClock = () => {
@@ -292,9 +282,6 @@ function AuthorVibes({
             }
           />
 
-          {/* Prévia de 30 s da loja, de fundo (a key recomeça a música a cada vibe). */}
-          {audioUrl ? <VibeAudio key={`audio-${current.id}`} url={audioUrl} paused={paused} muted={muted} /> : null}
-
           {/* Faixas de toque: esquerda volta, direita avança. O meio fica livre para os botões da vibe. */}
           <Pressable testID="vibe-prev" accessibilityRole="button" accessibilityLabel={t('vibes.previous')} style={[styles.zone, { left: 0 }]} onPress={goPrev} {...hold} />
           <Pressable testID="vibe-next" accessibilityRole="button" accessibilityLabel={t('vibes.next')} style={[styles.zone, { right: 0 }]} onPress={goNext} {...hold} />
@@ -319,17 +306,6 @@ function AuthorVibes({
                 <Verified username={username} />
                 <Text style={styles.time}>{relativeTime(current.created_at)}</Text>
               </Pressable>
-              {audioUrl ? (
-                <Pressable
-                  testID="vibe-mute"
-                  accessibilityRole="button"
-                  accessibilityLabel={muted ? t('vibes.unmute') : t('vibes.mute')}
-                  onPress={onToggleMute}
-                  hitSlop={10} style={webTouch(10)}
-                >
-                  <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={22} color={colors.text} />
-                </Pressable>
-              ) : null}
               <Pressable testID="vibe-menu" accessibilityRole="button" accessibilityLabel={t('vibes.options')} onPress={() => setMenu('options')} hitSlop={10} style={webTouch(10)}>
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
               </Pressable>

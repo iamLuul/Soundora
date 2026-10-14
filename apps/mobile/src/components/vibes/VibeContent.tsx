@@ -18,8 +18,6 @@ export interface VibeMusic {
   title: string;
   artist: string | null;
   imageUrl: string | null;
-  /** Prévia de 30 s (Apple/Deezer), se a loja oferecer. */
-  audioUrl?: string | null;
 }
 
 export interface VibeSharedPost {

@@ -12,7 +12,6 @@ import { Button, ErrorText, keyboardBehavior } from '../../components/ui';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
 import { VibeContent, type VibeMusic } from '../../components/vibes/VibeContent';
 import { defaultTextPos, EditableVibeText, type TextPos } from '../../components/vibes/VibeText';
-import { VibeAudio } from '../../components/vibes/VibeAudio';
 import {
   createVibe,
   previewLink,
@@ -87,7 +86,6 @@ export default function NewVibeScreen() {
   // Link da música digitado/colado direto na vibe (como o texto); tocar no card abre de novo.
   const [linkEditing, setLinkEditing] = useState(false);
   const [musicRect, setMusicRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState<null | 'preview' | 'publish'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -136,7 +134,7 @@ export default function NewVibeScreen() {
     setBusy('preview');
     try {
       const p = await previewLink(url);
-      setMusic({ id: p.id, url: p.url, platform: p.platform, title: p.title, artist: p.artist, imageUrl: p.image_url, audioUrl: p.audio_url ?? null });
+      setMusic({ id: p.id, url: p.url, platform: p.platform, title: p.title, artist: p.artist, imageUrl: p.image_url });
       setLinkEditing(false);
       Keyboard.dismiss();
     } catch (err) {
@@ -316,21 +314,6 @@ export default function NewVibeScreen() {
                 onStartEdit={() => setEditing(true)}
                 onEndEdit={finishEditing}
               />
-              {kind === 'music' && music?.audioUrl && !linkEditing ? (
-                <>
-                  <VibeAudio url={music.audioUrl} paused={busy === 'publish'} muted={muted} loop />
-                  <Pressable
-                    testID="vibe-mute"
-                    accessibilityRole="button"
-                    accessibilityLabel={muted ? t('vibes.unmute') : t('vibes.mute')}
-                    onPress={() => setMuted((m) => !m)}
-                    style={styles.mute}
-                    hitSlop={8}
-                  >
-                    <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={18} color={colors.text} />
-                  </Pressable>
-                </>
-              ) : null}
               {editing ? (
                 <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={finishEditing} style={styles.done} hitSlop={8}>
                   <Text style={styles.doneText}>{t('vibes.done')}</Text>
@@ -443,7 +426,6 @@ const styles = StyleSheet.create({
   linkButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.md },
   linkButton: { paddingVertical: 4, paddingHorizontal: space.sm },
   linkButtonText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.text },
-  mute: { position: 'absolute', top: space.md, left: space.md, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   input: {
     minHeight: 44,
     borderWidth: 1,

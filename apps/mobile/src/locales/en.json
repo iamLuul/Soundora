@@ -543,9 +543,7 @@
     "dragHint": "Drag the text to move it; tap it to edit.",
     "done": "Done",
     "pasteMusic": "Paste the song link",
-    "changeMusic": "Change the song",
-    "mute": "Mute",
-    "unmute": "Unmute"
+    "changeMusic": "Change the song"
   },
   "people": {
     "noFollowers": "No one follows this profile yet.",

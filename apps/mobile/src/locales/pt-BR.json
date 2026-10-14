@@ -543,9 +543,7 @@
     "dragHint": "Arraste o texto para mudar o lugar; toque nele para editar.",
     "done": "Pronto",
     "pasteMusic": "Cole o link da música",
-    "changeMusic": "Trocar a música",
-    "mute": "Tirar o som",
-    "unmute": "Ligar o som"
+    "changeMusic": "Trocar a música"
   },
   "people": {
     "noFollowers": "Ninguém segue esse perfil ainda.",
