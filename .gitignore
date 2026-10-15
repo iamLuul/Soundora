@@ -6,6 +6,7 @@ web-build/
 .DS_Store
 Thumbs.db
 docs/
+apps/mobile/expo-env.d.ts
 
 # Segredos
 .env
