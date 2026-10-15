@@ -13,6 +13,7 @@ import { useLiveNotifications } from '../lib/live';
 import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 import { AccountLoadFailed } from '../components/AccountLoadFailed';
+import { DesktopShell } from '../components/desktop/DesktopShell';
 import { AppSkeleton } from '../components/Skeleton';
 import { ToastHost } from '../components/Toast';
 
@@ -59,6 +60,8 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
   useLiveNotifications(me);
 
   return (
+    // Web em tela grande: barra lateral e coluna da direita em volta da tela (só com o app liberado).
+    <DesktopShell enabled={onboarded}>
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
@@ -116,6 +119,7 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
       {/* Termos e privacidade abrem com ou sem login (o cadastro mostra os links). */}
       <Stack.Screen name="legal/[doc]" options={{ headerShown: false }} />
     </Stack>
+    </DesktopShell>
   );
 }
 

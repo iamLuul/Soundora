@@ -14,6 +14,7 @@ import { useUnreadNotifications } from '../lib/queries';
 import { Avatar } from './ui';
 import { webTouch } from '../lib/touch';
 import { iconScale } from '../lib/display';
+import { useIsDesktop } from '../lib/layout';
 
 /** Tamanho natural de cada SVG (do viewBox), para manter a proporção. */
 function svgSize(xml: string): { w: number; h: number } {
@@ -116,8 +117,10 @@ export function TopTabs<T extends string>({
   style?: StyleProp<ViewStyle>;
 }) {
   const { t } = useTranslation();
+  // Desktop: as notificações ficam na barra lateral.
+  const desktop = useIsDesktop();
   return (
-    <View style={[styles.topTabs, style]}>
+    <View style={[styles.topTabs, desktop && styles.topTabsDesktop, style]}>
       <View style={styles.tabsRow} accessibilityRole="tablist">
         {tabs.map((tab) => {
           const active = tab.value === value;
@@ -135,7 +138,7 @@ export function TopTabs<T extends string>({
           );
         })}
       </View>
-      {showBell ? (
+      {showBell && !desktop ? (
         <Pressable
           testID="open-notifications"
           accessibilityRole="button"
@@ -180,6 +183,7 @@ export function BackHeader({ title, onBack, right }: { title?: string; onBack?: 
 
 const styles = StyleSheet.create({
   topTabs: { height: 44, justifyContent: 'center' },
+  topTabsDesktop: { height: 64 },
   tabsRow: { flexDirection: 'row', justifyContent: 'center', gap: 36 },
   tabText: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
   tabActive: { fontFamily: fonts.bold },

@@ -168,9 +168,9 @@ export function relevantGenres(list: GenreHit[]): GenreHit[] {
   return withPosts.length ? withPosts.slice(0, 5) : list.slice(0, 3);
 }
 
-export function SearchPanel() {
+export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {}) {
   const { t } = useTranslation();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const q = useDebouncedValue(query.trim());
   const enabled = q.length >= MIN_QUERY;
   const people = useQuery({ queryKey: ['search-people', q], queryFn: () => searchProfiles(q), enabled });

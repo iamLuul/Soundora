@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
@@ -14,6 +15,14 @@ export default function DiscoverScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [section, setSection] = useState<Section>('discover');
+  // Busca da coluna da direita (desktop): /discover?section=search&q=termo abre a aba Buscar.
+  const params = useLocalSearchParams<{ section?: string; q?: string }>();
+  const asked = params.section === 'search' && typeof params.q === 'string' ? params.q.slice(0, 100) : null;
+  const [applied, setApplied] = useState<string | null>(null);
+  if (asked !== null && asked !== applied) {
+    setApplied(asked);
+    setSection('search');
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -29,7 +38,7 @@ export default function DiscoverScreen() {
         ]}
       />
       <View style={styles.body}>
-        {section === 'discover' ? <DiscoverSection /> : section === 'trending' ? <TrendingSection /> : <SearchPanel />}
+        {section === 'discover' ? <DiscoverSection /> : section === 'trending' ? <TrendingSection /> : <SearchPanel key={applied ?? ''} initialQuery={applied ?? ''} />}
       </View>
     </View>
   );

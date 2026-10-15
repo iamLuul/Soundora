@@ -14,7 +14,7 @@ import { Verified } from './Verified';
  * curte, comenta, posta e do Descobrir), de quem você curte posts ou seguidas por quem você
  * segue. Aparece no meio do Para você e quando a aba Seguindo está vazia.
  */
-export function SuggestedAccounts({ testID = 'suggested-accounts' }: { testID?: string }) {
+export function SuggestedAccounts({ testID = 'suggested-accounts', panel = false }: { testID?: string; /** Na coluna da direita do desktop. */ panel?: boolean }) {
   const { t, i18n } = useTranslation();
   const suggested = useSuggestedAccounts();
   const followingIds = useFollowingIds();
@@ -33,16 +33,16 @@ export function SuggestedAccounts({ testID = 'suggested-accounts' }: { testID?: 
   };
 
   return (
-    <View style={styles.wrap} testID={testID}>
-      <Text style={styles.title} accessibilityRole="header">
+    <View style={panel ? styles.wrapPanel : styles.wrap} testID={testID}>
+      <Text style={[styles.title, panel && { paddingHorizontal: 0 }]} accessibilityRole="header">
         {t('suggest.title')}
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, panel && { paddingHorizontal: 0 }]}>
         {list.map((a) => {
           const following = followingIds.data?.has(a.id) ?? false;
           const requested = !following && (requestedIds.data?.has(a.id) ?? false);
           return (
-            <View key={a.id} style={styles.card}>
+            <View key={a.id} style={[styles.card, panel && styles.cardPanel]}>
               <Pressable accessibilityRole="link" accessibilityLabel={`@${a.username}`} onPress={() => router.push(`/u/${a.username}`)} style={styles.who}>
                 <RingAvatar uri={a.avatar_url} name={a.display_name} size={56} />
                 <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 4 }, { maxWidth: '100%' }]}>
@@ -80,6 +80,8 @@ const styles = StyleSheet.create({
   wrap: { marginHorizontal: -space.lg, paddingVertical: space.lg, gap: space.md, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
   title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text, paddingHorizontal: space.lg },
   row: { gap: space.md, paddingHorizontal: space.lg },
+  wrapPanel: { gap: space.md },
+  cardPanel: { width: 132, borderWidth: 1, borderColor: colors.muted, backgroundColor: 'transparent' },
   card: { width: 148, backgroundColor: colors.card, borderRadius: 14, padding: space.md, gap: space.sm, alignItems: 'center' },
   who: { alignItems: 'center', gap: 2, alignSelf: 'stretch' },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text, marginTop: space.xs },

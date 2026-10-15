@@ -10,7 +10,11 @@ import { scheduleOnRN } from 'react-native-worklets';
 import type { DiscoverCard } from '../lib/types';
 import { colors, fonts, radius, space } from '../theme';
 import { DiscoverCardView } from './DiscoverCardView';
+import { useIsDesktop } from '../lib/layout';
 import { Icon } from './figma';
+
+/** Largura do cartão no desktop (Figma: Discover, 1440 px). */
+const DESKTOP_CARD = 330;
 
 const SWIPE_THRESHOLD = 0.3; // fração da largura da tela
 
@@ -51,7 +55,11 @@ export function DiscoverDeck({
   height?: number;
 }) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
+  // Desktop: o cartão no tamanho do Figma (308 px) no meio da coluna, e o arrasto medido por ele,
+  // não pela janela inteira.
+  const desktop = useIsDesktop();
+  const width = desktop ? DESKTOP_CARD * 1.3 : windowWidth;
   const x = useSharedValue(0);
   // Qual cartão está sendo arrastado/jogado. Só ele anda com x. Quando ele sai e a pilha anda,
   // o novo cartão de cima tem outro id: fica no centro sem precisar zerar x antes da tela
@@ -105,7 +113,7 @@ export function DiscoverDeck({
   return (
     <View style={[styles.wrap, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' } : null]}>
       <GestureDetector gesture={pan}>
-        <View style={[styles.stack, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', height } : null]}>
+        <View style={[styles.stack, height ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', height } : null, desktop && styles.stackDesktop]}>
           {/* Cartões inclinados atrás, como no Figma */}
           {cards.length > 2 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '-6deg' }, { scale: 0.92 }] }]} /> : null}
           {cards.length > 1 ? <View style={[StyleSheet.absoluteFill, styles.behind, { transform: [{ rotate: '5deg' }, { scale: 0.94 }] }]} /> : null}
@@ -274,6 +282,7 @@ const styles = StyleSheet.create({
   play: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   wrap: { flex: 1, gap: space.lg },
   stack: { flex: 1, marginHorizontal: space.xl, marginTop: space.md },
+  stackDesktop: { width: DESKTOP_CARD, alignSelf: 'center', marginHorizontal: 0 },
   behind: { borderRadius: 10, backgroundColor: colors.tabBar, opacity: 0.7 },
   buttons: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.sm, paddingBottom: space.md },
   side: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

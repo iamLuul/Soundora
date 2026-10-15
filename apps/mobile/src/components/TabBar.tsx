@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IconName } from '../assets/icons';
+import { useIsDesktop } from '../lib/layout';
 import { colors } from '../theme';
 import { Icon } from './figma';
 
@@ -23,6 +24,9 @@ const TABS: Record<string, { icon: IconName; label: string }> = {
 export function TabBar({ state, navigation }: TabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  // Desktop: a barra lateral faz o papel das abas.
+  const desktop = useIsDesktop();
+  if (desktop) return null;
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]} accessibilityRole="tablist">

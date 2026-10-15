@@ -763,5 +763,16 @@
     "accept": "Aceitar",
     "decline": "Recusar",
     "empty": "Nenhum pedido pendente. Quando sua conta é privada, quem quiser seguir você aparece aqui."
+  },
+  "desktop": {
+    "home": "Início",
+    "account": "Menu da conta",
+    "viewProfile": "Ver perfil",
+    "mostListened": "Mais ouvidas",
+    "language": "Idioma",
+    "accessibility": "Acessibilidade",
+    "copyright": "Soundhora · {{year}}",
+    "sidebar": "Menu principal",
+    "panel": "Sugestões e mais ouvidas"
   }
 }

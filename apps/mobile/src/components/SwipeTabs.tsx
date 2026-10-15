@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Animated, Dimensions, Easing, Platform, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { display } from '../lib/display';
+import { useIsDesktop } from '../lib/layout';
 
 /** Abas que se alcançam arrastando para os lados, da esquerda para a direita (o + fica de fora). */
 export const SWIPE_TABS = ['index', 'discover', 'music', 'me'] as const;
@@ -185,7 +186,9 @@ export function SwipeTabs({
   onPreload?: (name: string) => void;
   children: ReactNode;
 }) {
-  const enabled = (SWIPE_TABS as readonly string[]).includes(route);
+  // Desktop: troca de aba pela barra lateral; arrastar com o mouse não troca.
+  const desktop = useIsDesktop();
+  const enabled = !desktop && (SWIPE_TABS as readonly string[]).includes(route);
   const pan = Gesture.Pan()
     .enabled(enabled)
     .runOnJS(true)

@@ -40,7 +40,18 @@ function MoveBadge({ move, previous }: { move: ChartTrack['move']; previous: num
 }
 
 /** Uma linha do ranking: posição, capa, música, artista, álbum e se subiu/caiu. */
-export function ChartRow({ item, onPress, opening }: { item: ChartTrack; onPress: (item: ChartTrack) => void; opening?: boolean }) {
+export function ChartRow({
+  item,
+  onPress,
+  opening,
+  compact = false,
+}: {
+  item: ChartTrack;
+  onPress: (item: ChartTrack) => void;
+  opening?: boolean;
+  /** Menor, para a coluna da direita do desktop (Figma: Most Listened Songs). */
+  compact?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <Pressable
@@ -51,16 +62,16 @@ export function ChartRow({ item, onPress, opening }: { item: ChartTrack; onPress
       disabled={opening}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
     >
-      <Text style={styles.rank}>{item.position}</Text>
+      <Text style={[styles.rank, compact && styles.rankCompact]}>{item.position}</Text>
       {item.image_url ? (
-        <Image source={{ uri: item.image_url }} style={styles.cover} contentFit="cover" />
+        <Image source={{ uri: item.image_url }} style={[styles.cover, compact && styles.coverCompact]} contentFit="cover" />
       ) : (
-        <View style={[styles.cover, styles.coverFallback]}>
+        <View style={[styles.cover, compact && styles.coverCompact, styles.coverFallback]}>
           <Ionicons name="musical-note" size={22} color={colors.muted} />
         </View>
       )}
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={1}>
           {item.title}
         </Text>
         <Text style={styles.artist} numberOfLines={1}>
@@ -123,6 +134,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
   rank: { width: 26, textAlign: 'center', fontFamily: fonts.bold, fontSize: 18, color: colors.text },
   cover: { width: 56, height: 56, borderRadius: 10 },
+  coverCompact: { width: 42, height: 42, borderRadius: 6 },
+  rankCompact: { width: 18, fontSize: 14 },
+  titleCompact: { fontSize: 13 },
   coverFallback: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, gap: 1 },
   title: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },

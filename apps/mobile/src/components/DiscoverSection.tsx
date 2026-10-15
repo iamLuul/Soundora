@@ -4,20 +4,20 @@ import { previewUsable, type StreamingChoice } from '@soundhora/core';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { fetchDiscoverCards, fetchLikedSongs, fetchRecommendations, refreshDiscoverAudio, swipeDiscover, trackLink } from '../lib/api';
+import { fetchDiscoverCards, fetchRecommendations, refreshDiscoverAudio, swipeDiscover, trackLink } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
 import type { DiscoverCard, LikedSong } from '../lib/types';
 import { colors, fonts, space, text } from '../theme';
 import { DiscoverDeck } from './DiscoverDeck';
-import { LikedSongRow } from './LikedSongRow';
+import { DiscoverLiked } from './DiscoverLiked';
 import { SearchField } from './figma';
 import { searchGenres } from './GenrePicker';
 import { useStreamingOpener } from './StreamingOpener';
 import { Button } from './ui';
 import { VibeAudio } from './vibes/VibeAudio';
-import { uniqueBy } from '../lib/hooks';
-import { DeckSkeleton, TrackListSkeleton } from './Skeleton';
+import { useWebLayout } from '../lib/layout';
+import { DeckSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
 import { CoachMarks, type CoachStep, useFirstTimeTip } from './CoachMarks';
@@ -77,7 +77,8 @@ export function DiscoverSection() {
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const [refilling, setRefilling] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const liked = useQuery({ queryKey: ['discover-liked'], queryFn: fetchLikedSongs });
+  // Desktop largo: as curtidas ficam na coluna da direita.
+  const likedInPanel = useWebLayout() === 'wide';
   const { open, opening, message, platform, chooser } = useStreamingOpener((target, choice) => trackLink(target.key, choice));
   const label = (slug: string | null) => genreLabel(genres.data, slug, i18n.language);
 
@@ -230,16 +231,6 @@ export function DiscoverSection() {
       .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
   };
 
-  const unlike = (song: LikedSong) => {
-    qc.setQueryData<LikedSong[]>(['discover-liked'], (list) => list?.filter((s) => s.link_preview_id !== song.link_preview_id));
-    swipeDiscover({ link_preview_id: song.link_preview_id, post_id: null }, false)
-      .then(() => {
-        void qc.invalidateQueries({ queryKey: ['profile'] });
-        void qc.invalidateQueries({ queryKey: ['liked-songs'] });
-      })
-      .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
-  };
-
   const openSong = (s: { link_preview_id: string; title: string; artist: string | null }) =>
     open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });
 
@@ -355,20 +346,7 @@ export function DiscoverSection() {
       {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
 
       {/* Figma: "Liked songs" — tocar abre na plataforma; a estrela descurte. */}
-      <View style={styles.likedHeader}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          {t('discover.likedSongs')}
-        </Text>
-      </View>
-      {liked.isLoading ? (
-        <TrackListSkeleton count={3} cover={56} />
-      ) : !liked.data?.length ? (
-        <Text style={[text.small, { color: colors.textMuted }]}>{t('discover.likedEmpty')}</Text>
-      ) : (
-        uniqueBy(liked.data, (s) => s.link_preview_id, 'curtidas do Descobrir').map((s) => (
-          <LikedSongRow key={s.link_preview_id} song={s} onOpen={openSong} onUnlike={unlike} />
-        ))
-      )}
+      {likedInPanel ? null : <DiscoverLiked />}
       {chooser}
     </ScrollView>
   );
@@ -392,6 +370,4 @@ const styles = StyleSheet.create({
   matches: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   match: { borderRadius: 999, borderWidth: 1, borderColor: colors.handle, paddingHorizontal: space.md, paddingVertical: 6 },
   matchText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text },
-  likedHeader: { borderTopWidth: 1, borderTopColor: colors.tabBar, paddingTop: space.md },
-  sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
 });

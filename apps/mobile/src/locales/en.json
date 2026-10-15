@@ -763,5 +763,16 @@
     "accept": "Accept",
     "decline": "Decline",
     "empty": "No pending requests. When your account is private, people who want to follow you show up here."
+  },
+  "desktop": {
+    "home": "Home",
+    "account": "Account menu",
+    "viewProfile": "View profile",
+    "mostListened": "Most listened songs",
+    "language": "Language",
+    "accessibility": "Accessibility",
+    "copyright": "Soundhora · {{year}}",
+    "sidebar": "Main menu",
+    "panel": "Suggestions and most listened"
   }
 }

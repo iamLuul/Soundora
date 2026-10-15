@@ -147,6 +147,19 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
    npx supabase functions deploy discover
    ```
 
+## Web no computador (layout desktop)
+
+- A versão desktop (barra lateral, tela no meio e coluna da direita) só muda o layout. Ela usa as mesmas consultas do app (RPCs e tabelas com RLS, sempre como `authenticated`) e não tem endpoint, chave nem permissão nova.
+- A moldura do desktop só aparece depois do login e do onboarding. Na tela de entrada não há barra lateral, então nenhuma consulta sai sem sessão.
+- A busca da coluna da direita só leva o termo para a aba Buscar (até 100 caracteres, pela URL). A busca em si é a mesma do celular, com os mesmos limites no servidor.
+- Os links do rodapé são todos internos (termos, privacidade, cookies, anúncios e configurações).
+- O HTML já vem com `object-src 'none'`, `base-uri 'self'`, `form-action 'self'` e `referrer strict-origin-when-cross-origin`.
+- Na hospedagem do site, configure também estes cabeçalhos, que não funcionam em `<meta>`:
+  - `Content-Security-Policy: frame-ancestors 'none'`, para o site não poder ser aberto dentro de outro (clickjacking);
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`;
+  - `X-Content-Type-Options: nosniff`;
+  - `Permissions-Policy: camera=(self), microphone=(self), geolocation=()`.
+
 ## Excluir conta
 
 Em **Configurações → Excluir conta**, a pessoa digita o próprio @. A Edge Function `delete-account` confere o login, exige que ele tenha sido feito nos últimos 30 minutos, apaga a foto e o banner dos buckets e apaga o usuário do Supabase Auth. Perfil, posts, curtidas, comentários, seguidores, bloqueios e denúncias feitas saem junto, em cascata no banco (coberto por teste). É exigido pela App Store para apps com cadastro e é um direito pela LGPD.
