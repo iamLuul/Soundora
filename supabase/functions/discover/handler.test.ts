@@ -89,7 +89,7 @@ function setup(overrides: Partial<Deps> = {}) {
     saveLinks: async () => {},
     fetchLinks: async () => {
       calls.fetchLinks++;
-      return { spotify: 'https://open.spotify.com/track/abc' };
+      return { links: { spotify: 'https://open.spotify.com/track/abc' }, images: {} };
     },
     searchAlbums: async (q) =>
       q === 'cota'
@@ -327,7 +327,7 @@ function withPlatform(platform: StreamingChoice | null, extra: Partial<Deps> = {
     },
     fetchLinks: async () => {
       calls.songlink++;
-      return { spotify: 'https://open.spotify.com/track/abc' };
+      return { links: { spotify: 'https://open.spotify.com/track/abc' }, images: {} };
     },
     ...extra,
   });
@@ -361,7 +361,7 @@ Deno.test('Spotify (sem prévia): link e capa do Spotify, nunca áudio nem capa 
 });
 
 Deno.test('Spotify: música que o song.link não achou abre a busca do Spotify, sem capa', async () => {
-  const s = withPlatform('spotify', { fetchLinks: async () => ({ deezer: 'https://www.deezer.com/track/1' }) });
+  const s = withPlatform('spotify', { fetchLinks: async () => ({ links: { deezer: 'https://www.deezer.com/track/1' }, images: {} }) });
   const cards = await deckOf(s.handler);
   for (const c of cards) {
     assertEquals([c.platform, c.url.startsWith('https://open.spotify.com/search/'), c.image_url, c.audio_url], ['spotify', true, null, null]);
@@ -391,7 +391,7 @@ Deno.test('abrir no Spotify guarda o link e a capa: a próxima pilha já mostra 
   const s = withPlatform('spotify', {
     fetchLinks: async () => {
       if (!songlinkUp) throw new Error('fora do ar');
-      return { spotify: 'https://open.spotify.com/track/abc' };
+      return { links: { spotify: 'https://open.spotify.com/track/abc' }, images: {} };
     },
   });
   // song.link fora: cartões com a busca do Spotify e sem capa (nada guardado).
@@ -403,4 +403,59 @@ Deno.test('abrir no Spotify guarda o link e a capa: a próxima pilha já mostra 
   const id = first[0]!.link_preview_id;
   assertEquals(await (await s.handler(post({ action: 'link', previewId: id, platform: 'spotify' }))).json(), { url: 'https://open.spotify.com/track/abc', exact: true });
   assertEquals(s.saved.get(`spotify:${id}`), { found: true, url: 'https://open.spotify.com/track/abc', image_url: 'https://i.scdn.co/image/capa', audio_url: null });
+});
+
+Deno.test('capa da plataforma vem do song.link; já guarda nas outras plataformas sem prévia', async () => {
+  const s = withPlatform('amazon_music', {
+    fetchLinks: async () => ({
+      links: { amazon_music: 'https://music.amazon.com/albums/B0D1?trackAsin=B0D2', spotify: 'https://open.spotify.com/track/abc', tidal: 'https://tidal.com/browse/track/1' },
+      images: { amazon_music: 'https://m.media-amazon.com/images/I/capa.jpg', spotify: 'https://i.scdn.co/image/sl' },
+    }),
+  });
+  const cards = await deckOf(s.handler);
+  assertEquals(cards.map((c) => c.image_url), ['https://m.media-amazon.com/images/I/capa.jpg', 'https://m.media-amazon.com/images/I/capa.jpg']);
+  assertEquals(s.platformCalls.cover, 0, 'não precisou ler a página do link');
+  const id = cards[0]!.link_preview_id;
+  assertEquals(s.saved.get(`spotify:${id}`)?.image_url, 'https://i.scdn.co/image/sl');
+  // TIDAL sem capa do song.link: não guarda (a pessoa do TIDAL procura a capa na vez dela).
+  assertEquals(s.saved.has(`tidal:${id}`), false);
+});
+
+Deno.test('song.link pedindo para esperar não marca a música como "não está na plataforma"', async () => {
+  let up = false;
+  const s = withPlatform('spotify', {
+    fetchLinks: async () => {
+      if (!up) throw new Error('429');
+      return { links: { spotify: 'https://open.spotify.com/track/abc' }, images: { spotify: 'https://i.scdn.co/image/sl' } };
+    },
+  });
+  await deckOf(s.handler);
+  assertEquals(s.saved.size, 0);
+  up = true;
+  assertEquals((await deckOf(s.handler)).map((c) => c.image_url), ['https://i.scdn.co/image/sl', 'https://i.scdn.co/image/sl']);
+});
+
+Deno.test('cartões com capa primeiro; as capas que faltaram são procuradas depois da resposta', async () => {
+  const tasks: Promise<unknown>[] = [];
+  let n = 0;
+  const s = withPlatform('spotify', {
+    // Só a primeira música tem link no Spotify agora.
+    fetchLinks: async () => (n++ === 0 ? { links: { spotify: 'https://open.spotify.com/track/abc' }, images: { spotify: 'https://i.scdn.co/image/sl' } } : null),
+    background: (t) => void tasks.push(t),
+  });
+  const cards = await deckOf(s.handler);
+  assertEquals(cards[0]!.image_url, 'https://i.scdn.co/image/sl');
+  assertEquals(cards.at(-1)!.image_url, null);
+  assertEquals(tasks.length, 0, 'tudo coube no limite da pilha: nada para depois');
+});
+
+Deno.test('links guardados antes das capas: busca de novo para trazer a capa', async () => {
+  const saved: unknown[] = [];
+  const s = withPlatform('spotify', {
+    findLinks: async () => ({ links: { spotify: 'https://open.spotify.com/track/abc' }, images: null, checked_at: new Date().toISOString() }),
+    saveLinks: async (_u, links, images) => void saved.push({ links, images }),
+    fetchLinks: async () => ({ links: { spotify: 'https://open.spotify.com/track/abc' }, images: { spotify: 'https://i.scdn.co/image/sl' } }),
+  });
+  assertEquals((await deckOf(s.handler)).map((c) => c.image_url), ['https://i.scdn.co/image/sl', 'https://i.scdn.co/image/sl']);
+  assertEquals(saved.length, 2);
 });

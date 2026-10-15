@@ -9,7 +9,7 @@
 // { action: 'tracks', query }             → músicas da Deezer pelo nome (favoritas do perfil)
 // { action: 'track', trackId }            → guarda a música escolhida como cartão e devolve o cartão
 import { readJsonLimited } from '../_shared/body.ts';
-import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, type StreamingChoice } from '../_shared/links/charts.ts';
+import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, type PlatformTracks, type StreamingChoice } from '../_shared/links/charts.ts';
 import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerAlbum, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
@@ -26,6 +26,10 @@ export const LINKS_TTL_MS = 30 * 86_400_000;
 /** Por pilha, no máximo estas buscas novas na Apple (o iTunes aceita ~20 por minuto) e no song.link. */
 export const APPLE_LOOKUPS_PER_DECK = 15;
 export const LINK_LOOKUPS_PER_DECK = 5;
+/** Música achada sem capa numa plataforma: procura a capa de novo depois disso. */
+export const COVER_RETRY_MS = 7 * 86_400_000;
+/** Plataformas sem prévia: o cartão leva o link e a capa delas (vindos do song.link). */
+const LINK_ONLY: StreamingChoice[] = ['spotify', 'youtube_music', 'amazon_music', 'tidal', 'soundcloud'];
 /** Pedidos por pessoa (por minuto). */
 export const RATE = { deck: 12, link: 30, audio: 30, albums: 40, album: 20, tracks: 40, track: 20 } as const;
 
@@ -60,6 +64,8 @@ export interface PlatformTrack {
   url: string | null;
   image_url: string | null;
   audio_url: string | null;
+  /** Quando foi procurada (para procurar a capa de novo, se não veio). */
+  checked_at?: string | null;
 }
 
 /** Música achada na Apple (iTunes Search): link, capa e prévia oficiais. */
@@ -134,9 +140,13 @@ export interface Deps {
   searchTracks(query: string): Promise<DeezerTrack[] | 'quota'>;
   /** Guarda a música como cartão (link_previews, tipo faixa) e devolve o cartão. */
   saveSong(track: DeezerTrack): Promise<SongRow>;
-  findLinks(sourceUrl: string): Promise<{ links: Partial<Record<Platform, string>>; checked_at: string } | null>;
-  saveLinks(sourceUrl: string, links: Partial<Record<Platform, string>>): Promise<void>;
-  fetchLinks(sourceUrl: string): Promise<Partial<Record<Platform, string>> | null>;
+  /** Links guardados (images = null: guardados antes de trazer as capas). */
+  findLinks(sourceUrl: string): Promise<{ links: Partial<Record<Platform, string>>; images?: Partial<Record<Platform, string>> | null; checked_at: string } | null>;
+  saveLinks(sourceUrl: string, links: Partial<Record<Platform, string>>, images?: Partial<Record<Platform, string>>): Promise<void>;
+  /** Links e capas no song.link (null = não conhece a música; erro = esperar e tentar depois). */
+  fetchLinks(sourceUrl: string): Promise<PlatformTracks | null>;
+  /** Continua um trabalho depois da resposta (procurar as capas que faltaram para a próxima pilha). */
+  background?(task: Promise<unknown>): void;
   /** Plataforma escolhida pela pessoa (null = ainda não escolheu). Sem isto, vale a Deezer. */
   platformOf?(userId: string): Promise<StreamingChoice | null>;
   /** O que já achamos dessas músicas numa plataforma (por id do cartão). */
@@ -238,11 +248,15 @@ export function createHandler(deps: Deps) {
       }),
     );
 
-    const views = await viewsFor(platform, unique.map((c) => c.row));
+    const { views, later } = await viewsFor(platform, unique.map((c) => c.row));
     const shown = unique.flatMap((c) => {
       const view = views.get(c.row.id);
       return view ? [{ ...c, view }] : [];
     });
+    // Nas plataformas sem prévia, os cartões com capa vêm primeiro; os que ainda não têm ficam
+    // para o fim, e as capas que faltaram são procuradas depois da resposta (para a próxima pilha).
+    if (platform && platform !== 'deezer') shown.sort((a, b) => Number(!a.view.image_url) - Number(!b.view.image_url));
+    if (platform && later.length && deps.background) deps.background(lookupMany(platform, later.slice(0, LINK_LOOKUPS_PER_DECK)).catch(() => undefined));
 
     if (!shown.length) log(`discover: nenhuma sugestão (${candidates.length} candidatas, quota=${quota}, plataforma=${platform})`);
     return json({
@@ -273,34 +287,31 @@ export function createHandler(deps: Deps) {
    * - Sem plataforma escolhida: sem prévia e sem capa (o app pede para escolher).
    * Buscas novas por pilha são limitadas; o que foi achado fica guardado (platform_tracks).
    */
-  async function viewsFor(platform: StreamingChoice | null, rows: TrackRow[]): Promise<Map<string, CardView | null>> {
+  async function viewsFor(platform: StreamingChoice | null, rows: TrackRow[]): Promise<{ views: Map<string, CardView | null>; later: TrackRow[] }> {
     const out = new Map<string, CardView | null>();
     if (platform === 'deezer') {
       for (const r of rows) {
         out.set(r.id, { url: r.url, platform: r.platform, image_url: r.image_url, artist_image_url: r.artist_image_url, audio_url: r.audio_url, preview_platform: r.audio_url ? 'deezer' : null });
       }
-      return out;
+      return { views: out, later: [] };
     }
     if (!platform) {
       for (const r of rows) out.set(r.id, { url: r.url, platform: r.platform, image_url: null, artist_image_url: null, audio_url: null, preview_platform: null });
-      return out;
+      return { views: out, later: [] };
     }
     const cached = (await deps.findPlatformTracks?.(rows.map((r) => r.id), platform)) ?? new Map<string, PlatformTrack>();
-    // Buscas novas, de 5 em 5 (em paralelo), até o limite da pilha ou a plataforma pedir para esperar.
-    const missing = rows.filter((r) => !cached.has(r.id)).slice(0, platform === 'apple_music' ? APPLE_LOOKUPS_PER_DECK : LINK_LOOKUPS_PER_DECK);
-    for (let i = 0; i < missing.length; i += 5) {
-      const batch = missing.slice(i, i + 5);
-      const found = await Promise.all(batch.map((r) => findOn(platform, r)));
-      let blocked = false;
-      for (const [j, f] of found.entries()) {
-        if (f === 'quota') blocked = true;
-        else {
-          cached.set(batch[j]!.id, f);
-          await deps.savePlatformTrack?.(batch[j]!.id, platform, f).catch(() => undefined);
-        }
-      }
-      if (blocked) break;
-    }
+    // Nunca procurada, ou achada sem capa há um tempo (a capa pode ter aparecido).
+    const t = now().getTime();
+    const needs = (r: TrackRow) => {
+      const pt = cached.get(r.id);
+      if (!pt) return true;
+      return platform !== 'apple_music' && pt.found && !pt.image_url && !!pt.checked_at && t - new Date(pt.checked_at).getTime() > COVER_RETRY_MS;
+    };
+    const missing = rows.filter(needs);
+    const budget = platform === 'apple_music' ? APPLE_LOOKUPS_PER_DECK : LINK_LOOKUPS_PER_DECK;
+    const done = await lookupMany(platform, missing.slice(0, budget));
+    for (const [id, f] of done) cached.set(id, f);
+    const later = missing.slice(budget).concat(missing.slice(0, budget).filter((r) => !done.has(r.id)));
     for (const r of rows) {
       const pt = cached.get(r.id);
       // Não está na Apple: sem prévia nem capa da Apple, a música não entra na pilha.
@@ -319,7 +330,26 @@ export function createHandler(deps: Deps) {
         preview_platform: audio ? 'apple_music' : null,
       });
     }
-    return out;
+    return { views: out, later };
+  }
+
+  /** Procura as músicas na plataforma de 5 em 5 (em paralelo) e guarda; para se pedirem para esperar. */
+  async function lookupMany(platform: StreamingChoice, rows: TrackRow[]): Promise<Map<string, PlatformTrack>> {
+    const done = new Map<string, PlatformTrack>();
+    for (let i = 0; i < rows.length; i += 5) {
+      const batch = rows.slice(i, i + 5);
+      const found = await Promise.all(batch.map((r) => findOn(platform, r)));
+      let blocked = false;
+      for (const [j, f] of found.entries()) {
+        if (f === 'quota') blocked = true;
+        else {
+          done.set(batch[j]!.id, f);
+          await deps.savePlatformTrack?.(batch[j]!.id, platform, f).catch(() => undefined);
+        }
+      }
+      if (blocked) break;
+    }
+    return done;
   }
 
   /** Procura a música numa plataforma ('quota' = não deu agora; não guarda). */
@@ -331,26 +361,43 @@ export function createHandler(deps: Deps) {
       if (a === 'quota') return 'quota';
       return a ? { found: true, url: a.url, image_url: a.imageUrl, audio_url: a.previewUrl } : none;
     }
-    const links = await resolveLinks(r);
-    if (links === 'failed') return 'quota';
-    const url = links?.[platform] ?? null;
-    if (!url) return none;
-    const image = deps.coverOf ? await deps.coverOf(url).catch(() => null) : null;
+    const found = await resolveLinks(r, true);
+    if (found === 'failed') return 'quota';
+    const url = found?.links[platform] ?? null;
+    if (!found || !url) return none;
+    // A capa da própria plataforma: a que o song.link trouxe ou, sem ela, a da página do link.
+    const image = found.images?.[platform] ?? (deps.coverOf ? await deps.coverOf(url).catch(() => null) : null);
+    // Busca nova: já guarda o link e a capa nas outras plataformas sem prévia (outras pessoas).
+    if (found.fresh) {
+      for (const p of LINK_ONLY) {
+        const other = found.links[p];
+        const cover = found.images?.[p];
+        if (p !== platform && other && cover) await deps.savePlatformTrack?.(r.id, p, { found: true, url: other, image_url: cover, audio_url: null }).catch(() => undefined);
+      }
+    }
     return { found: true, url, image_url: image, audio_url: null };
   }
 
-  /** Links da música em todas as plataformas (song.link, guardado por 30 dias). */
-  async function resolveLinks(track: TrackRow): Promise<Partial<Record<Platform, string>> | null | 'failed'> {
+  /**
+   * Links e capas da música em todas as plataformas (song.link, guardados por 30 dias).
+   * Com `withImages`, links guardados antes das capas são buscados de novo.
+   * 'failed' = o song.link pediu para esperar ou falhou (não é "não achou").
+   */
+  async function resolveLinks(
+    track: TrackRow,
+    withImages = false,
+  ): Promise<{ links: Partial<Record<Platform, string>>; images: Partial<Record<Platform, string>> | null; fresh: boolean } | null | 'failed'> {
     if (!isTrackSourceUrl(track.url)) return null;
     const cached = await deps.findLinks(track.url);
-    if (cached && now().getTime() - new Date(cached.checked_at).getTime() < LINKS_TTL_MS) return cached.links;
+    const valid = cached && now().getTime() - new Date(cached.checked_at).getTime() < LINKS_TTL_MS ? cached : null;
+    if (valid && (valid.images || !withImages)) return { links: valid.links, images: valid.images ?? null, fresh: false };
     try {
-      const links = await deps.fetchLinks(track.url);
-      if (links) await deps.saveLinks(track.url, links);
-      return links;
+      const found = await deps.fetchLinks(track.url);
+      if (found) await deps.saveLinks(track.url, found.links, found.images);
+      return found ? { ...found, fresh: true } : null;
     } catch (err) {
       log('discover: song.link indisponível', err);
-      return 'failed';
+      return valid ? { links: valid.links, images: null, fresh: false } : 'failed';
     }
   }
 
@@ -401,7 +448,7 @@ export function createHandler(deps: Deps) {
     const platform = deps.platformOf ? await deps.platformOf(userId) : 'deezer';
     if (platform !== 'deezer') {
       if (platform !== 'apple_music') return json({ audio_url: null });
-      const view = (await viewsFor('apple_music', [track])).get(track.id);
+      const view = (await viewsFor('apple_music', [track])).views.get(track.id);
       return json({ audio_url: view?.audio_url ?? null });
     }
     if (track.platform === 'deezer' && track.provider_id) {
@@ -473,11 +520,12 @@ export function createHandler(deps: Deps) {
     if (known?.found && known.url) return json({ url: known.url, exact: true });
     if (!isTrackSourceUrl(track.url)) return json({ url: search, exact: false });
 
-    const links = await resolveLinks(track);
-    const exact = links !== 'failed' ? links?.[platform] : undefined;
+    const found = await resolveLinks(track);
+    const exact = found !== 'failed' ? found?.links[platform] : undefined;
     // Guarda o link (e a capa) dessa plataforma: o próximo Descobrir já mostra a capa dela.
-    if (exact && !known) {
-      const image = deps.coverOf ? await deps.coverOf(exact).catch(() => null) : null;
+    // (Apple e Deezer têm prévia: o cartão delas vem da busca própria, não daqui.)
+    if (exact && !known && found && found !== 'failed' && LINK_ONLY.includes(platform)) {
+      const image = found.images?.[platform] ?? (deps.coverOf ? await deps.coverOf(exact).catch(() => null) : null);
       await deps.savePlatformTrack?.(track.id, platform, { found: true, url: exact, image_url: image, audio_url: null }).catch(() => undefined);
     }
     return json(exact ? { url: exact, exact: true } : { url: search, exact: false });

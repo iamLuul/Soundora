@@ -310,31 +310,88 @@ export function isTrackSourceUrl(url: string): boolean {
   return !!parsed && parsed.kind === 'track' && Object.values(ODESLI_KEYS).includes(parsed.platform) && parsed.url === url;
 }
 
+/** Links e capas da mesma música em cada plataforma (song.link). */
+export interface PlatformTracks {
+  links: Partial<Record<Platform, string>>;
+  /** Capa de cada plataforma, do catálogo da própria plataforma (só CDNs conhecidos). */
+  images: Partial<Record<Platform, string>>;
+}
+
+/** O song.link pediu para esperar (limite de pedidos) ou falhou; tentar de novo depois. */
+export class SongLinkUnavailableError extends Error {
+  constructor(status: number | string) {
+    super(`song.link indisponível (${status})`);
+    this.name = 'SongLinkUnavailableError';
+  }
+}
+
 /**
- * Links da mesma música em cada plataforma, pelo song.link, a partir do link de uma faixa
- * (Deezer, Apple Music, Spotify...). Cada link é conferido: só entra se for mesmo um link daquela plataforma (nada de
- * mandar a pessoa para um site qualquer). null = o song.link não respondeu agora.
+ * Links e capas da mesma música em cada plataforma, pelo song.link, a partir do link de uma
+ * faixa (Deezer, Apple Music, Spotify...). Cada link é conferido: só entra se for mesmo um link
+ * daquela plataforma (nada de mandar a pessoa para um site qualquer). Cada capa vem da própria
+ * plataforma (o song.link repassa a do catálogo dela).
+ * null = o song.link não conhece a música. Limite de pedidos, erro do servidor ou rede:
+ * SongLinkUnavailableError (não é "não achou": tentar de novo depois).
  */
-export async function fetchPlatformLinks(
+export async function fetchPlatformTracks(
   sourceTrackUrl: string,
-  opts: { fetch: FetchLike; timeoutMs?: number; country?: string },
-): Promise<Partial<Record<Platform, string>> | null> {
+  opts: { fetch: FetchLike; timeoutMs?: number; country?: string; apiKey?: string },
+): Promise<PlatformTracks | null> {
   if (!isTrackSourceUrl(sourceTrackUrl)) return null;
   const source = parseStreamingUrl(sourceTrackUrl)!;
   const country = /^[A-Z]{2}$/.test(opts.country ?? '') ? opts.country : 'US';
-  const data = (await getJson(opts.fetch, `${ODESLI}?url=${encodeURIComponent(source.url)}&userCountry=${country}`, opts.timeoutMs ?? 6000)) as {
-    linksByPlatform?: Record<string, { url?: unknown }>;
+  const key = opts.apiKey && /^[\w-]{1,200}$/.test(opts.apiKey) ? `&key=${opts.apiKey}` : '';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 6000);
+  let data: {
+    linksByPlatform?: Record<string, { url?: unknown; entityUniqueId?: unknown }>;
+    entitiesByUniqueId?: Record<string, { thumbnailUrl?: unknown }>;
   } | null;
+  try {
+    const res = await opts.fetch(`${ODESLI}?url=${encodeURIComponent(source.url)}&userCountry=${country}${key}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    if (res.status === 429 || res.status >= 500) throw new SongLinkUnavailableError(res.status);
+    if (!res.ok) return null;
+    const text = await res.text();
+    data = text.length > MAX_JSON_CHARS ? null : JSON.parse(text);
+  } catch (err) {
+    if (err instanceof SongLinkUnavailableError) throw err;
+    if (err instanceof SyntaxError) return null;
+    throw new SongLinkUnavailableError('rede');
+  } finally {
+    clearTimeout(timer);
+  }
   const byPlatform = data?.linksByPlatform;
   if (!byPlatform || typeof byPlatform !== 'object') return null;
+  const entities = data?.entitiesByUniqueId && typeof data.entitiesByUniqueId === 'object' ? data.entitiesByUniqueId : {};
 
   const links: Partial<Record<Platform, string>> = {};
-  for (const [key, platform] of Object.entries(ODESLI_KEYS)) {
-    const url = byPlatform[key]?.url;
+  const images: Partial<Record<Platform, string>> = {};
+  for (const [name, platform] of Object.entries(ODESLI_KEYS)) {
+    const entry = byPlatform[name];
+    const url = entry?.url;
     const parsed = typeof url === 'string' ? parseStreamingUrl(url) : null;
-    if (parsed && parsed.platform === platform) links[platform] = parsed.url;
+    if (!parsed || parsed.platform !== platform) continue;
+    links[platform] = parsed.url;
+    const entity = typeof entry?.entityUniqueId === 'string' ? entities[entry.entityUniqueId] : undefined;
+    const image = safeImageUrl(typeof entity?.thumbnailUrl === 'string' ? entity.thumbnailUrl : null);
+    if (image) images[platform] = image;
   }
-  return links;
+  return { links, images };
+}
+
+/** Só os links (null também quando o song.link não respondeu agora). */
+export async function fetchPlatformLinks(
+  sourceTrackUrl: string,
+  opts: { fetch: FetchLike; timeoutMs?: number; country?: string; apiKey?: string },
+): Promise<Partial<Record<Platform, string>> | null> {
+  try {
+    return (await fetchPlatformTracks(sourceTrackUrl, opts))?.links ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Busca da música na plataforma, para quando não há o link exato. */

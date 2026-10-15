@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartKey, fetchPlatformLinks, fetchWorldChart, findTrackMeta, isChartSourceUrl, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry } from './charts.ts';
+import { chartKey, fetchPlatformLinks, fetchPlatformTracks, fetchWorldChart, findTrackMeta, isChartSourceUrl, LastfmKeyError, platformSearchUrl, rankWithMoves, SongLinkUnavailableError, type ChartEntry } from './charts.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -207,6 +207,34 @@ describe('links nas plataformas (song.link)', () => {
     expect(links?.youtube_music).toBe('https://music.youtube.com/watch?v=eVli-tstM5E');
     expect(links?.deezer).toBe('https://www.deezer.com/track/2801558052');
     expect(links?.tidal).toBeUndefined();
+  });
+
+  it('traz a capa de cada plataforma (só de CDNs conhecidos)', async () => {
+    const fetch = fakeFetch({
+      'https://api.song.link/': {
+        linksByPlatform: {
+          spotify: { url: 'https://open.spotify.com/track/2qSkIjg1o9h3YT9RAgYN75', entityUniqueId: 'SPOTIFY_SONG::1' },
+          amazonMusic: { url: 'https://music.amazon.com/albums/B0D1?trackAsin=B0D2', entityUniqueId: 'AMAZON_SONG::2' },
+          tidal: { url: 'https://tidal.com/browse/track/123', entityUniqueId: 'TIDAL_SONG::3' },
+        },
+        entitiesByUniqueId: {
+          'SPOTIFY_SONG::1': { thumbnailUrl: 'https://i.scdn.co/image/ab67' },
+          'AMAZON_SONG::2': { thumbnailUrl: 'https://m.media-amazon.com/images/I/capa.jpg' },
+          'TIDAL_SONG::3': { thumbnailUrl: 'https://evil.example.com/capa.jpg' },
+        },
+      },
+    });
+    const r = await fetchPlatformTracks('https://www.deezer.com/track/2801558052', { fetch });
+    expect(r?.images).toEqual({ spotify: 'https://i.scdn.co/image/ab67', amazon_music: 'https://m.media-amazon.com/images/I/capa.jpg' });
+    expect(r?.links.tidal).toBe('https://tidal.com/browse/track/123');
+  });
+
+  it('limite de pedidos não vira "não achou"', async () => {
+    const limited: FetchLike = async () => ({ ok: false, status: 429, headers: { get: () => null }, text: async () => '' });
+    await expect(fetchPlatformTracks('https://www.deezer.com/track/2801558052', { fetch: limited })).rejects.toBeInstanceOf(SongLinkUnavailableError);
+    expect(await fetchPlatformLinks('https://www.deezer.com/track/2801558052', { fetch: limited })).toBeNull();
+    // Música que o song.link não conhece: null (não é erro).
+    expect(await fetchPlatformTracks('https://www.deezer.com/track/2801558052', { fetch: fakeFetch({}) })).toBeNull();
   });
 
   it('aceita o link da Apple Music como origem', async () => {

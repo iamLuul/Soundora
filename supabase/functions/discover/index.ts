@@ -7,12 +7,14 @@
 // Local:  supabase/functions/.env com LASTFM_API_KEY=...  e  npx supabase functions serve
 // Nuvem:  npx supabase functions deploy discover
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { chartKey, fetchPlatformLinks, isStreamingChoice, LastfmKeyError } from '../_shared/links/charts.ts';
+import { chartKey, fetchPlatformTracks, isStreamingChoice, LastfmKeyError } from '../_shared/links/charts.ts';
 import { deezerAlbumById, deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend, searchDeezerAlbums, searchDeezerTracks } from '../_shared/links/discover.ts';
 import { isAllowedAudioUrl, sameTrack } from '../_shared/links/genres.ts';
 import { buildLinkPreview, type FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
 import { createHandler, RATE, type PlatformTrack, type TrackRow } from './handler.ts';
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const admin = createClient(supabaseUrl, apiKey('secret'), { auth: { persistSession: false, autoRefreshToken: false } });
@@ -176,15 +178,17 @@ Deno.serve(
       return data as TrackRow | null;
     },
     async findLinks(sourceUrl) {
-      const { data, error } = await admin.from('track_platform_links').select('links, checked_at').eq('source_url', sourceUrl).maybeSingle();
+      const { data, error } = await admin.from('track_platform_links').select('links, images, checked_at').eq('source_url', sourceUrl).maybeSingle();
       if (error) throw error;
       return data;
     },
-    async saveLinks(sourceUrl, links) {
-      const { error } = await admin.from('track_platform_links').upsert({ source_url: sourceUrl, links, checked_at: new Date().toISOString() });
+    async saveLinks(sourceUrl, links, images) {
+      const { error } = await admin.from('track_platform_links').upsert({ source_url: sourceUrl, links, images: images ?? null, checked_at: new Date().toISOString() });
       if (error) throw error;
     },
-    fetchLinks: (sourceUrl) => fetchPlatformLinks(sourceUrl, { fetch: http, timeoutMs: 6000 }),
+    // Chave do song.link (opcional): sem ela, o limite é de ~10 pedidos por minuto.
+    fetchLinks: (sourceUrl) => fetchPlatformTracks(sourceUrl, { fetch: http, timeoutMs: 6000, apiKey: Deno.env.get('SONGLINK_API_KEY') }),
+    background: typeof EdgeRuntime !== 'undefined' ? (task) => EdgeRuntime!.waitUntil(task) : undefined,
     async platformOf(userId) {
       const { data, error } = await admin.from('profile_private').select('streaming_platform').eq('user_id', userId).maybeSingle();
       if (error) throw error;
@@ -195,7 +199,7 @@ Deno.serve(
       if (!ids.length) return map;
       const { data, error } = await admin
         .from('platform_tracks')
-        .select('link_preview_id, found, url, image_url, audio_url')
+        .select('link_preview_id, found, url, image_url, audio_url, checked_at')
         .eq('platform', platform)
         .in('link_preview_id', ids);
       if (error) throw error;
