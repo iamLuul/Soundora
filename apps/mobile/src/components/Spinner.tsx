@@ -5,7 +5,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme';
 
 /**
- * Indicador de carregamento do Soundora: um anel fino com um arco de ponta redonda girando
+ * Indicador de carregamento do Soundhora: um anel fino com um arco de ponta redonda girando
  * liso sobre si mesmo. Substitui o ActivityIndicator do sistema (as "pétalas" do iOS e o
  * círculo do Android), para ficar igual em todas as plataformas e na cor da marca.
  * Com `spinning={false}` o arco fica parado (o puxar para atualizar gira ele com o dedo).

@@ -16,7 +16,7 @@ export default function AboutSettingsScreen() {
         <SettingsRow testID="settings-ads" icon="megaphone-outline" label={t('legal.ads')} onPress={() => router.push('/legal/ads')} last />
       </SettingsSection>
       <SettingsSection>
-        <SettingsRow icon="code-slash-outline" label={t('settings.version')} value={`Soundora ${Constants.expoConfig?.version ?? ''}`} last />
+        <SettingsRow icon="code-slash-outline" label={t('settings.version')} value={`Soundhora ${Constants.expoConfig?.version ?? ''}`} last />
       </SettingsSection>
     </SettingsScreen>
   );

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy, type StreamingChoice } from '@soundora/core';
+import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy, type StreamingChoice } from '@soundhora/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';

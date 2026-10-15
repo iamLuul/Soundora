@@ -1,12 +1,12 @@
 # Fluxo completo de cadastro: e-mail + senha + confirmar senha → código no e-mail → onboarding → feed.
-# Rodar: maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundora.dev -e USERNAME=teste1 -e PASSWORD=senha-forte-123
-appId: app.soundora
+# Rodar: maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundhora.dev -e USERNAME=teste1 -e PASSWORD=senha-forte-123
+appId: app.soundhora
 env:
   MAILBOX_URL: http://10.0.2.2:54324 # emulador Android enxerga o PC em 10.0.2.2
 ---
 - launchApp:
     clearState: true
-- assertVisible: "Soundora."
+- assertVisible: "Soundhora."
 - tapOn:
     id: "open-sign-up"
 - tapOn:

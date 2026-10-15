@@ -24,7 +24,7 @@ export const supabaseUrl = resolveServerUrl(configuredUrl, {
 });
 
 const isTest = process.env.NODE_ENV === 'test';
-if (__DEV__ && !isTest) console.log(`[Soundora] Supabase em ${supabaseUrl}`);
+if (__DEV__ && !isTest) console.log(`[Soundhora] Supabase em ${supabaseUrl}`);
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {

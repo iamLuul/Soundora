@@ -16,4 +16,4 @@ export function apiKey(kind: 'publishable' | 'secret'): string {
 }
 
 /** Fora da nuvem (supabase start), o erro técnico volta na resposta para facilitar o diagnóstico. */
-export const isDebug = !Deno.env.get('SB_REGION') || Deno.env.get('SOUNDORA_DEBUG') === '1';
+export const isDebug = !Deno.env.get('SB_REGION') || Deno.env.get('SOUNDHORA_DEBUG') === '1';

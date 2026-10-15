@@ -1,5 +1,5 @@
 /**
- * Tokens visuais do Soundora, tirados do guia visual da pesquisa:
+ * Tokens visuais do Soundhora, tirados do guia visual da pesquisa:
  * Montserrat, roxo "Blue Genie" #6C62FF e tema escuro.
  */
 export const colors = {

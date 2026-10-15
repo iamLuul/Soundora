@@ -20,7 +20,7 @@ export function uniqueBy<T>(items: readonly T[], id: (item: T) => string, list =
   for (const item of items) {
     const key = id(item);
     if (seen.has(key)) {
-      if (__DEV__) console.warn(`[Soundora] item repetido em ${list}: ${key}`);
+      if (__DEV__) console.warn(`[Soundhora] item repetido em ${list}: ${key}`);
       continue;
     }
     seen.add(key);

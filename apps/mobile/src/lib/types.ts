@@ -1,4 +1,4 @@
-import type { LinkKind, Platform, ReportReason } from '@soundora/core';
+import type { LinkKind, Platform, ReportReason } from '@soundhora/core';
 
 // Tipos das tabelas e funções do banco usadas pelo app.
 // Para gerar tudo automaticamente: npx supabase gen types typescript --linked > src/lib/database.types.ts

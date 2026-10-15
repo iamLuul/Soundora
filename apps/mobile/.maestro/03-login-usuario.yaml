@@ -2,7 +2,7 @@
 # Precisa de uma conta já criada pelo 01-cadastro (mesmos USERNAME e PASSWORD).
 # Rodar: maestro test apps/mobile/.maestro/03-login-usuario.yaml -e USERNAME=teste1 -e PASSWORD=senha-forte-123
 # (a Edge Function auth-username precisa estar rodando: npx supabase functions serve)
-appId: app.soundora
+appId: app.soundhora
 env:
   MAILBOX_URL: http://10.0.2.2:54324
 ---

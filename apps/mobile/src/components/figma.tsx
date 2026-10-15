@@ -1,7 +1,7 @@
 // Peças visuais tiradas do Figma (Case Study UI/UX): ícones, logo, logos das plataformas,
 // abas do topo com o sino e cabeçalho com a seta de voltar.
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { Platform as StreamingPlatform } from '@soundora/core';
+import type { Platform as StreamingPlatform } from '@soundhora/core';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useId, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,11 +30,11 @@ export function Icon({ name, size: base = 20, color = colors.text }: { name: Ico
   return <SvgXml xml={xml} width={(size * w) / h} height={size} color={color} />;
 }
 
-/** Mascote + "Soundora." (Figma: Login). */
+/** Mascote + "Soundhora" (Figma: Login). */
 export function Logo({ height = 108 }: { height?: number }) {
   const { w, h } = svgSize(logoSvg);
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel="Soundora">
+    <View accessible accessibilityRole="image" accessibilityLabel="Soundhora">
       <SvgXml xml={logoSvg} width={(height * w) / h} height={height} />
     </View>
   );

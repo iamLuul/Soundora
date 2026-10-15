@@ -1,4 +1,4 @@
-import type { StreamingChoice } from '@soundora/core';
+import type { StreamingChoice } from '@soundhora/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { useState } from 'react';

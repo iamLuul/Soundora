@@ -1,4 +1,4 @@
-import { extractFirstUrl, parseStreamingUrl } from '@soundora/core';
+import { extractFirstUrl, parseStreamingUrl } from '@soundhora/core';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';

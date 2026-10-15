@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { PLATFORM_LABELS, type StreamingChoice } from '@soundora/core';
+import { PLATFORM_LABELS, type StreamingChoice } from '@soundhora/core';
 import * as Linking from 'expo-linking';
 import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, SvgXml } from 'react-native-svg';

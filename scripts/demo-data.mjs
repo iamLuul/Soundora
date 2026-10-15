@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const require = createRequire(import.meta.url);
 const DOMAIN = 'demo.soundora.dev';
-const PASSWORD = 'Soundora2026demo';
+const PASSWORD = 'Soundhora2026demo';
 const REMOVE = process.argv.includes('--remove');
 
 // ---------------------------------------------------------------- conexão

@@ -2,7 +2,7 @@
  * Validação mínima no formato que o app usa (parse, safeParse, error.issues[0].message,
  * options). Substitui o zod: o app só precisa de regras simples (tamanho, regex, regra
  * própria), e o zod levava ~1 MB ao JavaScript da web (incluindo mensagens em dezenas de
- * idiomas que o Soundora não usa, porque mostra as próprias traduções pelo código do erro).
+ * idiomas que o Soundhora não usa, porque mostra as próprias traduções pelo código do erro).
  */
 export interface Issue {
   message: string;

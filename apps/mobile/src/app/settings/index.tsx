@@ -103,7 +103,7 @@ export default function SettingsScreenIndex() {
         />
       </SettingsSection>
 
-      <Text style={[text.small, { textAlign: 'center' }]}>Soundora {Constants.expoConfig?.version ?? ''}</Text>
+      <Text style={[text.small, { textAlign: 'center' }]}>Soundhora {Constants.expoConfig?.version ?? ''}</Text>
     </SettingsScreen>
   );
 }

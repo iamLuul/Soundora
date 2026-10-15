@@ -1,4 +1,4 @@
-import { passwordSchema } from '@soundora/core';
+import { passwordSchema } from '@soundhora/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
@@ -25,7 +25,7 @@ import { PasswordField } from './PasswordField';
 export function useDescribeError() {
   const { t } = useTranslation();
   return (err: unknown): string => {
-    console.error('[Soundora] erro no login:', err);
+    console.error('[Soundhora] erro no login:', err);
     const base = t(authErrorKey(err));
     if (!__DEV__) return base;
     const detail = errorDetail(err) || (err instanceof Error ? err.message : String(err));

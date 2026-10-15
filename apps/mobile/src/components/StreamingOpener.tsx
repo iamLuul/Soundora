@@ -1,4 +1,4 @@
-import { platformSearchUrl, type StreamingChoice } from '@soundora/core';
+import { platformSearchUrl, type StreamingChoice } from '@soundhora/core';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { useState, type ReactElement } from 'react';
@@ -49,7 +49,7 @@ export function useStreamingOpener(resolve: (target: OpenTarget, platform: Strea
       url = platformSearchUrl(choice, target.title, target.artist);
     }
     try {
-      // Na web, abre numa aba nova para o Soundora continuar aberto.
+      // Na web, abre numa aba nova para o Soundhora continuar aberto.
       if (Platform.OS === 'web') window.open(url, '_blank', 'noopener,noreferrer');
       else await Linking.openURL(url);
     } catch (err) {

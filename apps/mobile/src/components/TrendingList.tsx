@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PLATFORM_LABELS } from '@soundora/core';
+import { PLATFORM_LABELS } from '@soundhora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';

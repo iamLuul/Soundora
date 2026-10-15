@@ -1,12 +1,12 @@
 {
-  "name": "@soundora/mobile",
+  "name": "@soundhora/mobile",
   "main": "index.ts",
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",
     "@expo/ui": "~57.0.22",
     "@expo/vector-icons": "^15.1.1",
-    "@soundora/core": "*",
+    "@soundhora/core": "*",
     "@supabase/supabase-js": "^2.117.3",
     "@tanstack/react-query": "^5.104.1",
     "aes-js": "^3.1.2",
@@ -75,7 +75,7 @@
       "./jest.setup.ts"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|standard-navigation|@soundora/.*)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|standard-navigation|@soundhora/.*)"
     ],
     "testTimeout": 20000
   }

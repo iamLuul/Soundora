@@ -9,7 +9,7 @@
  */
 
 export interface AgePolicy {
-  /** Idade mínima para usar o Soundora. */
+  /** Idade mínima para usar o Soundhora. */
   minAge: number;
   /** Abaixo desta idade, a conta precisa de um responsável vinculado. */
   guardianRequiredUnder: number;

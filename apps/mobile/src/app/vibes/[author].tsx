@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { reportReasonSchema } from '@soundora/core';
+import { reportReasonSchema } from '@soundhora/core';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';

@@ -4,7 +4,7 @@ import pg from 'pg';
 
 export const ROOT = join(import.meta.dirname, '..', '..');
 export const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:54329/postgres';
-const TEST_DB = 'soundora_test';
+const TEST_DB = 'soundhora_test';
 
 function urlFor(db: string): string {
   const u = new URL(DATABASE_URL);

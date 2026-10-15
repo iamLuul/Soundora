@@ -1,6 +1,6 @@
 # Ambiente de desenvolvimento no Windows
 
-Tudo o que é preciso para rodar o Soundora no seu PC, testar no celular e publicar.
+Tudo o que é preciso para rodar o Soundhora no seu PC, testar no celular e publicar.
 
 ## 1. Programas
 
@@ -65,7 +65,7 @@ Para o app não ficar vazio nos testes, com o Supabase e as functions rodando:
 npm run demo
 ```
 
-Cria 6 contas de teste (@marina.sons, @caio.beats, @lua.indie, @dj.tavares, @bia.ramos, @theo.rock) com foto, banner, posts com música e foto, comentários, respostas, curtidas e vibes. As suas contas passam a seguir as de teste e ganham seguidores e notificações. Para entrar como uma delas: `marina_sons@demo.soundora.dev` (ou `@marina.sons`), senha `Soundora2026demo`.
+Cria 6 contas de teste (@marina.sons, @caio.beats, @lua.indie, @dj.tavares, @bia.ramos, @theo.rock) com foto, banner, posts com música e foto, comentários, respostas, curtidas e vibes. As suas contas passam a seguir as de teste e ganham seguidores e notificações. Para entrar como uma delas: `marina_sons@demo.soundora.dev` (ou `@marina.sons`), senha `Soundhora2026demo`.
 
 - Rodar de novo apaga e recria só as contas de teste (as vibes somem em 24 h; é assim que se renova).
 - `npm run demo -- --remove` apaga as contas de teste e tudo delas.
@@ -123,7 +123,7 @@ npx supabase secrets set LASTFM_API_KEY=<sua-chave-do-last.fm>
 
 3. Em **Authentication → Email Templates**, cole o conteúdo de `supabase/templates/magic_link.html` em **Magic Link** e em **Confirm signup** (os dois mandam o código de 6 dígitos em vez de link), e `supabase/templates/reauthentication.html` em **Reauthentication**.
 4. Siga a lista de segurança da nuvem em [SEGURANCA.md](SEGURANCA.md#na-nuvem-o-que-ligar-no-painel) (confirmação de e-mail, regras de senha, limites, SSL).
-5. Em **Authentication → URL Configuration**, adicione `soundora://**` e a URL do site em Redirect URLs.
+5. Em **Authentication → URL Configuration**, adicione `soundhora://**` e a URL do site em Redirect URLs.
 6. Rode o `seed.sql` no SQL Editor (gêneros).
 
 ## 7. Builds e lojas (EAS)
@@ -168,4 +168,4 @@ O banco envia os avisos pelo serviço da Expo usando a extensão `pg_net`, que o
 | `Incompatible React versions` | `node_modules` antigo | Apague `node_modules` e rode `npm ci` |
 | "Notificações no celular" desativada nas Configurações | Expo Go, emulador, Web ou falta o `projectId` do EAS | Normal em desenvolvimento. Veja "Notificações no celular (push)" acima |
 
-Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundora] Supabase em ...` ao abrir o app.
+Em desenvolvimento, a tela de login mostra o erro técnico e o endereço do Supabase abaixo da mensagem. O terminal do Expo também mostra a linha `[Soundhora] Supabase em ...` ao abrir o app.

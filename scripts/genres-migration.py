@@ -3,7 +3,7 @@
 
     python3 scripts/genres-migration.py > supabase/migrations/20261011000011_genre_catalog.sql
 
-O slug vem do nome (espaços viram _). Alguns nomes já existem com outro slug no Soundora
+O slug vem do nome (espaços viram _). Alguns nomes já existem com outro slug no Soundhora
 (kpop → k_pop, rb → r_and_b...) e viram o mesmo gênero. A ordem do arquivo é a popularidade.
 """
 import json, re, sys
@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 names = json.load(open(ROOT / 'supabase/data/genres.json'))
 
-# Nomes do arquivo que já são gêneros do Soundora com outro slug.
+# Nomes do arquivo que já são gêneros do Soundhora com outro slug.
 ALIASES = {'kpop': 'k_pop', 'rb': 'r_and_b', 'funk carioca': 'funk_br', 'lofi': 'lo_fi', 'electronica': 'electronic', 'latin': 'latin'}
 # Siglas e grafias especiais no nome exibido.
 UPPER = {'rb': 'R&B', 'edm': 'EDM', 'mpb': 'MPB', 'uk': 'UK', 'us': 'US', 'nyc': 'NYC', 'dfw': 'DFW', 'atl': 'ATL', 'dmv': 'DMV', 'ccm': 'CCM',

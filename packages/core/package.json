@@ -1,8 +1,8 @@
 {
-  "name": "@soundora/core",
+  "name": "@soundhora/core",
   "version": "0.1.0",
   "private": true,
-  "description": "Regras compartilhadas do Soundora: links de streaming, validação, idade, textos",
+  "description": "Regras compartilhadas do Soundhora: links de streaming, validação, idade, textos",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",

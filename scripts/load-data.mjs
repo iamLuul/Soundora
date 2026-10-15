@@ -30,7 +30,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const require = createRequire(import.meta.url);
 const DOMAIN = 'load.soundora.dev';
-const PASSWORD = 'Soundora2026load';
+const PASSWORD = 'Soundhora2026load';
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
 const option = (name) => {
@@ -180,7 +180,7 @@ const MEDIA_TEXT = ['olha que foto desse show 📸', 'meu setup de hoje', 'garim
 const VIBE_TEXT = ['bom dia com música alta', 'sextou 🎶', 'fone no máximo', 'qual música vocês tão ouvindo hoje?', 'show sábado, quem vai?', 'playlist nova no forno', 'no repeat 🔁'];
 const STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'];
 
-// Paradas da Deezer por gênero → slug do Soundora.
+// Paradas da Deezer por gênero → slug do Soundhora.
 const DEEZER_CHARTS = [
   [0, 'pop'], [132, 'pop'], [116, 'hip_hop'], [152, 'rock'], [113, 'dance'], [165, 'r_and_b'],
   [85, 'alternative'], [106, 'electronic'], [197, 'latin'], [464, 'metal'], [144, 'reggae'], [129, 'jazz'],

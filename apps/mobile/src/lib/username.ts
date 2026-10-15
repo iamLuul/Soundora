@@ -1,4 +1,4 @@
-import { usernameSchema } from '@soundora/core';
+import { usernameSchema } from '@soundhora/core';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { checkUsernameAvailable } from './api';

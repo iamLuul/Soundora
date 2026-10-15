@@ -54,7 +54,7 @@ describe('<DiscoverCardView />', () => {
 
   test('destaque mostra o selo e a nota da curadoria', async () => {
     await render(<DiscoverCardView card={{ ...card, source: 'featured', note: 'clássico do gênero', recommender_username: null }} genreName={null} />);
-    expect(screen.getByText('Destaque do Soundora')).toBeTruthy();
+    expect(screen.getByText('Destaque do Soundhora')).toBeTruthy();
     expect(screen.getByText('“clássico do gênero”')).toBeTruthy();
     expect(screen.queryByText(/Indicada por/)).toBeNull();
   });

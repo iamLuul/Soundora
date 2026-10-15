@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PLATFORM_LABELS, type Platform } from '@soundora/core';
+import { PLATFORM_LABELS, type Platform } from '@soundhora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,7 @@ export interface MusicCardData {
 /**
  * Cartão de prévia de uma música, no layout do Figma ("Sharing"): capa com o play,
  * título, artista e o logo da plataforma, numa caixa com a cor da plataforma.
- * O Soundora não toca áudio: tocar abre a faixa no streaming de origem.
+ * O Soundhora não toca áudio: tocar abre a faixa no streaming de origem.
  */
 export function MusicCard({ data, onOpen }: { data: MusicCardData; onOpen?: (url: string) => void }) {
   const { t } = useTranslation();

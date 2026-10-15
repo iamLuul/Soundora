@@ -1,4 +1,4 @@
-import { commentSchema, displayNameSchema, isStreamingChoice, passwordSchema, postTextSchema, type ReportReason, type StreamingChoice } from '@soundora/core';
+import { commentSchema, displayNameSchema, isStreamingChoice, passwordSchema, postTextSchema, type ReportReason, type StreamingChoice } from '@soundhora/core';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
 import { convertProfileImage } from './image-convert';

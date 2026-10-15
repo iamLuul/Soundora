@@ -28,7 +28,7 @@ export interface PreviewRow {
   artist: string | null;
   image_url: string | null;
   fetched_at: string;
-  /** Gêneros do Soundora detectados nas lojas (null = ainda não procurou). */
+  /** Gêneros do Soundhora detectados nas lojas (null = ainda não procurou). */
   genres: string[] | null;
   /** Prévia de 30 s oficial da Apple/Deezer (null = não achou). */
   audio_url: string | null;

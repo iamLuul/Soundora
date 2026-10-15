@@ -7,7 +7,7 @@ test('menções viram pedaços próprios; e-mail e ponto final não', () => {
     { text: '@bia_beats', mention: true },
     { text: '.', mention: false },
   ]);
-  expect(splitMentions('me manda em raul@soundora.dev')).toEqual([{ text: 'me manda em raul@soundora.dev', mention: false }]);
+  expect(splitMentions('me manda em raul@soundhora.dev')).toEqual([{ text: 'me manda em raul@soundhora.dev', mention: false }]);
   expect(splitMentions('(@raul) e @')).toEqual([
     { text: '(', mention: false },
     { text: '@raul', mention: true },

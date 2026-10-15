@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PLATFORM_LABELS } from '@soundora/core';
+import { PLATFORM_LABELS } from '@soundhora/core';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -18,7 +18,7 @@ type TrendingView = 'global' | 'reviews';
 /**
  * Figma: Trending Page — duas visualizações:
  * - Top Global: as mais tocadas no mundo (Last.fm); cada música abre na plataforma da pessoa.
- * - Top Reviews: os álbuns com as maiores médias nas reviews do Soundora; abre o álbum.
+ * - Top Reviews: os álbuns com as maiores médias nas reviews do Soundhora; abre o álbum.
  */
 export function TrendingSection() {
   const { t } = useTranslation();

@@ -4,7 +4,7 @@ import {
   POST_TEXT_MAX,
   extractFirstUrl,
   parseStreamingUrl,
-} from "@soundora/core";
+} from "@soundhora/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";

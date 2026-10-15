@@ -1,4 +1,4 @@
-import { passwordSchema } from '@soundora/core';
+import { passwordSchema } from '@soundhora/core';
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';

@@ -163,7 +163,7 @@ export function formatError(t: (key: string, vars?: Record<string, unknown>) => 
   // Em desenvolvimento, registra o motivo técnico uma vez (a tela pode renderizar várias vezes).
   if (__DEV__ && !(err !== null && typeof err === 'object' && logged.has(err))) {
     if (err !== null && typeof err === 'object') logged.add(err);
-    console.warn('[Soundora]', err);
+    console.warn('[Soundhora]', err);
   }
   // Em desenvolvimento, o banco sem migrations ganha a instrução de como resolver.
   const detail = [errorCode(err) === 'server_outdated' && __DEV__ ? 'Banco sem as migrations: rode "npx supabase migration up" (local) ou "npx supabase db push" (nuvem).' : '', errorDetail(err)]

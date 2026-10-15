@@ -1,7 +1,7 @@
 /** Pedaço de texto: comum ou uma menção (@username). */
 export type TextPart = { text: string; mention: boolean };
 
-// @ seguido de letras, números, _ e . (regra do @ no Soundora). Não pega e-mail (letra antes do @).
+// @ seguido de letras, números, _ e . (regra do @ no Soundhora). Não pega e-mail (letra antes do @).
 const MENTION_RE = /(^|[^A-Za-z0-9_.@])(@[A-Za-z0-9_](?:[A-Za-z0-9_.]*[A-Za-z0-9_])?)/g;
 
 /** Separa o texto em pedaços, marcando as menções (o ponto final da frase fica de fora). */

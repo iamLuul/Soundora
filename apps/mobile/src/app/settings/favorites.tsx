@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { extractFirstUrl, parseStreamingUrl } from '@soundora/core';
+import { extractFirstUrl, parseStreamingUrl } from '@soundhora/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';

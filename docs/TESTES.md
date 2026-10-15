@@ -12,7 +12,7 @@ Quatro camadas, da mais rápida para a mais completa. O CI (`.github/workflows/c
 
 ## Testes do banco
 
-Os testes criam um banco `soundora_test`, aplicam um "shim" que imita o Supabase (`tests/db/supabase-shim.sql`: papéis `anon`/`authenticated`, `auth.users`, `auth.uid()`), depois as migrations e o seed. Cada consulta roda como uma pessoa logada, como visitante ou como superusuário.
+Os testes criam um banco `soundhora_test`, aplicam um "shim" que imita o Supabase (`tests/db/supabase-shim.sql`: papéis `anon`/`authenticated`, `auth.users`, `auth.uid()`), depois as migrations e o seed. Cada consulta roda como uma pessoa logada, como visitante ou como superusuário.
 
 Com o Supabase local rodando (`npx supabase start`), use o Postgres dele:
 
@@ -30,7 +30,7 @@ O banco de teste é separado; os dados do seu Supabase local não são tocados.
 3. Rode:
 
 ```powershell
-maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundora.dev -e USERNAME=teste1 -e PASSWORD=senha-forte-123
+maestro test apps/mobile/.maestro/01-cadastro.yaml -e EMAIL=teste1@soundhora.dev -e USERNAME=teste1 -e PASSWORD=senha-forte-123
 maestro test apps/mobile/.maestro/02-postar-musica.yaml
 maestro test apps/mobile/.maestro/03-login-usuario.yaml -e USERNAME=teste1 -e PASSWORD=senha-forte-123
 ```

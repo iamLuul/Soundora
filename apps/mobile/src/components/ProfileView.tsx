@@ -366,7 +366,7 @@ function Pill({
   );
 }
 
-/** Sem banner: um tom só da paleta do Soundora (roxo sobre o cinza-arroxeado). */
+/** Sem banner: um tom só da paleta do Soundhora (roxo sobre o cinza-arroxeado). */
 function BannerPlaceholder() {
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]}>

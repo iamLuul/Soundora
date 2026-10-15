@@ -38,7 +38,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 type ListProps = Pick<ScrollViewProps, 'onScroll' | 'scrollEventThrottle' | 'refreshControl' | 'onTouchStart' | 'onTouchMove' | 'onTouchEnd' | 'onTouchCancel'>;
 
 /**
- * Puxar para atualizar com o spinner do Soundora (anel roxo girando num disco escuro), igual
+ * Puxar para atualizar com o spinner do Soundhora (anel roxo girando num disco escuro), igual
  * no iOS, no Android e na web. Envolve a lista (FlatList/ScrollView):
  *
  *   <PullToRefresh onRefresh={() => q.refetch()}><FlatList … /></PullToRefresh>

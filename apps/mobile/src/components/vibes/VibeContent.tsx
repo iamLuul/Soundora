@@ -1,4 +1,4 @@
-import { PLATFORM_LABELS, type Platform } from '@soundora/core';
+import { PLATFORM_LABELS, type Platform } from '@soundhora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';

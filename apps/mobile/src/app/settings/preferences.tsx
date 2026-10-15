@@ -1,4 +1,4 @@
-import { PLATFORM_LABELS } from '@soundora/core';
+import { PLATFORM_LABELS } from '@soundhora/core';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ChoiceRow, SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';

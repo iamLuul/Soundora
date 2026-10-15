@@ -1,4 +1,4 @@
-import { MIN_GENRES } from '@soundora/core';
+import { MIN_GENRES } from '@soundhora/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';

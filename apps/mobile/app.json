@@ -1,15 +1,14 @@
 {
   "expo": {
-    "name": "Soundora",
-    "slug": "soundora",
+    "name": "Soundhora",
+    "slug": "soundhora",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "soundora",
+    "scheme": "soundhora",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "app.soundora",
+      "bundleIdentifier": "app.soundhora",
       "supportsTablet": true,
       "infoPlist": {
         "LSApplicationQueriesSchemes": [
@@ -30,12 +29,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.soundora"
+      "package": "app.soundhora"
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "name": "Soundora",
+      "name": "Soundhora",
       "themeColor": "#3A374C",
       "backgroundColor": "#3A374C"
     },
@@ -46,7 +45,7 @@
         {
           "backgroundColor": "#3A374C",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120
         }
       ],
       "expo-sqlite",
@@ -56,9 +55,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O Soundora usa suas fotos e vídeos só quando você escolhe uma foto de perfil ou cria uma vibe.",
-          "cameraPermission": "O Soundora usa a câmera só quando você cria uma vibe.",
-          "microphonePermission": "O Soundora usa o microfone só para gravar o som dos vídeos das vibes."
+          "photosPermission": "O Soundhora usa suas fotos e vídeos só quando você escolhe uma foto de perfil ou cria uma vibe.",
+          "cameraPermission": "O Soundhora usa a câmera só quando você cria uma vibe.",
+          "microphonePermission": "O Soundhora usa o microfone só para gravar o som dos vídeos das vibes."
         }
       ],
       [

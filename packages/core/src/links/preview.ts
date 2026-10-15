@@ -46,7 +46,7 @@ export interface PreviewOptions {
   maxHtmlChars?: number;
 }
 
-const USER_AGENT = 'SoundoraBot/0.1 (+https://soundora.app/bot)';
+const USER_AGENT = 'SoundhoraBot/0.1 (+https://soundhora.app/bot)';
 const MAX_REDIRECTS = 5;
 
 function limit(text: string | null | undefined, max = 200): string | null {

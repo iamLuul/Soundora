@@ -2,11 +2,11 @@
 // Gêneros de uma música a partir dos metadados públicos das lojas (sem chave de API):
 //   1. iTunes Search (Apple): "primaryGenreName" da faixa
 //   2. Deezer: gêneros do álbum da faixa
-// Os nomes das lojas viram os gêneros do Soundora (slugs da tabela public.genres).
+// Os nomes das lojas viram os gêneros do Soundhora (slugs da tabela public.genres).
 // Só fala com esses dois endereços fixos; qualquer falha devolve lista vazia.
 import type { FetchLike } from './preview.ts';
 
-/** Gêneros do Soundora (mesmos slugs de supabase/seed.sql). */
+/** Gêneros do Soundhora (mesmos slugs de supabase/seed.sql). */
 export const GENRE_SLUGS = [
   'acoustic', 'alternative', 'ambient', 'anime', 'blues', 'bossa_nova', 'classical', 'country', 'dance',
   'drum_and_bass', 'electronic', 'emo', 'folk', 'forro', 'funk_br', 'gospel', 'hip_hop', 'house', 'indie',
@@ -18,7 +18,7 @@ export type GenreSlug = (typeof GENRE_SLUGS)[number];
 /** Máximo de gêneros num post. */
 export const MAX_POST_GENRES = 3;
 
-// Nome da loja (minúsculo, sem acento) → gênero do Soundora. Testado na ordem: o primeiro
+// Nome da loja (minúsculo, sem acento) → gênero do Soundhora. Testado na ordem: o primeiro
 // trecho encontrado vence (ex.: "funk carioca" → funk_br antes de "funk" → soul).
 const RULES: [RegExp, GenreSlug][] = [
   [/k-?pop/, 'k_pop'],
@@ -62,7 +62,7 @@ const RULES: [RegExp, GenreSlug][] = [
 
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
-/** Nome de gênero de uma loja → gênero do Soundora (ou null). */
+/** Nome de gênero de uma loja → gênero do Soundhora (ou null). */
 export function mapStoreGenre(name: string): GenreSlug | null {
   const n = normalize(name);
   if (!n) return null;
@@ -218,12 +218,12 @@ export async function lookupStoreGenres(title: string, artist: string | null, op
   return (await lookupStore({ title, artist }, opts)).genreNames;
 }
 
-/** Gêneros do Soundora detectados para a música (lista vazia se não achar). */
+/** Gêneros do Soundhora detectados para a música (lista vazia se não achar). */
 export async function detectGenres(title: string, artist: string | null, opts: { fetch: FetchLike; timeoutMs?: number }): Promise<GenreSlug[]> {
   return mapStoreGenres(await lookupStoreGenres(title, artist, opts));
 }
 
-/** Gêneros do Soundora e prévia de 30 s da música. */
+/** Gêneros do Soundhora e prévia de 30 s da música. */
 export async function detectStoreInfo(ref: StoreRef, opts: { fetch: FetchLike; timeoutMs?: number }): Promise<{ genres: GenreSlug[]; audioUrl: string | null }> {
   const info = await lookupStore(ref, opts);
   return { genres: mapStoreGenres(info.genreNames), audioUrl: info.audioUrl };

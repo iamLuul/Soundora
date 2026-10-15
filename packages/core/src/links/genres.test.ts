@@ -39,7 +39,7 @@ describe('mapStoreGenre', () => {
     expect(mapStoreGenre('   ')).toBeNull();
   });
 
-  it('só devolve gêneros que existem no Soundora, sem repetir, até 3', () => {
+  it('só devolve gêneros que existem no Soundhora, sem repetir, até 3', () => {
     expect(mapStoreGenres(['Pop', 'Pop', 'Dance', 'Rock', 'Jazz'])).toEqual(['pop', 'dance', 'rock']);
     expect(mapStoreGenres(['Pop', 'Comedy']).every((g) => (GENRE_SLUGS as readonly string[]).includes(g))).toBe(true);
   });

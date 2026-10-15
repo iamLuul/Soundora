@@ -101,7 +101,7 @@ describe('login', () => {
 describe('cadastro', () => {
   test('sem sessão: falta confirmar o código', async () => {
     mockAuth.signUp.mockResolvedValue({ data: { user: { identities: [{}] }, session: null }, error: null });
-    await expect(signUp('novo@soundora.dev', 'senha-forte', 'pt-BR')).resolves.toBe('verify');
+    await expect(signUp('novo@soundhora.dev', 'senha-forte', 'pt-BR')).resolves.toBe('verify');
   });
 
   test('e-mail já cadastrado é detectado mesmo com a resposta "sem erro" do Supabase', async () => {
@@ -114,7 +114,7 @@ describe('cadastro', () => {
 describe('<SignUpForm />', () => {
   test('pede senha e confirmação; senhas diferentes não criam a conta', async () => {
     await render(<SignUpForm confirmEmail={null} />);
-    await fireEvent.changeText(screen.getByTestId('email-input'), 'novo@soundora.dev');
+    await fireEvent.changeText(screen.getByTestId('email-input'), 'novo@soundhora.dev');
     await fireEvent.changeText(screen.getByTestId('new-password-input'), 'senha-forte-1');
     await fireEvent.changeText(screen.getByTestId('confirm-password-input'), 'senha-forte-2');
     await fireEvent.press(screen.getByTestId('sign-up'));
@@ -126,18 +126,18 @@ describe('<SignUpForm />', () => {
     mockAuth.signUp.mockResolvedValue({ data: { user: { identities: [{}] }, session: null }, error: null });
     mockAuth.verifyOtp.mockResolvedValue({ data: {}, error: null });
     await render(<SignUpForm confirmEmail={null} />);
-    await fireEvent.changeText(screen.getByTestId('email-input'), 'Novo@Soundora.dev');
+    await fireEvent.changeText(screen.getByTestId('email-input'), 'Novo@Soundhora.dev');
     await fireEvent.changeText(screen.getByTestId('new-password-input'), 'senha-forte-1');
     await fireEvent.changeText(screen.getByTestId('confirm-password-input'), 'senha-forte-1');
     await fireEvent.press(screen.getByTestId('sign-up'));
 
     await waitFor(() => expect(screen.getByTestId('code-input')).toBeTruthy());
-    expect(mockAuth.signUp).toHaveBeenCalledWith({ email: 'novo@soundora.dev', password: 'senha-forte-1', options: { data: { locale: 'pt-BR' } } });
-    expect(screen.getByText('Enviamos um código de 6 dígitos para novo@soundora.dev')).toBeTruthy();
+    expect(mockAuth.signUp).toHaveBeenCalledWith({ email: 'novo@soundhora.dev', password: 'senha-forte-1', options: { data: { locale: 'pt-BR' } } });
+    expect(screen.getByText('Enviamos um código de 6 dígitos para novo@soundhora.dev')).toBeTruthy();
 
     await fireEvent.changeText(screen.getByTestId('code-input'), '123456');
     await fireEvent.press(screen.getByTestId('verify-code'));
-    expect(mockAuth.verifyOtp).toHaveBeenCalledWith({ email: 'novo@soundora.dev', token: '123456', type: 'email' });
+    expect(mockAuth.verifyOtp).toHaveBeenCalledWith({ email: 'novo@soundhora.dev', token: '123456', type: 'email' });
   });
 });
 

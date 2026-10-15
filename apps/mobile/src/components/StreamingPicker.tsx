@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PLATFORM_LABELS, STREAMING_CHOICES, type StreamingChoice } from '@soundora/core';
+import { PLATFORM_LABELS, STREAMING_CHOICES, type StreamingChoice } from '@soundhora/core';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, space } from '../theme';
 import { PlatformLogo } from './figma';

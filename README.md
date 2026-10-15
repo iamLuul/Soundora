@@ -1,6 +1,6 @@
-# Soundora
+# Soundhora
 
-Rede social de música para Android, iOS e Web. As pessoas postam links de streaming, o Soundora mostra um cartão de prévia (capa, título, artista) e o play abre a faixa **no streaming de origem do link**. O Soundora não toca áudio.
+Rede social de música para Android, iOS e Web. As pessoas postam links de streaming, o Soundhora mostra um cartão de prévia (capa, título, artista) e o play abre a faixa **no streaming de origem do link**. O Soundhora não toca áudio.
 
 Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 

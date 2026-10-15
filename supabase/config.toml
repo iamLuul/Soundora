@@ -22,7 +22,7 @@ file_size_limit = "2MiB"
 port = 54323
 
 [analytics]
-# Logs do painel local (Logflare). Desligado: não é usado no Soundora e, no Windows,
+# Logs do painel local (Logflare). Desligado: não é usado no Soundhora e, no Windows,
 # exige expor o Docker em tcp://localhost:2375.
 enabled = false
 
@@ -32,7 +32,7 @@ port = 54324
 
 [auth]
 site_url = "http://localhost:8081"
-additional_redirect_urls = ["soundora://**", "http://localhost:8081/**", "exp://**"]
+additional_redirect_urls = ["soundhora://**", "http://localhost:8081/**", "exp://**"]
 jwt_expiry = 3600
 # Senhas: pelo menos 10 caracteres, com letras e números. O Supabase guarda só o hash
 # (bcrypt) em auth.users; a senha nunca fica no banco nem passa pelas nossas tabelas.
@@ -64,7 +64,7 @@ secure_password_change = true
 
 # O e-mail de login manda um código de 6 dígitos em vez de link.
 [auth.email.template.magic_link]
-subject = "Seu código do Soundora / Your Soundora code"
+subject = "Seu código do Soundhora / Your Soundhora code"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.reauthentication]
@@ -72,7 +72,7 @@ subject = "Código para trocar a senha / Password change code"
 content_path = "./supabase/templates/reauthentication.html"
 
 [auth.email.template.confirmation]
-subject = "Seu código do Soundora / Your Soundora code"
+subject = "Seu código do Soundhora / Your Soundhora code"
 content_path = "./supabase/templates/magic_link.html"
 
 # Preencha as chaves em supabase/.env (veja .env.example) e troque enabled para true.

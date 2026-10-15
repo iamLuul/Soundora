@@ -39,7 +39,7 @@ export function pushEnabled(): boolean {
 
 /**
  * Pede a permissão do sistema e cadastra o aparelho. Devolve false se a pessoa negou.
- * O token só vai para o banco do Soundora (push_tokens) e para o serviço de push da Expo.
+ * O token só vai para o banco do Soundhora (push_tokens) e para o serviço de push da Expo.
  */
 export async function enablePush(): Promise<boolean> {
   const availability = pushAvailability();
@@ -47,7 +47,7 @@ export async function enablePush(): Promise<boolean> {
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Soundora',
+      name: 'Soundhora',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }

@@ -1,4 +1,4 @@
-import { reportReasonSchema, type ReportReason } from '@soundora/core';
+import { reportReasonSchema, type ReportReason } from '@soundhora/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';

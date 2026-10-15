@@ -1,4 +1,4 @@
-// Termos de Uso, Política de Privacidade, Termo de responsáveis, cookies e anúncios do Soundora.
+// Termos de Uso, Política de Privacidade, Termo de responsáveis, cookies e anúncios do Soundhora.
 //
 // RASCUNHO: escrito a partir do que o app faz hoje (dados guardados, serviços usados, regras de
 // idade e exclusão de conta). Antes de publicar nas lojas, peça a revisão de um advogado e
@@ -15,16 +15,16 @@ export interface LegalSection {
   paragraphs: string[];
 }
 
-const contactPt = LEGAL_CONTACT ? `Fale com a gente pelo e-mail ${LEGAL_CONTACT}.` : 'O e-mail de contato do Soundora será publicado aqui antes do lançamento.';
-const contactEn = LEGAL_CONTACT ? `Contact us at ${LEGAL_CONTACT}.` : 'Soundora’s contact email will be published here before launch.';
+const contactPt = LEGAL_CONTACT ? `Fale com a gente pelo e-mail ${LEGAL_CONTACT}.` : 'O e-mail de contato do Soundhora será publicado aqui antes do lançamento.';
+const contactEn = LEGAL_CONTACT ? `Contact us at ${LEGAL_CONTACT}.` : 'Soundhora’s contact email will be published here before launch.';
 
 const PT: Record<LegalDoc, LegalSection[]> = {
   terms: [
     {
-      title: '1. O que é o Soundora',
+      title: '1. O que é o Soundhora',
       paragraphs: [
-        'O Soundora é uma rede social para descobrir e compartilhar música. Você publica posts, reviews de álbuns e vibes, segue pessoas e ouve prévias de 30 segundos.',
-        'O Soundora não toca músicas completas. Cada música abre no app de streaming que você escolher (Spotify, Apple Music, Deezer e outros).',
+        'O Soundhora é uma rede social para descobrir e compartilhar música. Você publica posts, reviews de álbuns e vibes, segue pessoas e ouve prévias de 30 segundos.',
+        'O Soundhora não toca músicas completas. Cada música abre no app de streaming que você escolher (Spotify, Apple Music, Deezer e outros).',
       ],
     },
     {
@@ -37,9 +37,9 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '3. O que você publica',
       paragraphs: [
-        'Posts, comentários, reviews, fotos, vídeos e vibes continuam sendo seus. Ao publicar, você permite que o Soundora mostre esse conteúdo a outras pessoas dentro do app.',
+        'Posts, comentários, reviews, fotos, vídeos e vibes continuam sendo seus. Ao publicar, você permite que o Soundhora mostre esse conteúdo a outras pessoas dentro do app.',
         'Não publique: discurso de ódio, assédio, conteúdo sexual, violência, spam, dados pessoais de outras pessoas ou material que viole direitos autorais.',
-        'Links de música abrem as plataformas oficiais. Não use o Soundora para distribuir músicas sem autorização.',
+        'Links de música abrem as plataformas oficiais. Não use o Soundhora para distribuir músicas sem autorização.',
       ],
     },
     {
@@ -53,7 +53,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
       title: '5. Sua conta',
       paragraphs: [
         'Você pode excluir sua conta a qualquer momento em Configurações › Excluir conta. Isso apaga seu perfil e tudo o que você publicou, e não dá para desfazer.',
-        'O Soundora pode mudar ou encerrar funcionalidades. Mudanças importantes nestes termos serão avisadas no app.',
+        'O Soundhora pode mudar ou encerrar funcionalidades. Mudanças importantes nestes termos serão avisadas no app.',
       ],
     },
     { title: '6. Contato', paragraphs: [contactPt] },
@@ -79,7 +79,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '3. Quem vê o quê',
       paragraphs: [
-        'Pessoas com conta no Soundora veem seu perfil público (nome, @, foto, banner, bio, gêneros, músicas favoritas) e o que você publica, menos quem você bloqueou ou quem bloqueou você.',
+        'Pessoas com conta no Soundhora veem seu perfil público (nome, @, foto, banner, bio, gêneros, músicas favoritas) e o que você publica, menos quem você bloqueou ou quem bloqueou você.',
         'Seu e-mail e sua data de nascimento nunca são mostrados a outras pessoas.',
         'Vibes deixam de aparecer depois de 24 horas. Quem publicou vê quem viu a vibe.',
       ],
@@ -104,7 +104,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '6. Menores de idade',
       paragraphs: [
-        'O Soundora é para quem tem 13 anos ou mais. Contas de quem tem menos de 16 precisarão de um responsável vinculado; enquanto isso não existir, essas idades não conseguem se cadastrar.',
+        'O Soundhora é para quem tem 13 anos ou mais. Contas de quem tem menos de 16 precisarão de um responsável vinculado; enquanto isso não existir, essas idades não conseguem se cadastrar.',
       ],
     },
     { title: '7. Contato', paragraphs: [contactPt] },
@@ -113,16 +113,16 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '1. Para quem é este termo',
       paragraphs: [
-        'Para quem tem entre 13 e 17 anos e para o pai, a mãe ou o responsável legal dessa pessoa. Quem tem menos de 13 anos não pode usar o Soundora.',
+        'Para quem tem entre 13 e 17 anos e para o pai, a mãe ou o responsável legal dessa pessoa. Quem tem menos de 13 anos não pode usar o Soundhora.',
         'Contas de quem tem menos de 16 anos precisarão do vínculo com um responsável; enquanto esse recurso não existir, essas idades não conseguem se cadastrar.',
       ],
     },
     {
       title: '2. O que o responsável precisa saber',
       paragraphs: [
-        'O Soundora é uma rede social: o que a pessoa publica (posts, reviews, vibes, comentários) pode ser visto por outras pessoas. Recomendamos ativar a conta privada em Configurações › Privacidade, para que só seguidores aprovados vejam o conteúdo.',
+        'O Soundhora é uma rede social: o que a pessoa publica (posts, reviews, vibes, comentários) pode ser visto por outras pessoas. Recomendamos ativar a conta privada em Configurações › Privacidade, para que só seguidores aprovados vejam o conteúdo.',
         'A pessoa pode bloquear e denunciar quem quiser. Denúncias são analisadas pela equipe.',
-        'O Soundora não tem compras dentro do app nem mostra anúncios.',
+        'O Soundhora não tem compras dentro do app nem mostra anúncios.',
       ],
     },
     {
@@ -139,7 +139,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '1. O que guardamos no navegador',
       paragraphs: [
-        'Na versão Web, o Soundora guarda no seu navegador (armazenamento local) só o necessário para funcionar: a sessão de login, o idioma, as dicas que você já viu e as preferências de acessibilidade.',
+        'Na versão Web, o Soundhora guarda no seu navegador (armazenamento local) só o necessário para funcionar: a sessão de login, o idioma, as dicas que você já viu e as preferências de acessibilidade.',
         'No celular, as mesmas informações ficam guardadas no próprio aparelho; a sessão de login fica criptografada.',
       ],
     },
@@ -159,7 +159,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
   ads: [
     {
       title: '1. Hoje',
-      paragraphs: ['O Soundora não mostra anúncios. Nenhum post, review ou música é patrocinado.'],
+      paragraphs: ['O Soundhora não mostra anúncios. Nenhum post, review ou música é patrocinado.'],
     },
     {
       title: '2. Se um dia houver anúncios',
@@ -176,10 +176,10 @@ const PT: Record<LegalDoc, LegalSection[]> = {
 const EN: Record<LegalDoc, LegalSection[]> = {
   terms: [
     {
-      title: '1. What Soundora is',
+      title: '1. What Soundhora is',
       paragraphs: [
-        'Soundora is a social network to discover and share music. You publish posts, album reviews and vibes, follow people and listen to 30-second previews.',
-        'Soundora doesn’t play full songs. Each song opens in the streaming app you choose (Spotify, Apple Music, Deezer and others).',
+        'Soundhora is a social network to discover and share music. You publish posts, album reviews and vibes, follow people and listen to 30-second previews.',
+        'Soundhora doesn’t play full songs. Each song opens in the streaming app you choose (Spotify, Apple Music, Deezer and others).',
       ],
     },
     {
@@ -192,9 +192,9 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '3. What you publish',
       paragraphs: [
-        'Posts, comments, reviews, photos, videos and vibes remain yours. By publishing, you allow Soundora to show this content to other people in the app.',
+        'Posts, comments, reviews, photos, videos and vibes remain yours. By publishing, you allow Soundhora to show this content to other people in the app.',
         'Don’t publish: hate speech, harassment, sexual content, violence, spam, other people’s personal data or material that infringes copyright.',
-        'Music links open the official platforms. Don’t use Soundora to distribute music without permission.',
+        'Music links open the official platforms. Don’t use Soundhora to distribute music without permission.',
       ],
     },
     {
@@ -208,7 +208,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
       title: '5. Your account',
       paragraphs: [
         'You can delete your account at any time in Settings › Delete account. This deletes your profile and everything you published, and can’t be undone.',
-        'Soundora may change or end features. Important changes to these terms will be announced in the app.',
+        'Soundhora may change or end features. Important changes to these terms will be announced in the app.',
       ],
     },
     { title: '6. Contact', paragraphs: [contactEn] },
@@ -234,7 +234,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '3. Who sees what',
       paragraphs: [
-        'People with a Soundora account see your public profile (name, @, photo, banner, bio, genres, favorite songs) and what you publish, except people you blocked or who blocked you.',
+        'People with a Soundhora account see your public profile (name, @, photo, banner, bio, genres, favorite songs) and what you publish, except people you blocked or who blocked you.',
         'Your email and date of birth are never shown to other people.',
         'Vibes stop showing after 24 hours. Whoever posted sees who viewed the vibe.',
       ],
@@ -259,7 +259,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '6. Minors',
       paragraphs: [
-        'Soundora is for people 13 and older. Accounts of people under 16 will need a linked guardian; until that exists, those ages can’t sign up.',
+        'Soundhora is for people 13 and older. Accounts of people under 16 will need a linked guardian; until that exists, those ages can’t sign up.',
       ],
     },
     { title: '7. Contact', paragraphs: [contactEn] },
@@ -268,16 +268,16 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '1. Who these terms are for',
       paragraphs: [
-        'People aged 13 to 17 and their parent or legal guardian. People under 13 can’t use Soundora.',
+        'People aged 13 to 17 and their parent or legal guardian. People under 13 can’t use Soundhora.',
         'Accounts of people under 16 will need a linked guardian; until that feature exists, those ages can’t sign up.',
       ],
     },
     {
       title: '2. What the guardian needs to know',
       paragraphs: [
-        'Soundora is a social network: what the person publishes (posts, reviews, vibes, comments) can be seen by other people. We recommend turning on the private account in Settings › Privacy, so only approved followers can see the content.',
+        'Soundhora is a social network: what the person publishes (posts, reviews, vibes, comments) can be seen by other people. We recommend turning on the private account in Settings › Privacy, so only approved followers can see the content.',
         'The person can block and report anyone. Reports are reviewed by the team.',
-        'Soundora has no in-app purchases and shows no ads.',
+        'Soundhora has no in-app purchases and shows no ads.',
       ],
     },
     {
@@ -294,7 +294,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '1. What we store in your browser',
       paragraphs: [
-        'On the Web, Soundora stores in your browser (local storage) only what it needs to work: your sign-in session, language, the tips you’ve seen and your accessibility preferences.',
+        'On the Web, Soundhora stores in your browser (local storage) only what it needs to work: your sign-in session, language, the tips you’ve seen and your accessibility preferences.',
         'On your phone, the same information is stored on the device itself; the sign-in session is encrypted.',
       ],
     },
@@ -316,7 +316,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
   ads: [
     {
       title: '1. Today',
-      paragraphs: ['Soundora shows no ads. No post, review or song is sponsored.'],
+      paragraphs: ['Soundhora shows no ads. No post, review or song is sponsored.'],
     },
     {
       title: '2. If there are ever ads',

@@ -124,7 +124,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* Web: título da aba do navegador (as telas sem título deixavam a página sem <title>). */}
       <Head>
-        <title>Soundora</title>
+        <title>Soundhora</title>
       </Head>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>

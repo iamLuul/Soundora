@@ -1,7 +1,7 @@
 {
-  "name": "soundora",
+  "name": "soundhora",
   "private": true,
-  "description": "Soundora — rede social de música (Android, iOS e Web)",
+  "description": "Soundhora — rede social de música (Android, iOS e Web)",
   "workspaces": [
     "apps/*",
     "packages/*"

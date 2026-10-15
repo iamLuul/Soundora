@@ -12,8 +12,8 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <title>Soundora</title>
-        <meta name="description" content="Soundora: a rede social da música." />
+        <title>Soundhora</title>
+        <meta name="description" content="Soundhora: a rede social da música." />
         <ScrollViewStyleReset />
         {/* overscroll-behavior: puxar a lista para baixo não recarrega a página (o app atualiza os dados). */}
         <style dangerouslySetInnerHTML={{ __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}' }} />

@@ -3,7 +3,7 @@
 //
 // Sementes: as músicas que a pessoa curtiu (Descobrir) e os gêneros do perfil.
 //   - Parecidas com o que curtiu: track.getSimilar do Last.fm.
-//   - Dos gêneros: tag.getTopTracks do Last.fm (cada gênero do Soundora vira uma tag).
+//   - Dos gêneros: tag.getTopTracks do Last.fm (cada gênero do Soundhora vira uma tag).
 //   - Sem nada ainda: as mais tocadas no mundo.
 // Cada sugestão é achada na Deezer (capa, álbum, foto do artista, prévia de 30 s e link),
 // que é de onde o cartão toca a prévia e de onde sai o link para as outras plataformas.
@@ -13,7 +13,7 @@ import { isAllowedAudioUrl, sameTrack, type GenreSlug } from './genres.ts';
 import { parseStreamingUrl, safeImageUrl } from './platforms.ts';
 import type { FetchLike } from './preview.ts';
 
-/** Tag do Last.fm de cada gênero do Soundora. */
+/** Tag do Last.fm de cada gênero do Soundhora. */
 export const LASTFM_GENRE_TAGS: Record<GenreSlug, string> = {
   acoustic: 'acoustic',
   alternative: 'alternative',
@@ -228,7 +228,7 @@ export const DEEZER_GENRES = {
 const D = DEEZER_GENRES;
 const BR_FUNK_DENY = [D.soulFunk, D.jazz, D.classical, D.metal, D.country, D.rock, D.blues];
 const BRAZILIAN_DENY = [D.metal, D.classical, D.asian, D.soulFunk];
-/** Gênero do Soundora → gêneros da Deezer que ele não pode ter. */
+/** Gênero do Soundhora → gêneros da Deezer que ele não pode ter. */
 const GENRE_DENY: Record<string, number[]> = {
   funk: [D.brazilian, D.latin, D.metal, D.classical, D.country],
   sertanejo: BRAZILIAN_DENY,
