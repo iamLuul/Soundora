@@ -1,5 +1,5 @@
 # Configuração do Supabase local (supabase start) e referência para o projeto na nuvem.
-project_id = "soundora"
+project_id = "soundhora"
 
 [api]
 port = 54321
