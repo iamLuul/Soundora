@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema, type AgePolicy, type StreamingChoice } from '@soundhora/core';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PasswordField } from '../components/auth/PasswordField';
 import { BackHeader } from '../components/figma';
 import { GenrePicker } from '../components/GenrePicker';
@@ -27,7 +27,9 @@ export default function Onboarding() {
   // com e-mail/@usuário e senha. Quem criou a conta pelo e-mail já definiu a senha no cadastro.
   const provider = session?.user.app_metadata?.provider;
   const [needsPassword] = useState(() => !!provider && provider !== 'email');
-  const steps: Step[] = needsPassword ? ['password', 'profile', 'birthdate', 'genres', 'platform', 'terms'] : ['profile', 'birthdate', 'genres', 'platform', 'terms'];
+  const steps: Step[] = needsPassword
+    ? ['password', 'profile', 'birthdate', 'genres', 'platform', 'terms']
+    : ['profile', 'birthdate', 'genres', 'platform', 'terms'];
   const [index, setIndex] = useState(0);
   const step = steps[index]!;
   const [password, setPassword] = useState('');
@@ -41,6 +43,9 @@ export default function Onboarding() {
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
+  const monthRef = useRef<TextInput>(null);
+  const yearRef = useRef<TextInput>(null);
+  const dayRef = useRef<TextInput>(null);
   const [genres, setGenres] = useState<string[]>([]);
   const [platform, setPlatform] = useState<StreamingChoice | null>(null);
   const [accepted, setAccepted] = useState(false);
@@ -133,7 +138,12 @@ export default function Onboarding() {
     <Screen scroll style={styles.container}>
       {index > 0 ? <BackHeader onBack={() => setIndex((i) => i - 1)} /> : <View style={styles.headerSpace} />}
       {/* Figma: pontos no topo marcam o passo (o atual é o longo, em roxo). */}
-      <View style={styles.dots} accessible accessibilityRole="progressbar" accessibilityLabel={t('onboarding.step', { current: index + 1, total: steps.length })}>
+      <View
+        style={styles.dots}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={t('onboarding.step', { current: index + 1, total: steps.length })}
+      >
         {steps.map((s, i) => (
           <View key={s} style={[styles.dot, i === index && styles.dotActive, i < index && styles.dotDone]} />
         ))}
@@ -215,13 +225,57 @@ export default function Onboarding() {
           <Text style={styles.hint}>{t('onboarding.birthdateHint')}</Text>
           <View style={styles.dateRow}>
             <View style={{ flex: 1 }}>
-              <TextField label={t('onboarding.day')} value={day} onChangeText={(v) => setDay(v.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" placeholder="DD" />
+              <TextField
+                inputRef={dayRef}
+                label={t('onboarding.day')}
+                value={day}
+                onChangeText={(v) => {
+                  const next = v.replace(/\D/g, '').slice(0, 2);
+                  setDay(next);
+                  // Dia completo (e digitando, não apagando): passa para o mês.
+                  if (next.length === 2 && next.length > day.length) monthRef.current?.focus();
+                }}
+                keyboardType="number-pad"
+                placeholder="DD"
+                maxLength={2}
+                returnKeyType="next"
+                onSubmitEditing={() => monthRef.current?.focus()}
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <TextField label={t('onboarding.month')} value={month} onChangeText={(v) => setMonth(v.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" placeholder="MM" />
+              <TextField
+                inputRef={monthRef}
+                label={t('onboarding.month')}
+                value={month}
+                onChangeText={(v) => {
+                  const next = v.replace(/\D/g, '').slice(0, 2);
+                  setMonth(next);
+                  if (next.length === 2 && next.length > month.length) yearRef.current?.focus();
+                }}
+                onKeyPress={(e) => {
+                  // Backspace num campo vazio volta para o anterior.
+                  if (e.nativeEvent.key === 'Backspace' && !month) dayRef.current?.focus();
+                }}
+                keyboardType="number-pad"
+                placeholder="MM"
+                maxLength={2}
+                returnKeyType="next"
+                onSubmitEditing={() => yearRef.current?.focus()}
+              />
             </View>
             <View style={{ flex: 1.4 }}>
-              <TextField label={t('onboarding.year')} value={year} onChangeText={(v) => setYear(v.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="AAAA" />
+              <TextField
+                inputRef={yearRef}
+                label={t('onboarding.year')}
+                value={year}
+                onChangeText={(v) => setYear(v.replace(/\D/g, '').slice(0, 4))}
+                onKeyPress={(e) => {
+                  if (e.nativeEvent.key === 'Backspace' && !year) monthRef.current?.focus();
+                }}
+                keyboardType="number-pad"
+                placeholder="AAAA"
+                maxLength={4}
+              />
             </View>
           </View>
         </>
@@ -232,14 +286,7 @@ export default function Onboarding() {
           <Text style={styles.title}>{t('onboarding.genresTitle')}</Text>
           <Text style={styles.hint}>{t('onboarding.genresHint', { min: MIN_GENRES })}</Text>
           {/* Milhares de gêneros: pesquisa no catálogo; os de destaque já aparecem para tocar. */}
-          <GenrePicker
-            title={null}
-            value={genres}
-            onChange={setGenres}
-            max={10}
-            suggestions={(genreList.data ?? []).map((g) => g.slug)}
-            quickLimit={100}
-          />
+          <GenrePicker title={null} value={genres} onChange={setGenres} max={10} suggestions={(genreList.data ?? []).map((g) => g.slug)} quickLimit={100} />
         </>
       )}
 
@@ -263,12 +310,7 @@ export default function Onboarding() {
               {t('legal.readPrivacy')}
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: accepted }}
-            onPress={() => setAccepted((a) => !a)}
-            style={styles.checkRow}
-          >
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: accepted }} onPress={() => setAccepted((a) => !a)} style={styles.checkRow}>
             <View style={[styles.checkbox, accepted && styles.checkboxOn]} />
             <Text style={[text.body, { flex: 1 }]}>{t('onboarding.termsAccept')}</Text>
           </Pressable>

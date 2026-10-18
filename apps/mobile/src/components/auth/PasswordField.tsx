@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View, type TextInputProps } from 'react-native';
-import { colors, space } from '../../theme';
+import { Pressable, View, type TextInputProps } from 'react-native';
+import { colors } from '../../theme';
 import { TextField } from '../ui';
 
 /** Campo de senha com o botão de mostrar/ocultar. */
@@ -26,21 +26,18 @@ export function PasswordField({
         autoCorrect={false}
         autoComplete={newPassword ? 'new-password' : 'current-password'}
         textContentType={newPassword ? 'newPassword' : 'password'}
+        accessory={
+          <Pressable
+            onPress={() => setVisible((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={visible ? t('auth.hidePassword') : t('auth.showPassword')}
+          >
+            <Ionicons name={visible ? 'eye-off' : 'eye'} size={20} color={colors.muted} />
+          </Pressable>
+        }
         {...props}
-      />
-      <Ionicons
-        name={visible ? 'eye-off' : 'eye'}
-        size={20}
-        color={colors.muted}
-        style={styles.eye}
-        onPress={() => setVisible((v) => !v)}
-        accessibilityRole="button"
-        accessibilityLabel={visible ? t('auth.hidePassword') : t('auth.showPassword')}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  eye: { position: 'absolute', right: space.md, top: 31, padding: 4 },
-});

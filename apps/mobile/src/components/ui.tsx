@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, type Ref, useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -159,27 +159,38 @@ export function TextField({
   hint,
   error,
   success,
+  accessory,
+  inputRef,
   ...props
 }: TextInputProps & {
   label: string;
   hint?: string;
   error?: string | null;
   success?: string | null;
+  /** Elemento dentro do campo, à direita e centralizado na vertical (ex.: o olho da senha). */
+  accessory?: ReactNode;
+  /** Referência do TextInput, para passar o foco de um campo ao outro. */
+  inputRef?: Ref<TextInput>;
 }) {
   return (
     <View style={{ gap: space.xs }}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        placeholderTextColor={colors.placeholder}
-        accessibilityLabel={label}
-        {...props}
-        style={[
-          styles.input,
-          !!error && { borderColor: colors.danger },
-          !!success && { borderColor: colors.success },
-          props.style,
-        ]}
-      />
+      <View>
+        <TextInput
+          ref={inputRef}
+          placeholderTextColor={colors.placeholder}
+          accessibilityLabel={label}
+          {...props}
+          style={[
+            styles.input,
+            !!accessory && { paddingRight: 48 },
+            !!error && { borderColor: colors.danger },
+            !!success && { borderColor: colors.success },
+            props.style,
+          ]}
+        />
+        {accessory ? <View style={styles.fieldAccessory}>{accessory}</View> : null}
+      </View>
       {error ? (
         <Text
           accessibilityLiveRegion="polite"
@@ -341,6 +352,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.8 },
   buttonText: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
   // Figma: campo 48 px, borda branca de 1 px, raio 10, sem fundo.
+  fieldAccessory: { position: "absolute", top: 0, bottom: 0, right: 0, justifyContent: "center", paddingRight: space.md },
   input: {
     minHeight: 48,
     borderWidth: 1,
