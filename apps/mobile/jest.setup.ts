@@ -66,3 +66,6 @@ jest.mock('react-native-google-mobile-ads', () => {
     NativeMediaView: (props: object) => require('react').createElement(View, { ...props, testID: 'ad-media' }),
   };
 });
+// Nos testes o "módulo nativo" do AdMob existe (é o de mentira acima); o caso do Expo Go, sem ele,
+// é testado trocando este retorno.
+jest.mock('./src/lib/ads-native-present', () => ({ nativeAdsPresent: jest.fn(() => true) }));

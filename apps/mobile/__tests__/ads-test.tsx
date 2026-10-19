@@ -7,7 +7,7 @@ import VibeViewerScreen from '../src/app/vibes/[author]';
 import { AdPostCard } from '../src/components/ads/AdPostCard';
 import { AdVibe } from '../src/components/ads/AdVibe';
 import { withAds } from '../src/lib/ads';
-import { FEED_AD_REQUEST, initAds, nativeAdUnitId, VIBE_AD_REQUEST } from '../src/lib/ads-sdk';
+import { adsSdk, FEED_AD_REQUEST, initAds, nativeAdUnitId, VIBE_AD_REQUEST } from '../src/lib/ads-sdk';
 import i18n from '../src/lib/i18n';
 import type { FeedItem } from '../src/lib/types';
 
@@ -160,6 +160,26 @@ describe('SDK: sem personalização e regras de idade', () => {
     } finally {
       delete process.env.EXPO_PUBLIC_ADMOB_NATIVE_IOS;
       delete process.env.EXPO_PUBLIC_ADMOB_NATIVE_ANDROID;
+    }
+  });
+});
+
+describe('Expo Go (sem o módulo nativo do AdMob)', () => {
+  test('sem o módulo nativo: sem anúncio no feed, vibe anunciada pulada e SDK não inicia', async () => {
+    const present = jest.requireMock('../src/lib/ads-native-present') as { nativeAdsPresent: jest.Mock };
+    present.nativeAdsPresent.mockReturnValue(false);
+    try {
+      expect(adsSdk()).toBeNull();
+      expect(nativeAdUnitId()).toBeNull();
+      await expect(initAds({ minor: false })).resolves.toBe(false);
+      await render(<AdPostCard slot={1} />);
+      expect(screen.queryByTestId('ad-post-1')).toBeNull();
+      const onDone = jest.fn();
+      await render(<AdVibe slot={1} hasPrevious={false} onDone={onDone} onPrevious={jest.fn()} onClose={jest.fn()} />);
+      await waitFor(() => expect(onDone).toHaveBeenCalled());
+      expect(screen.queryByTestId('ad-vibe-1')).toBeNull();
+    } finally {
+      present.nativeAdsPresent.mockReturnValue(true);
     }
   });
 });

@@ -1,4 +1,7 @@
 // Web: sem anúncios (o AdMob é só para apps). Mesma forma do ads-sdk.ts, sem carregar o SDK.
+export function adsSdk(): null {
+  return null;
+}
 export function nativeAdUnitId(): string | null {
   return null;
 }
