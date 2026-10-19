@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Dados de teste para o Supabase LOCAL: contas, posts (com música e foto), comentários,
-// respostas, curtidas, seguidores e vibes, para o app não ficar vazio nos testes.
+// respostas, curtidas, seguidores, vibes (inclusive com vários textos, fontes, cores e fundos) e
+// swipes do Descobrir (com o cache de dados do Last.fm), para o app não ficar vazio nos testes.
 //
 //   npm run demo                 cria (ou recria) os dados de teste
 //   npm run demo -- --remove     apaga só as contas de teste (e tudo delas)
@@ -334,19 +335,32 @@ async function main() {
 
   // Vibes (somem em 24 h: rode o script de novo para renovar).
   const vibe = async (p, args) => must(`vibe de ${p.username}`)(await p.client.rpc('vibe_create', { p_style: 'violet', ...args }));
+  // Textos soltos na tela: { t, x, y, f: fonte, c: cor, b: fundo }, como o editor do app monta.
+  const item = (t, x, y, f = 'classic', c = 'white', b = 'none') => ({ t, x, y, f, c, b });
+  const TEXT_SETS = [
+    [item('bom dia com música alta', 0.5, 0.4, 'strong', 'white', 'none'), item('☀️', 0.5, 0.58, 'classic', 'yellow', 'none')],
+    [item('sextou 🎶', 0.5, 0.3, 'script', 'pink', 'none'), item('quem vem?', 0.35, 0.55, 'typewriter', 'black', 'solid'), item('às 22h', 0.68, 0.68, 'modern', 'white', 'soft')],
+    [item('fone no máximo', 0.5, 0.45, 'serif', 'cyan', 'soft')],
+    [item('qual música vocês', 0.5, 0.36, 'modern', 'white', 'none'), item('tão ouvindo hoje?', 0.5, 0.46, 'modern', 'yellow', 'none'), item('responde aqui 👇', 0.5, 0.75, 'script', 'green', 'solid')],
+    [item('show sábado', 0.5, 0.35, 'strong', 'orange', 'solid'), item('quem vai?', 0.6, 0.52, 'typewriter', 'white', 'none')],
+    [item('playlist nova', 0.4, 0.4, 'serif', 'violet', 'soft'), item('no forno', 0.62, 0.52, 'script', 'white', 'none'), item('🔥', 0.5, 0.7, 'classic', 'red', 'none')],
+  ];
   let vibeCount = 0;
   for (const [i, p] of people.entries()) {
     const styles = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'];
-    await vibe(p, { p_kind: 'text', p_text: ['bom dia com música alta', 'sextou 🎶', 'fone no máximo', 'qual música vocês tão ouvindo hoje?', 'show sábado, quem vai?', 'playlist nova no forno'][i], p_style: styles[i], p_text_x: 0.5, p_text_y: 0.45 });
+    // Vibe de texto com vários textos (a última pessoa usa o formato antigo, de um texto só).
+    if (i < TEXT_SETS.length - 1) await vibe(p, { p_kind: 'text', p_text_items: TEXT_SETS[i], p_style: styles[i] });
+    else await vibe(p, { p_kind: 'text', p_text: 'playlist nova no forno', p_style: styles[i], p_text_x: 0.5, p_text_y: 0.45 });
     vibeCount++;
     const song = Object.keys(previews).find((k) => previews[k] && POSTS.some((x) => x.by === p.username && x.song === k));
     if (song) {
-      await vibe(p, { p_kind: 'music', p_link_preview_id: previews[song], p_text: 'no repeat 🔁', p_style: styles[(i + 2) % 6], p_text_x: 0.5, p_text_y: 0.22 });
+      await vibe(p, { p_kind: 'music', p_link_preview_id: previews[song], p_text_items: [item('no repeat 🔁', 0.5, 0.22, 'strong', 'white', 'soft')], p_style: styles[(i + 2) % 6] });
       vibeCount++;
     }
     const photo = await uploadPhoto(p.session, 'vibe', 1080, 1920, 40 + i, warnings);
     if (photo) {
-      await vibe(p, { p_kind: 'photo', p_media_path: photo.path, p_text: i % 2 ? 'vista de hoje' : null, p_text_x: 0.5, p_text_y: 0.84 });
+      const caption = i % 2 ? [item('vista de hoje', 0.5, 0.84, 'script', 'white', 'none'), item('📍 casa', 0.3, 0.12, 'typewriter', 'white', 'solid')] : null;
+      await vibe(p, { p_kind: 'photo', p_media_path: photo.path, p_text_items: caption });
       vibeCount++;
     }
     const shared = pick(posts.filter((x) => x.author !== p.id), 1)[0];
@@ -356,7 +370,20 @@ async function main() {
     }
   }
 
-  console.log(`\nPronto! ${people.length} contas, ${posts.length} posts, ${likes.length} curtidas, ${commentCount} comentários e ${vibeCount} vibes.`);
+  // Descobrir: cada pessoa já deslizou em algumas músicas dos posts das outras, e o cache de
+  // dados do Last.fm (o que o card mostra) fica pronto para elas, sem depender da chave da API.
+  const songIds = [...new Set(Object.values(previews).filter(Boolean))];
+  let swipeCount = 0;
+  if (songIds.length) {
+    const rows = must('ler músicas')(await admin.from('link_previews').select('id, title, artist, image_url').in('id', songIds));
+    const cache = rows.map((r) => ({ link_preview_id: r.id, found: true, title: r.title, artist: r.artist, album: null, image_url: r.image_url?.startsWith('https://') ? r.image_url : null }));
+    must('cache do Last.fm')(await admin.from('lastfm_tracks').upsert(cache, { onConflict: 'link_preview_id' }));
+    const swipes = people.flatMap((p, i) => songIds.filter((_, k) => (k + i) % 3 !== 0).map((id, k) => ({ user_id: p.id, link_preview_id: id, liked: (k + i) % 4 !== 0 })));
+    must('swipes do Descobrir')(await admin.from('discover_swipes').upsert(swipes, { onConflict: 'user_id,link_preview_id', ignoreDuplicates: true }));
+    swipeCount = swipes.length;
+  }
+
+  console.log(`\nPronto! ${people.length} contas, ${posts.length} posts, ${likes.length} curtidas, ${commentCount} comentários, ${vibeCount} vibes e ${swipeCount} swipes no Descobrir.`);
   if (realUsers.length) console.log(`Suas contas (${realUsers.map((r) => '@' + r.username).join(', ')}) agora seguem as de teste e são seguidas por elas.`);
   else console.log('Nenhuma conta sua ainda: crie a sua no app e rode de novo para seguir as de teste.');
   console.log(`\nPara entrar como uma delas: @${PEOPLE[0].username} (ou ${people[0].email}), senha ${PASSWORD}`);

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Carga para teste de desempenho no Supabase LOCAL: centenas de contas e milhares de posts,
-// curtidas, comentários, respostas, seguidores, vibes e curtidas do Descobrir, espalhados
+// curtidas, comentários, respostas, seguidores, vibes (com um ou vários textos estilizados),
+// curtidas do Descobrir e cache de dados do Last.fm, espalhados
 // pelos últimos dias, para ver como o app se comporta com o banco cheio.
 //
 //   npm run load                       carga média (300 contas, 3.000 posts)
@@ -178,6 +179,21 @@ const COMMENTS = ['que som!', 'salvei aqui', 'essa é das minhas favoritas', 'ou
 const REPLIES = ['né?? demais', 'também acho!', 'kkkk exato', 'vou ouvir agora', 'boa demais'];
 const MEDIA_TEXT = ['olha que foto desse show 📸', 'meu setup de hoje', 'garimpo de vinil 💿', 'ensaio da banda', 'fim de tarde com fone', 'trecho do show de ontem 🎥', '', 'bastidores', 'o palco tava assim'];
 const VIBE_TEXT = ['bom dia com música alta', 'sextou 🎶', 'fone no máximo', 'qual música vocês tão ouvindo hoje?', 'show sábado, quem vai?', 'playlist nova no forno', 'no repeat 🔁'];
+const FONTS = ['classic', 'modern', 'strong', 'serif', 'typewriter', 'script'];
+const TEXT_COLORS = ['white', 'black', 'violet', 'blue', 'cyan', 'green', 'yellow', 'orange', 'red', 'pink'];
+const TEXT_BGS = ['none', 'solid', 'soft'];
+/** 1 a 4 textos soltos na tela, cada um com fonte, cor e fundo (o formato text_items das vibes). */
+const textItems = (max = 4) => Array.from({ length: int(1, max) }, () => ({ t: one(VIBE_TEXT), x: +(0.25 + rand() * 0.5).toFixed(2), y: +(0.15 + rand() * 0.7).toFixed(2), f: one(FONTS), c: one(TEXT_COLORS), b: one(TEXT_BGS) }));
+const joinTexts = (items) => items.map((i) => i.t).join('\n').slice(0, 300);
+/** Textos de uma vibe: com a chance dada, nenhum; senão vários textos estilizados (60%) ou o formato antigo, de um texto só. */
+const vibeTexts = (chance, max) => {
+  if (rand() >= chance) return { text: null };
+  if (rand() < 0.6) {
+    const items = textItems(max);
+    return { text: joinTexts(items), text_items: items };
+  }
+  return { text: one(VIBE_TEXT), text_x: 0.5, text_y: 0.45 };
+};
 const STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'];
 
 // Paradas da Deezer por gênero → slug do Soundhora.
@@ -477,6 +493,21 @@ async function main() {
       tracks.push(...must('ler músicas')(await admin.from('link_previews').select('id, genres').in('url', urls.slice(i, i + 100))));
     }
 
+    // Cache do Last.fm (o que o card do Descobrir mostra): metade das músicas já conhecida, e
+    // algumas marcadas como não encontradas, para as duas rotas aparecerem.
+    {
+      const rows = [];
+      for (let i = 0; i < tracks.length; i += 100) {
+        rows.push(...must('ler músicas')(await admin.from('link_previews').select('id, title, artist, image_url').in('id', tracks.slice(i, i + 100).map((t) => t.id))));
+      }
+      const cache = rows.filter(() => rand() < 0.5).map((r) =>
+        rand() < 0.1
+          ? { link_preview_id: r.id, found: false }
+          : { link_preview_id: r.id, found: true, title: r.title, artist: r.artist, album: null, image_url: r.image_url?.startsWith('https://') ? r.image_url : null },
+      );
+      await insertBatches('lastfm_tracks', cache, { size: 500, upsert: 'link_preview_id' });
+    }
+
     // Fotos e vídeos (bancos públicos de teste)
     const media = await mediaPool();
     if (!NO_MEDIA && !media) console.log('  Sem internet para as fotos e vídeos: a carga segue sem mídia.');
@@ -639,15 +670,12 @@ async function main() {
         const r = rand();
         if (media?.photos.length && r < 0.25) {
           const f = int(0, media.photos.length - 1);
-          vibeRows.push({ author_id: id, kind: 'photo', media_path: `${id}/${randomUUID()}.jpg`, file: ['photo', f], text: rand() < 0.4 ? one(VIBE_TEXT) : null, style: one(STYLES), text_x: rand() < 0.4 ? 0.5 : null, text_y: null, created_at: at });
-          const v = vibeRows[vibeRows.length - 1];
-          v.text_y = v.text_x === null ? null : 0.8;
-          if (!v.text) v.text_x = v.text_y = null;
+          vibeRows.push({ author_id: id, kind: 'photo', media_path: `${id}/${randomUUID()}.jpg`, file: ['photo', f], ...vibeTexts(0.4, 3), style: one(STYLES), created_at: at });
         } else if (media?.videos.length && r < 0.33) {
           const f = int(0, media.videos.length - 1);
           vibeRows.push({ author_id: id, kind: 'video', media_path: `${id}/${randomUUID()}.mp4`, file: ['video', f], duration_ms: media.videos[f].ms, text: null, style: one(STYLES), created_at: at });
-        } else if (rand() < 0.5 && tracks.length) vibeRows.push({ author_id: id, kind: 'music', link_preview_id: one(tracks).id, text: rand() < 0.5 ? one(VIBE_TEXT) : null, style: one(STYLES), text_x: 0.5, text_y: 0.22, created_at: at });
-        else vibeRows.push({ author_id: id, kind: 'text', text: one(VIBE_TEXT), style: one(STYLES), text_x: 0.5, text_y: 0.45, created_at: at });
+        } else if (rand() < 0.5 && tracks.length) vibeRows.push({ author_id: id, kind: 'music', link_preview_id: one(tracks).id, ...vibeTexts(0.5, 2), style: one(STYLES), created_at: at });
+        else vibeRows.push({ author_id: id, kind: 'text', ...vibeTexts(1, 5), style: one(STYLES), created_at: at });
       }
     }
     console.log(`Vibes (${vibeRows.length})...`);
