@@ -34,9 +34,20 @@ describe('complete_onboarding', () => {
     await expect(onboard(id, 'kid', yearsAgo(12))).rejects.toThrow('too_young');
   });
 
-  it('13 a 15 anos ficam bloqueados enquanto o vínculo com responsável não existe', async () => {
+  it('MVP: abaixo de 16 anos não entra (idade mínima 16)', async () => {
     const id = await createUser(db, 'teen', { onboard: false });
-    await expect(onboard(id, 'teen', yearsAgo(14))).rejects.toThrow('needs_guardian');
+    await expect(onboard(id, 'teen', yearsAgo(14))).rejects.toThrow('too_young');
+    await expect(onboard(id, 'teen', yearsAgo(15))).rejects.toThrow('too_young');
+  });
+
+  it('com a idade mínima em 13, 13 a 15 anos ficam bloqueados enquanto o vínculo com responsável não existe', async () => {
+    await db.sql(`update public.app_config set min_age = 13`);
+    try {
+      const id = await createUser(db, 'teen13', { onboard: false });
+      await expect(onboard(id, 'teen13', yearsAgo(14))).rejects.toThrow('needs_guardian');
+    } finally {
+      await db.sql(`update public.app_config set min_age = 16`);
+    }
   });
 
   it('16 e 17 anos entram marcados como menores', async () => {
@@ -52,7 +63,7 @@ describe('complete_onboarding', () => {
       const id = await createUser(db, 'seventeen', { onboard: false });
       await expect(onboard(id, 'seventeen', yearsAgo(17))).rejects.toThrow('too_young');
     } finally {
-      await db.sql(`update public.app_config set min_age = 13`);
+      await db.sql(`update public.app_config set min_age = 16`);
     }
   });
 

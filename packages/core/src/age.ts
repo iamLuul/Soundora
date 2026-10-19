@@ -1,10 +1,10 @@
 /**
  * Regras de idade do cadastro.
  *
- * A idade mínima ainda está em decisão, então tudo é configurável. Pelo ECA
- * Digital (Lei 15.211/2025), contas de menores de 16 anos em redes sociais
- * precisam estar vinculadas a um responsável. Enquanto esse vínculo não
- * existir no app (`guardianFlowEnabled: false`), essas contas são bloqueadas.
+ * Idade mínima do MVP: 16 anos (tudo é configurável). Pelo ECA Digital (Lei
+ * 15.211/2025), contas de menores de 16 anos em redes sociais precisam estar
+ * vinculadas a um responsável. Como esse vínculo não existe no app
+ * (`guardianFlowEnabled: false`), o MVP só aceita quem tem 16 anos ou mais.
  * O banco aplica a mesma regra na função `complete_onboarding`.
  */
 
@@ -18,7 +18,7 @@ export interface AgePolicy {
 }
 
 export const DEFAULT_AGE_POLICY: AgePolicy = {
-  minAge: 13,
+  minAge: 16,
   guardianRequiredUnder: 16,
   guardianFlowEnabled: false,
 };

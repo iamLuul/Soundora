@@ -18,11 +18,16 @@ describe('checkAge', () => {
   it('abaixo da idade mínima', () => {
     expect(checkAge('2014-01-01', DEFAULT_AGE_POLICY, today)).toEqual({ status: 'too_young', age: 12 });
   });
-  it('13 a 15 anos sem fluxo de responsável: bloqueia com aviso', () => {
-    expect(checkAge('2012-01-01', DEFAULT_AGE_POLICY, today)).toEqual({ status: 'needs_guardian', age: 14 });
+  it('MVP: abaixo de 16 anos não entra (sem fluxo de responsável)', () => {
+    expect(checkAge('2012-01-01', DEFAULT_AGE_POLICY, today)).toEqual({ status: 'too_young', age: 14 });
+    expect(checkAge('2010-10-10', DEFAULT_AGE_POLICY, today)).toEqual({ status: 'too_young', age: 15 });
+    expect(checkAge('2010-10-09', DEFAULT_AGE_POLICY, today)).toEqual({ status: 'ok', age: 16, isMinor: true });
   });
-  it('13 a 15 anos com fluxo de responsável ativo: libera como menor', () => {
-    expect(checkAge('2012-01-01', { ...DEFAULT_AGE_POLICY, guardianFlowEnabled: true }, today)).toEqual({ status: 'ok', age: 14, isMinor: true });
+  it('com idade mínima 13 e sem fluxo de responsável: 13 a 15 anos pedem responsável', () => {
+    expect(checkAge('2012-01-01', { ...DEFAULT_AGE_POLICY, minAge: 13 }, today)).toEqual({ status: 'needs_guardian', age: 14 });
+  });
+  it('com idade mínima 13 e fluxo de responsável ativo: libera como menor', () => {
+    expect(checkAge('2012-01-01', { ...DEFAULT_AGE_POLICY, minAge: 13, guardianFlowEnabled: true }, today)).toEqual({ status: 'ok', age: 14, isMinor: true });
   });
   it('16 e 17 anos: libera e marca como menor (sem anúncios segmentados)', () => {
     expect(checkAge('2009-06-01', DEFAULT_AGE_POLICY, today)).toEqual({ status: 'ok', age: 17, isMinor: true });

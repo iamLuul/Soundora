@@ -30,7 +30,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '2. Quem pode usar',
       paragraphs: [
-        'Você precisa ter pelo menos 13 anos. Contas de pessoas com menos de 16 anos precisarão do vínculo com um responsável; enquanto esse recurso não existir, essas idades não conseguem se cadastrar.',
+        'Você precisa ter pelo menos 16 anos. Quem tem menos de 16 anos não consegue se cadastrar, porque a lei exige o vínculo da conta com um responsável, e o Soundhora ainda não oferece esse recurso.',
         'Use dados verdadeiros no cadastro. A conta é pessoal: não a compartilhe nem venda.',
       ],
     },
@@ -104,7 +104,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '6. Menores de idade',
       paragraphs: [
-        'O Soundhora é para quem tem 13 anos ou mais. Contas de quem tem menos de 16 precisarão de um responsável vinculado; enquanto isso não existir, essas idades não conseguem se cadastrar.',
+        'O Soundhora é para quem tem 16 anos ou mais. Quem tem menos de 16 não consegue se cadastrar, porque a lei exige o vínculo da conta com um responsável, e o Soundhora ainda não oferece esse recurso.',
       ],
     },
     { title: '7. Contato', paragraphs: [contactPt] },
@@ -113,8 +113,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
     {
       title: '1. Para quem é este termo',
       paragraphs: [
-        'Para quem tem entre 13 e 17 anos e para o pai, a mãe ou o responsável legal dessa pessoa. Quem tem menos de 13 anos não pode usar o Soundhora.',
-        'Contas de quem tem menos de 16 anos precisarão do vínculo com um responsável; enquanto esse recurso não existir, essas idades não conseguem se cadastrar.',
+        'Para quem tem 16 ou 17 anos e para o pai, a mãe ou o responsável legal dessa pessoa. Quem tem menos de 16 anos não pode usar o Soundhora.',
       ],
     },
     {
@@ -185,7 +184,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '2. Who can use it',
       paragraphs: [
-        'You must be at least 13. Accounts of people under 16 will need a linked guardian; until that feature exists, those ages can’t sign up.',
+        'You must be at least 16. People under 16 can’t sign up, because the law requires the account to be linked to a guardian and Soundhora doesn’t offer that feature yet.',
         'Use real information when signing up. Your account is personal: don’t share or sell it.',
       ],
     },
@@ -259,7 +258,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '6. Minors',
       paragraphs: [
-        'Soundhora is for people 13 and older. Accounts of people under 16 will need a linked guardian; until that exists, those ages can’t sign up.',
+        'Soundhora is for people 16 and older. People under 16 can’t sign up, because the law requires the account to be linked to a guardian and Soundhora doesn’t offer that feature yet.',
       ],
     },
     { title: '7. Contact', paragraphs: [contactEn] },
@@ -268,8 +267,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
     {
       title: '1. Who these terms are for',
       paragraphs: [
-        'People aged 13 to 17 and their parent or legal guardian. People under 13 can’t use Soundhora.',
-        'Accounts of people under 16 will need a linked guardian; until that feature exists, those ages can’t sign up.',
+        'People aged 16 or 17 and their parent or legal guardian. People under 16 can’t use Soundhora.',
       ],
     },
     {
