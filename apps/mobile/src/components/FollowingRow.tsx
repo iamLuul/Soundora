@@ -11,6 +11,7 @@ import { Icon } from './figma';
 import { Avatar } from './ui';
 import { uniqueBy } from '../lib/hooks';
 import { VibesRowSkeleton } from './Skeleton';
+import { canCreateVibes } from '../lib/vibes-create';
 import { webTouch } from '../lib/touch';
 
 const SIZE = 62;
@@ -50,6 +51,7 @@ export function FollowingRow() {
   return (
     <View style={styles.wrap}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} accessibilityLabel={t('feed.stories')}>
+        {canCreateVibes || mine ? (
         <View style={styles.item}>
           <Pressable
             testID="vibe-me"
@@ -59,13 +61,16 @@ export function FollowingRow() {
           >
             <VibeRing uri={profile.avatar_url} name={profile.display_name} state={mine ? 'seen' : 'none'} />
           </Pressable>
-          <Pressable testID="vibe-new" accessibilityRole="button" accessibilityLabel={t('vibes.new')} onPress={() => router.push('/vibes/new')} style={[styles.plus, webTouch(8)]} hitSlop={8}>
-            <Icon name="plus" size={8} />
-          </Pressable>
+          {canCreateVibes ? (
+            <Pressable testID="vibe-new" accessibilityRole="button" accessibilityLabel={t('vibes.new')} onPress={() => router.push('/vibes/new')} style={[styles.plus, webTouch(8)]} hitSlop={8}>
+              <Icon name="plus" size={8} />
+            </Pressable>
+          ) : null}
           <Text style={styles.name} numberOfLines={1}>
             {t('vibes.you')}
           </Text>
         </View>
+        ) : null}
 
         {others.map((x) => (
           <Pressable key={x.author_id} testID={`vibe-${x.username}`} accessibilityRole="button" accessibilityLabel={t('vibes.of', { username: x.username })} onPress={() => open(x, others)} style={styles.item}>

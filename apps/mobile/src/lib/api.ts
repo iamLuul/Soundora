@@ -1025,6 +1025,27 @@ export type VibeKind = 'photo' | 'video' | 'text' | 'music' | 'post';
 export const VIBE_STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'] as const;
 export type VibeStyle = (typeof VIBE_STYLES)[number];
 
+/** Fontes, cores e fundos dos textos da vibe (nomes de uma lista fechada, a mesma do servidor). */
+export const VIBE_FONTS = ['classic', 'modern', 'strong', 'serif', 'typewriter', 'script'] as const;
+export type VibeFont = (typeof VIBE_FONTS)[number];
+export const VIBE_TEXT_COLORS = ['white', 'black', 'violet', 'blue', 'cyan', 'green', 'yellow', 'orange', 'red', 'pink'] as const;
+export type VibeTextColor = (typeof VIBE_TEXT_COLORS)[number];
+export const VIBE_TEXT_BGS = ['none', 'solid', 'soft'] as const;
+export type VibeTextBg = (typeof VIBE_TEXT_BGS)[number];
+/** Máximo de textos por vibe e de caracteres por texto (iguais aos do servidor). */
+export const VIBE_MAX_TEXTS = 8;
+export const VIBE_TEXT_MAX = 300;
+
+/** Um texto da vibe: onde fica (centro, em fração da tela) e como é desenhado. */
+export interface VibeTextItem {
+  t: string;
+  x: number;
+  y: number;
+  f: VibeFont;
+  c: VibeTextColor;
+  b: VibeTextBg;
+}
+
 /** Limites do vídeo (vibes e posts), iguais aos da Edge Function media-upload. */
 export const VIBE_VIDEO_MAX = { seconds: 30, bytes: 30 * 1024 * 1024 };
 
@@ -1062,6 +1083,8 @@ export interface Vibe {
   text_x: number | null;
   text_y: number | null;
   preview_audio_url: string | null;
+  /** Vários textos (vibes novas). null = vibe antiga, com um texto só (text, text_x, text_y). */
+  text_items: VibeTextItem[] | null;
 }
 
 export interface VibeViewer {
@@ -1132,25 +1155,23 @@ export interface NewVibe {
   kind: VibeKind;
   mediaPath?: string;
   durationMs?: number;
-  text?: string;
   style?: VibeStyle;
   linkPreviewId?: string;
   postId?: string;
-  /** Centro do texto em fração da tela (sem isso, o lugar padrão do tipo). */
-  textPos?: { x: number; y: number } | null;
+  /** Os textos escritos na vibe (até 8, cada um com lugar, fonte, cor e fundo). */
+  textItems?: VibeTextItem[];
 }
 
 export async function createVibe(v: NewVibe): Promise<string> {
+  const items = (v.textItems ?? []).map((i) => ({ ...i, t: i.t.trim() })).filter((i) => i.t);
   const { data, error } = await supabase.rpc('vibe_create', {
     p_kind: v.kind,
     p_media_path: v.mediaPath ?? null,
     p_duration_ms: v.durationMs ?? null,
-    p_text: v.text?.trim() ? v.text.trim() : null,
     p_style: v.style ?? 'violet',
     p_link_preview_id: v.linkPreviewId ?? null,
     p_post_id: v.postId ?? null,
-    p_text_x: v.text?.trim() && v.textPos ? v.textPos.x : null,
-    p_text_y: v.text?.trim() && v.textPos ? v.textPos.y : null,
+    p_text_items: items.length ? items : null,
   });
   if (error) throw error;
   return data as string;

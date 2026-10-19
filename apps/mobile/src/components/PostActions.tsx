@@ -2,6 +2,7 @@ import { reportReasonSchema, type ReportReason } from '@soundhora/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { canCreateVibes } from '../lib/vibes-create';
 import { colors, fonts, radius, space, text } from '../theme';
 import { SheetBackdrop } from './ui';
 
@@ -48,7 +49,7 @@ export function PostActions({
         <View style={styles.sheet}>
           {step === 'menu' ? (
             <>
-              {allowVibe ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
+              {allowVibe && canCreateVibes ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
               {isMine ? (
                 <Option label={deleteLabel ?? t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
               ) : (

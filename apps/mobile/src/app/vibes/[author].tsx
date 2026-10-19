@@ -25,6 +25,7 @@ import { Verified } from '../../components/Verified';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { showToast } from '../../components/Toast';
 import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
+import { itemsOf } from '../../components/vibes/textStyle';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -257,8 +258,7 @@ function AuthorVibes({
             key={current.id}
             kind={current.kind}
             mediaUri={media.data ?? null}
-            text={current.text}
-            textPos={current.text_x != null && current.text_y != null ? { x: current.text_x, y: current.text_y } : null}
+            textItems={itemsOf(current)}
             style={current.style}
             paused={paused}
             onVideoEnd={goNext}

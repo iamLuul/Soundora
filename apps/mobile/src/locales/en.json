@@ -543,10 +543,40 @@
     },
     "views_zero": "No views yet",
     "tapToWrite": "Tap the vibe to write anywhere.",
-    "dragHint": "Drag the text to move it; tap it to edit.",
+    "dragHint": "Tap somewhere else to add another text. Drag a text to move it; tap it to edit.",
     "done": "Done",
     "pasteMusic": "Paste the song link",
-    "changeMusic": "Change the song"
+    "changeMusic": "Change the song",
+    "deleteText": "Delete text",
+    "textBg": "Text background",
+    "font": "Font",
+    "textColor": "Text color",
+    "maxTexts": "Up to {{max}} texts per vibe.",
+    "bg": {
+      "none": "No background",
+      "solid": "Solid background",
+      "soft": "Soft background"
+    },
+    "fonts": {
+      "classic": "Classic",
+      "modern": "Modern",
+      "strong": "Strong",
+      "serif": "Serif",
+      "typewriter": "Typewriter",
+      "script": "Italic"
+    },
+    "colors": {
+      "white": "White",
+      "black": "Black",
+      "violet": "Violet",
+      "blue": "Blue",
+      "cyan": "Cyan",
+      "green": "Green",
+      "yellow": "Yellow",
+      "orange": "Orange",
+      "red": "Red",
+      "pink": "Pink"
+    }
   },
   "people": {
     "noFollowers": "No one follows this profile yet.",
@@ -744,7 +774,7 @@
     "vibeNewTypeTitle": "Choose the type",
     "vibeNewTypeBody": "A vibe can be a photo, video, text or song. Tap the buttons below to choose.",
     "vibeNewTextTitle": "Write anywhere",
-    "vibeNewTextBody": "Tap the vibe to write. Then drag the text to move it.",
+    "vibeNewTextBody": "Tap the vibe to write, then pick a font, color and background. Tap somewhere else to add more texts and drag each one into place.",
     "vibeNewTimeTitle": "Gone in 24 hours",
     "vibeNewTimeBody": "The vibe is visible for 24 hours and then disappears. You can see who viewed it.",
     "vibeViewTitle": "How to watch vibes",

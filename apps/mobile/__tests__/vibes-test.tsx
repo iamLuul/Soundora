@@ -43,7 +43,7 @@ function textVibe(id: string, text: string, seen = false) {
   return {
     id, kind: 'text', media_path: null, duration_ms: null, text, style: 'violet', created_at: new Date().toISOString(), seen, view_count: null,
     preview_url: null, preview_platform: null, preview_title: null, preview_artist: null, preview_image_url: null, post_id: null, post_body: null,
-    post_author_username: null, post_author_avatar_url: null, text_x: null, text_y: null, preview_audio_url: null,
+    post_author_username: null, post_author_avatar_url: null, text_x: null, text_y: null, preview_audio_url: null, text_items: null,
   };
 }
 const mockVibesOf: Record<string, ReturnType<typeof textVibe>[]> = {
@@ -75,7 +75,90 @@ describe('Nova vibe', () => {
     expect(screen.getByText('bom dia')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('vibe-style-pink'));
     await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'text', text: 'bom dia', style: 'pink', textPos: { x: expect.any(Number), y: expect.any(Number) } }));
+    await waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith({
+        kind: 'text',
+        style: 'pink',
+        textItems: [{ t: 'bom dia', x: expect.any(Number), y: expect.any(Number), f: 'classic', c: 'white', b: 'none' }],
+      }),
+    );
+  });
+
+  test('vários textos: tocar em outro lugar cria outro; só editam ao tocar neles; fonte, cor e fundo por texto', async () => {
+    await wrap(<NewVibeScreen />);
+    const canvas = () => screen.getByTestId('vibe-canvas');
+    // Primeiro texto.
+    await fireEvent.press(canvas(), { nativeEvent: { locationX: 40, locationY: 60 } });
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'primeiro');
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    // Tocar em outro lugar: um texto NOVO (vazio), sem puxar o que já foi escrito.
+    await fireEvent.press(canvas(), { nativeEvent: { locationX: 300, locationY: 500 } });
+    expect(screen.getByTestId('vibe-text').props.value).toBe('');
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'segundo');
+    // Estilo só deste texto: fonte com serifa, amarelo, fundo (sem → cheio).
+    await fireEvent.press(screen.getByTestId('vibe-font-serif'));
+    await fireEvent.press(screen.getByTestId('vibe-color-yellow'));
+    await fireEvent.press(screen.getByTestId('vibe-text-bg'));
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    expect(screen.getByText('primeiro')).toBeTruthy();
+    expect(screen.getByText('segundo')).toBeTruthy();
+    // O próximo texto já nasce com o último estilo usado.
+    await fireEvent.press(canvas(), { nativeEvent: { locationX: 200, locationY: 300 } });
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'terceiro');
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    // Tocar no primeiro texto edita ele (com o texto dele), não cria outro.
+    await fireEvent(screen.getByTestId('vibe-text-item-0'), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
+    expect(screen.getByTestId('vibe-text').props.value).toBe('primeiro');
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'primeiro!');
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    // Texto apagado some ao terminar.
+    await fireEvent.press(canvas(), { nativeEvent: { locationX: 100, locationY: 100 } });
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    expect(screen.queryByTestId('vibe-text-item-3')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('vibe-publish'));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
+    const sent = (mockCreate.mock.calls[0] as unknown as [{ textItems: { t: string; x: number; y: number; f: string; c: string; b: string }[] }])[0].textItems;
+    expect(sent.map((i) => [i.t, i.f, i.c, i.b])).toEqual([
+      ['primeiro!', 'classic', 'white', 'none'],
+      ['segundo', 'serif', 'yellow', 'solid'],
+      ['terceiro', 'serif', 'yellow', 'solid'],
+    ]);
+    // Cada um no seu lugar.
+    expect(new Set(sent.map((i) => `${i.x.toFixed(2)},${i.y.toFixed(2)}`)).size).toBe(3);
+  });
+
+  test('apagar o texto pela lixeira; no máximo 8 textos', async () => {
+    await wrap(<NewVibeScreen />);
+    await fireEvent.press(screen.getByTestId('vibe-canvas'), { nativeEvent: { locationX: 40, locationY: 60 } });
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'some');
+    await fireEvent.press(screen.getByTestId('vibe-text-delete'));
+    expect(screen.queryByText('some')).toBeNull();
+    expect(screen.getByTestId('vibe-publish').props.accessibilityState.disabled).toBe(true);
+
+    for (let i = 0; i < 8; i++) {
+      await fireEvent.press(screen.getByTestId('vibe-canvas'), { nativeEvent: { locationX: 20 + i * 30, locationY: 40 + i * 50 } });
+      await fireEvent.changeText(screen.getByTestId('vibe-text'), `t${i}`);
+      await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    }
+    await fireEvent.press(screen.getByTestId('vibe-canvas'), { nativeEvent: { locationX: 200, locationY: 400 } });
+    expect(screen.queryByTestId('vibe-text')).toBeNull();
+    expect(screen.getByText('No máximo 8 textos por vibe.')).toBeTruthy();
+  });
+
+  test('vibe antiga (um texto só, sem lista) continua aparecendo', async () => {
+    mockVibesOf.old = [{ ...textVibe('o1', 'texto antigo'), text_x: 0.5, text_y: 0.5 } as never];
+    Object.assign(mockParams, { author: 'old' });
+    await wrap(<VibeViewerScreen />);
+    await waitFor(() => expect(screen.getByText('texto antigo')).toBeTruthy());
+  });
+
+  test('vibe com vários textos mostra todos', async () => {
+    mockVibesOf.multi = [{ ...textVibe('m1', 'a\nb'), text_items: [{ t: 'a', x: 0.2, y: 0.2, f: 'serif', c: 'yellow', b: 'solid' }, { t: 'b', x: 0.8, y: 0.8, f: 'strong', c: 'white', b: 'soft' }] } as never];
+    Object.assign(mockParams, { author: 'multi' });
+    await wrap(<VibeViewerScreen />);
+    await waitFor(() => expect(screen.getByText('a')).toBeTruthy());
+    expect(screen.getByText('b')).toBeTruthy();
   });
 
   test('compartilhar um post: abre já com o post e publica como vibe de post', async () => {
@@ -84,7 +167,7 @@ describe('Nova vibe', () => {
     expect(screen.getByText('@bia')).toBeTruthy();
     expect(screen.queryByTestId('vibe-mode-text')).toBeNull();
     await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'post', postId: 'p1', text: '', style: 'violet', textPos: null }));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'post', postId: 'p1', style: 'violet', textItems: [] }));
   });
 });
 
@@ -144,6 +227,6 @@ describe('Vibe de música', () => {
     expect(screen.queryByTestId('vibe-link')).toBeNull();
     expect(screen.queryByTestId('vibe-mute')).toBeNull();
     await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'music', linkPreviewId: 'lp1', text: '', style: 'violet', textPos: null }));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'music', linkPreviewId: 'lp1', style: 'violet', textItems: [] }));
   });
 });

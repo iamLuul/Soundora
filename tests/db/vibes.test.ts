@@ -194,6 +194,46 @@ describe('posição do texto', () => {
   });
 });
 
+describe('vários textos', () => {
+  const item = (t: string, extra: Record<string, unknown> = {}) => ({ t, x: 0.3, y: 0.4, f: 'classic', c: 'white', b: 'none', ...extra });
+  const make = (user: string, items: unknown) => db.as<{ id: string }>(user, `select public.vibe_create(p_kind => 'text', p_text_items => $1::jsonb) as id`, [JSON.stringify(items)]);
+
+  it('guarda cada texto com lugar, fonte, cor e fundo; o campo text junta os textos', async () => {
+    const [{ id }] = await make(ana, [item('primeiro', { f: 'serif', c: 'yellow', b: 'solid' }), item('segundo', { x: 0.7, y: 0.8, f: 'typewriter', b: 'soft' })]);
+    const [v] = await db.as<{ text: string; text_x: number | null; text_items: { t: string; f: string; c: string; b: string; x: number }[] }>(ana, `select * from public.vibes_of($1) where id = $2`, [ana, id]);
+    expect(v!.text).toBe('primeiro\nsegundo');
+    expect(v!.text_x).toBeNull();
+    expect(v!.text_items.map((i) => [i.t, i.f, i.c, i.b, i.x])).toEqual([
+      ['primeiro', 'serif', 'yellow', 'solid', 0.3],
+      ['segundo', 'typewriter', 'white', 'soft', 0.7],
+    ]);
+  });
+
+  it('recusa lista inválida: vazia, grande demais, fonte/cor/fundo fora da lista, posição fora da tela, campo extra', async () => {
+    const bad: unknown[] = [
+      [],
+      Array.from({ length: 9 }, (_, i) => item(`t${i}`)),
+      [item('x', { f: 'comic-sans' })],
+      [item('x', { c: '#ff0000' })],
+      [item('x', { b: 'neon' })],
+      [item('x', { x: 1.5 })],
+      [item('x', { y: -0.1 })],
+      [item('   ')],
+      [item('a'.repeat(301))],
+      [item('x', { extra: 1 })],
+      [item('a'.repeat(300)), item('b'.repeat(300)), item('c')],
+      { t: 'não é lista' },
+    ];
+    for (const items of bad) await expect(make(ana, items)).rejects.toThrow(/invalid_text_items|vibes_text_items|violates check/);
+  });
+
+  it('o texto antigo (uma posição só) continua funcionando', async () => {
+    const [{ id }] = await db.as<{ id: string }>(ana, `select public.vibe_create(p_kind => 'text', p_text => 'antigo', p_text_x => 0.2, p_text_y => 0.9) as id`);
+    const [v] = await db.as<{ text_x: number; text_items: unknown }>(ana, `select * from public.vibes_of($1) where id = $2`, [ana, id]);
+    expect([v!.text_x, v!.text_items]).toEqual([0.2, null]);
+  });
+});
+
 describe('prévia de 30 s', () => {
   it('vem junto com a vibe de música e só aceita endereço das lojas', async () => {
     const lp = await createPreview(db, 'https://open.spotify.com/track/audiopreview000000001');

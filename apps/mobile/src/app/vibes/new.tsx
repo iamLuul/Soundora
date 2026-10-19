@@ -2,7 +2,7 @@ import { extractFirstUrl, parseStreamingUrl } from '@soundhora/core';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -11,20 +11,24 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button, ErrorText, keyboardBehavior } from '../../components/ui';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
 import { VibeContent, type VibeMusic } from '../../components/vibes/VibeContent';
-import { defaultTextPos, EditableVibeText, type TextPos } from '../../components/vibes/VibeText';
+import { defaultTextLook } from '../../components/vibes/textStyle';
+import { VibeTextEditor, VibeTextToolbar, type EditorItem } from '../../components/vibes/VibeText';
 import {
   createVibe,
   previewLink,
   uploadVibeMedia,
+  VIBE_MAX_TEXTS,
   VIBE_STYLES,
   VIBE_VIDEO_MAX,
   type VibeKind,
   type VibeStyle,
+  type VibeTextItem,
 } from '../../lib/api';
 import { AppError, formatError } from '../../lib/errors';
 import { convertVibePhoto } from '../../lib/image-convert';
 import { colors, fonts, space } from '../../theme';
 import { webTouch } from '../../lib/touch';
+import { canCreateVibes } from '../../lib/vibes-create';
 import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 
 interface Media {
@@ -53,6 +57,12 @@ type Params = {
  * compartilhado (quando chega com ?postId=). Some em 24 horas.
  */
 export default function NewVibeScreen() {
+  // Na web só dá para ver vibes: quem abrir o endereço de criar volta para o início.
+  if (!canCreateVibes) return <Redirect href="/" />;
+  return <NewVibeForm />;
+}
+
+function NewVibeForm() {
   const { t } = useTranslation();
   // Primeira vez criando uma vibe: os tipos, escrever e arrastar, e as 24 horas.
   const [tipOpen, closeTip] = useFirstTimeTip('vibe-new');
@@ -75,10 +85,15 @@ export default function NewVibeScreen() {
 
   const [kind, setKind] = useState<VibeKind>(sharedPost ? 'post' : 'text');
   const [media, setMedia] = useState<Media | null>(null);
-  const [text, setText] = useState('');
-  // Texto na tela: onde fica (fração da tela) e se está sendo digitado.
-  const [textPos, setTextPos] = useState<TextPos | null>(null);
-  const [editing, setEditing] = useState(false);
+  // Textos na tela (até 8): cada um com lugar, fonte, cor e fundo. editingId = o que está sendo digitado.
+  const [items, setItems] = useState<EditorItem[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // Fonte, cor e fundo do próximo texto: o último que a pessoa escolheu (como no Instagram).
+  const [look, setLook] = useState<Pick<VibeTextItem, 'f' | 'c' | 'b'> | null>(null);
+  const nextId = useRef(0);
+  const editing = editingId !== null;
+  const editingItem = items.find((i) => i.id === editingId) ?? null;
+  const hasText = items.some((i) => i.t.trim());
   const canvasRef = useRef<View>(null);
   const [style, setStyle] = useState<VibeStyle>('violet');
   const [link, setLink] = useState('');
@@ -159,7 +174,7 @@ export default function NewVibeScreen() {
   }, [link, linkEditing, music?.url]);
 
   const openLinkEditor = () => {
-    setEditing(false);
+    setEditingId(null);
     setError(null);
     setLink(music?.url ?? '');
     lastTried.current = music?.url ?? null;
@@ -172,7 +187,7 @@ export default function NewVibeScreen() {
   };
 
   const canPublish =
-    (kind === 'text' && text.trim().length > 0) ||
+    (kind === 'text' && hasText) ||
     ((kind === 'photo' || kind === 'video') && !!media) ||
     (kind === 'music' && !!music) ||
     (kind === 'post' && !!sharedPost);
@@ -180,6 +195,7 @@ export default function NewVibeScreen() {
   const publish = async () => {
     setError(null);
     setBusy('publish');
+    const textItems: VibeTextItem[] = items.filter((i) => i.t.trim()).map(({ id: _id, ...rest }) => rest);
     try {
       if ((kind === 'photo' || kind === 'video') && media) {
         let bytes: Uint8Array;
@@ -193,13 +209,13 @@ export default function NewVibeScreen() {
           if (bytes.byteLength > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
         }
         const uploaded = await uploadVibeMedia(media.type, bytes);
-        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, text, textPos });
+        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, textItems });
       } else if (kind === 'music' && music) {
-        await createVibe({ kind: 'music', linkPreviewId: music.id, text, style, textPos });
+        await createVibe({ kind: 'music', linkPreviewId: music.id, style, textItems });
       } else if (kind === 'post' && sharedPost) {
-        await createVibe({ kind: 'post', postId: sharedPost.id, text, style, textPos });
+        await createVibe({ kind: 'post', postId: sharedPost.id, style, textItems });
       } else {
-        await createVibe({ kind: 'text', text, style, textPos });
+        await createVibe({ kind: 'text', style, textItems });
       }
       await qc.invalidateQueries({ queryKey: ['vibes'] });
       if (router.canGoBack()) router.back();
@@ -223,10 +239,32 @@ export default function NewVibeScreen() {
   // Dá para escrever na tela quando já existe o fundo da vibe (texto, mídia, música ou post).
   const canWrite = kind === 'text' || kind === 'post' || (kind === 'music' && !!music) || ((kind === 'photo' || kind === 'video') && !!media);
 
+  /** Termina de digitar: o texto que ficou vazio some. */
   function finishEditing() {
-    setEditing(false);
+    setEditingId(null);
+    setItems((prev) => prev.filter((i) => i.t.trim()));
     Keyboard.dismiss();
   }
+
+  /** Novo texto onde a pessoa tocou (com a última fonte, cor e fundo usados). */
+  function addTextAt(x: number, y: number) {
+    if (items.length >= VIBE_MAX_TEXTS) return setError(t('vibes.maxTexts', { max: VIBE_MAX_TEXTS }));
+    const id = `t${++nextId.current}`;
+    setItems((prev) => [...prev, { id, t: '', x, y, ...(look ?? defaultTextLook(kind)) }]);
+    setEditingId(id);
+  }
+
+  const changeItem = (id: string, patch: Partial<VibeTextItem>) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  const changeLook = (patch: Partial<Pick<VibeTextItem, 'f' | 'c' | 'b'>>) => {
+    if (!editingItem) return;
+    changeItem(editingItem.id, patch);
+    setLook({ f: editingItem.f, c: editingItem.c, b: editingItem.b, ...patch });
+  };
+  const deleteEditing = () => {
+    setItems((prev) => prev.filter((i) => i.id !== editingId));
+    setEditingId(null);
+    Keyboard.dismiss();
+  };
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={keyboardBehavior}>
@@ -262,7 +300,7 @@ export default function NewVibeScreen() {
             </View>
           ) : (
             <>
-              {kind === 'text' && !text.trim() && !editing ? (
+              {kind === 'text' && !hasText && !editing ? (
                 <View style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}>
                   <Ionicons name="text" size={40} color={colors.text} />
                   <Text style={styles.placeholderText}>{t('vibes.textHint')}</Text>
@@ -271,7 +309,6 @@ export default function NewVibeScreen() {
                 <VibeContent
                   kind={kind}
                   mediaUri={media?.uri}
-                  text={null}
                   style={style}
                   music={music}
                   post={sharedPost}
@@ -279,7 +316,7 @@ export default function NewVibeScreen() {
                   onMusicLayout={setMusicRect}
                 />
               )}
-              {/* Tocar na tela escreve ali (ou leva o texto para lá); arrastar o texto também move. */}
+              {/* Tocar num lugar vazio da vibe cria um texto novo ali; tocar num texto edita só ele. */}
               <Pressable
                 testID="vibe-canvas"
                 accessibilityRole="button"
@@ -295,30 +332,23 @@ export default function NewVibeScreen() {
                     if (kind === 'music' && musicRect && x >= musicRect.x && x <= musicRect.x + musicRect.width && y >= musicRect.y && y <= musicRect.y + musicRect.height) {
                       return openLinkEditor();
                     }
-                    setTextPos({ x: Math.min(1, Math.max(0, x / cardWidth)), y: Math.min(1, Math.max(0, y / cardHeight)) });
-                    if (!text.trim()) setEditing(true);
+                    addTextAt(Math.min(1, Math.max(0, x / cardWidth)), Math.min(1, Math.max(0, y / cardHeight)));
                   };
                   // Celular: posição do toque dentro da vibe. Web: nem sempre vem; calcula pela página.
                   if (Number.isFinite(locationX) && Number.isFinite(locationY) && (locationX || locationY)) apply(locationX, locationY);
                   else canvasRef.current?.measureInWindow((left, top) => apply(pageX - left, pageY - top));
                 }}
               />
-              <EditableVibeText
+              <VibeTextEditor
                 kind={kind}
-                text={text}
-                pos={textPos ?? defaultTextPos(kind)}
-                editing={editing}
+                items={items}
+                editingId={editingId}
                 placeholder={kind === 'text' ? t('vibes.textPlaceholder') : t('vibes.captionPlaceholder')}
-                onChangeText={setText}
-                onChangePos={setTextPos}
-                onStartEdit={() => setEditing(true)}
-                onEndEdit={finishEditing}
+                onChangeText={(id, value) => changeItem(id, { t: value })}
+                onChangePos={(id, pos) => changeItem(id, pos)}
+                onStartEdit={setEditingId}
               />
-              {editing ? (
-                <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={finishEditing} style={styles.done} hitSlop={8}>
-                  <Text style={styles.doneText}>{t('vibes.done')}</Text>
-                </Pressable>
-              ) : null}
+              {editingItem ? <VibeTextToolbar item={editingItem} onChange={changeLook} onDelete={deleteEditing} onDone={finishEditing} /> : null}
             </>
           )}
           {kind === 'music' && linkEditing ? (
@@ -356,7 +386,7 @@ export default function NewVibeScreen() {
         </View>
 
 
-        {canWrite && !editing ? <Text style={styles.hint}>{text.trim() ? t('vibes.dragHint') : t('vibes.tapToWrite')}</Text> : null}
+        {canWrite && !editing ? <Text style={styles.hint}>{hasText ? t('vibes.dragHint') : t('vibes.tapToWrite')}</Text> : null}
 
         {showStyles ? (
           <View style={styles.dots} accessibilityRole="radiogroup" accessibilityLabel={t('vibes.background')}>
@@ -445,7 +475,5 @@ const styles = StyleSheet.create({
   mode: { alignItems: 'center', gap: 4 },
   modeIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   modeLabel: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },
-  done: { position: 'absolute', top: space.md, right: space.md, backgroundColor: colors.text, borderRadius: 16, paddingHorizontal: space.md, paddingVertical: 6 },
-  doneText: { fontFamily: fonts.bold, fontSize: 13, color: colors.background },
   hint: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
 });

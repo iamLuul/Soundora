@@ -4,11 +4,11 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { VibeKind, VibeStyle } from '../../lib/api';
+import type { VibeKind, VibeStyle, VibeTextItem } from '../../lib/api';
 import { colors, fonts, space } from '../../theme';
 import { PlatformLogo, RingAvatar } from '../figma';
 import { VIBE_BACKGROUND } from './colors';
-import { VibeTextOverlay, type TextPos } from './VibeText';
+import { VibeTextOverlay } from './VibeText';
 import { VibeVideo } from './VibeVideo';
 import { Spinner } from '../Spinner';
 
@@ -32,9 +32,8 @@ export interface VibeContentProps {
   kind: VibeKind;
   /** Foto/vídeo: arquivo local (ao criar) ou URL assinada (ao ver). null = ainda carregando. */
   mediaUri?: string | null;
-  text?: string | null;
-  /** Onde o texto fica (null = lugar padrão do tipo). */
-  textPos?: TextPos | null;
+  /** Os textos da vibe, cada um no seu lugar e com a sua fonte, cor e fundo. */
+  textItems?: VibeTextItem[];
   style: VibeStyle;
   music?: VibeMusic | null;
   post?: VibeSharedPost | null;
@@ -47,7 +46,7 @@ export interface VibeContentProps {
 }
 
 /** O conteúdo de uma vibe em 9:16. Igual na criação e na visualização. */
-export function VibeContent({ kind, mediaUri, text, textPos = null, style, music, post, paused = false, preview = false, onVideoEnd, onMusicLayout }: VibeContentProps) {
+export function VibeContent({ kind, mediaUri, textItems = [], style, music, post, paused = false, preview = false, onVideoEnd, onMusicLayout }: VibeContentProps) {
   const { t } = useTranslation();
 
   if (kind === 'photo' || kind === 'video') {
@@ -60,7 +59,7 @@ export function VibeContent({ kind, mediaUri, text, textPos = null, style, music
         ) : (
           <VibeVideo uri={mediaUri} paused={paused} loop={preview} onEnd={onVideoEnd} />
         )}
-        {text ? <VibeTextOverlay text={text} kind={kind} pos={textPos} /> : null}
+        {textItems.length ? <VibeTextOverlay items={textItems} kind={kind} /> : null}
       </View>
     );
   }
@@ -97,7 +96,7 @@ export function VibeContent({ kind, mediaUri, text, textPos = null, style, music
         </>
       ) : null}
 
-      {text ? <VibeTextOverlay text={text} kind={kind} pos={textPos} /> : null}
+      {textItems.length ? <VibeTextOverlay items={textItems} kind={kind} /> : null}
     </View>
   );
 }
