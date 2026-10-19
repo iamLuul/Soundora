@@ -18,7 +18,7 @@ import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 import { AccountLoadFailed } from '../components/AccountLoadFailed';
 import { DesktopShell } from '../components/desktop/DesktopShell';
-import { AppSkeleton } from '../components/Skeleton';
+import { BootSkeleton } from '../components/desktop/DesktopSkeleton';
 import { ToastHost } from '../components/Toast';
 
 SplashScreen.preventAutoHideAsync();
@@ -46,7 +46,7 @@ function RootNavigator() {
   }, [ready]);
 
   // Abrindo (fontes e sessão): o esqueleto do app. Na web ele já vem no HTML, antes do JavaScript.
-  if (!ready) return <AppSkeleton />;
+  if (!ready) return <BootSkeleton />;
 
   // Entrou, mas o perfil não carregou: não dá para saber se falta o onboarding. Nada de
   // cadastro nem de abas até confirmar (tentar de novo ou sair).
