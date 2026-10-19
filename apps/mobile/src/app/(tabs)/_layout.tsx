@@ -2,11 +2,14 @@ import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { carouselOptions, onTabTransition, SwipeTabs } from '../../components/SwipeTabs';
 import { TabBar } from '../../components/TabBar';
+import { useIsDesktop } from '../../lib/layout';
 import { colors } from '../../theme';
 
 /** Abas do app, na ordem do Figma: Início, Buscar, + (postar), Músicas, Perfil. */
 export default function TabsLayout() {
   const { t } = useTranslation();
+  // Desktop: a barra lateral troca de aba na hora (o carrossel é só do celular).
+  const desktop = useIsDesktop();
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}
@@ -27,7 +30,7 @@ export default function TabsLayout() {
         </SwipeTabs>
       )}
       screenListeners={({ route }) => ({ transitionStart: () => onTabTransition(route.name) })}
-      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: colors.background }, ...carouselOptions(route.name) })}
+      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: colors.background }, freezeOnBlur: desktop, ...carouselOptions(route.name, !desktop) })}
     >
       <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
       <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />

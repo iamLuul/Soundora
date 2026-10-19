@@ -1,8 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Animated, Easing, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme';
+
+/** Web: girar é uma animação CSS (sem JavaScript por quadro; o Animated re-renderizava a cada quadro). */
+const webSpin =
+  Platform.OS === 'web'
+    ? StyleSheet.create({
+        spin: {
+          animationKeyframes: { from: { transform: [{ rotate: '0deg' }] }, to: { transform: [{ rotate: '360deg' }] } },
+          animationDuration: '850ms',
+          animationIterationCount: 'infinite',
+          animationTimingFunction: 'linear',
+        } as ViewStyle,
+      }).spin
+    : null;
 
 /**
  * Indicador de carregamento do Soundhora: um anel fino com um arco de ponta redonda girando
@@ -28,10 +41,10 @@ export function Spinner({
   const [turn] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    if (!spinning || process.env.NODE_ENV === 'test') return;
+    if (!spinning || process.env.NODE_ENV === 'test' || Platform.OS === 'web') return;
     turn.setValue(0);
     const loop = Animated.loop(
-      Animated.timing(turn, { toValue: 1, duration: 850, easing: Easing.linear, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(turn, { toValue: 1, duration: 850, easing: Easing.linear, useNativeDriver: true }),
     );
     loop.start();
     return () => loop.stop();
@@ -53,7 +66,7 @@ export function Spinner({
       accessibilityState={{ busy: true }}
       style={[{ alignItems: 'center', justifyContent: 'center' }, style]}
     >
-      <Animated.View style={{ width: size, height: size, transform: [{ rotate: spinning ? rotate : '0deg' }] }}>
+      <Animated.View style={[{ width: size, height: size }, webSpin ? (spinning ? webSpin : null) : { transform: [{ rotate: spinning ? rotate : '0deg' }] }]}>
         <Svg width={size} height={size}>
           {/* Trilho bem apagado, para o arco não parecer solto. */}
           <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeOpacity={0.18} strokeWidth={stroke} fill="none" />

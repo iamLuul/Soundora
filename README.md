@@ -70,6 +70,7 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm run check:secrets` | Confere que nenhuma chave secreta está no Git ou no app |
 | `npm run demo` | Dados de demonstração no Supabase local (algumas contas, posts e vibes). `-- --remove` apaga |
 | `npm run load` | Carga para teste de desempenho no Supabase local: centenas de contas (com foto e banner) e milhares de posts (música, fotos e vídeos), curtidas, comentários, seguidores e vibes. Fotos e vídeos de bancos públicos de teste (randomuser.me, Lorem Picsum, filmes abertos da Blender). `-- --scale small\|large`, `-- --users N --posts N`, `-- --no-media`; `-- --remove` apaga tudo, arquivos inclusive |
+| `npm run web:prod` | Gera o build de produção da web e serve em `localhost:8088`. Use para avaliar a velocidade: `npm run app` roda o modo de desenvolvimento (React com checagens extras, bundle sem minificar), que é bem mais lento que o app publicado |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
 ## Decisões importantes

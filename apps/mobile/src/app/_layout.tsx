@@ -1,5 +1,9 @@
 import '../lib/i18n';
-import { Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, useFonts } from '@expo-google-fonts/montserrat';
+// Cada peso pelo caminho próprio: o pacote inteiro põe as 18 fontes (6 MB) no build.
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat/400Regular';
+import { Montserrat_600SemiBold } from '@expo-google-fonts/montserrat/600SemiBold';
+import { Montserrat_700Bold } from '@expo-google-fonts/montserrat/700Bold';
+import { useFonts } from 'expo-font';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';

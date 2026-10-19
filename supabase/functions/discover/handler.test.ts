@@ -509,3 +509,26 @@ Deno.test('Last.fm: guarda o resultado (não pergunta de novo) e, se estiver for
   ]);
   assertEquals(down.lastfm.size, 0, 'falha de rede não vira "o Last.fm não conhece"');
 });
+
+Deno.test('Last.fm lento: a pilha sai no prazo com os dados da Deezer e o Last.fm termina depois, em segundo plano', async () => {
+  const tasks: Promise<unknown>[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  const s = setup({
+    lastfmBudgetMs: 20,
+    background: (t) => void tasks.push(t),
+    lastfmInfo: async (ref) => {
+      await gate; // o Last.fm demora mais que o prazo
+      return { title: ref.title, artist: 'Banda Oficial', album: 'Álbum LF', imageUrl: LASTFM_COVER };
+    },
+  });
+  const cards = (await (await s.handler(post({ action: 'deck' }))).json()).cards as (Card & { album: string })[];
+  assertEquals(cards.length > 0, true);
+  for (const c of cards) assertEquals([c.album, c.image_url], [`${c.title} (álbum)`, DEEZER_COVER], 'sem esperar o Last.fm');
+  assertEquals(s.lastfm.size, 0, 'ainda não chegou');
+  release();
+  await Promise.all(tasks);
+  assertEquals(s.lastfm.size > 0, true, 'terminou em segundo plano e ficou guardado');
+  const next = (await (await s.handler(post({ action: 'deck' }))).json()).cards as (Card & { album: string })[];
+  for (const c of next) assertEquals([c.album, c.image_url], ['Álbum LF', LASTFM_COVER], 'a próxima pilha já sai com o Last.fm');
+});

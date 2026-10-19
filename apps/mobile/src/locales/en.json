@@ -293,6 +293,7 @@
     "onlyGenre": "Only {{genre}}",
     "allGenres": "Back to all suggestions",
     "loading": "Finding music for you…",
+    "likedMore": "Show more liked songs",
     "likedSongs": "Liked songs",
     "likedEmpty": "Swipe right (or tap the star) to keep the songs you like here.",
     "unlike": "Unlike",

@@ -37,4 +37,7 @@ describe('carrossel das abas', () => {
     expect(carouselOptions('compose')).toEqual({});
     expect(carouselOptions('music').sceneStyleInterpolator).toBeInstanceOf(Function);
   });
+  test('no desktop a troca de aba é instantânea (sem carrossel)', () => {
+    expect(carouselOptions('music', false)).toEqual({});
+  });
 });

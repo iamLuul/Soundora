@@ -9,7 +9,26 @@ import { colors, radius, space } from '../theme';
  * o leitor de tela que está carregando; os <Bone> são os blocos.
  */
 
-const Pulse = createContext<Animated.Value | null>(null);
+/** Native: o valor animado do pulso. Web: 'css' (o pulso é uma animação CSS, sem JavaScript por quadro). */
+const Pulse = createContext<Animated.Value | 'css' | null>(null);
+
+/**
+ * Na web o pulso é CSS (opacidade, na placa de vídeo). Antes era um Animated em JavaScript:
+ * cada quadro re-renderizava todos os blocos, e como as abas continuam montadas, os esqueletos
+ * das abas escondidas gastavam a thread principal o tempo todo, mesmo sem ninguém mexer.
+ * (Só um estilo criado por StyleSheet.create vira CSS; inline, animationKeyframes não vale.)
+ */
+const webPulse =
+  Platform.OS === 'web'
+    ? StyleSheet.create({
+        pulse: {
+          animationKeyframes: { '0%': { opacity: 0.55 }, '50%': { opacity: 1 }, '100%': { opacity: 0.55 } },
+          animationDuration: '1400ms',
+          animationIterationCount: 'infinite',
+          animationTimingFunction: 'ease-in-out',
+        } as ViewStyle,
+      }).pulse
+    : null;
 
 /** Cor dos blocos: um tom acima do fundo, como os cartões do Figma. */
 const BONE = colors.surface;
@@ -30,11 +49,11 @@ export function Skeleton({ children, style, testID = 'skeleton' }: { children: R
   }, []);
 
   useEffect(() => {
-    if (reduceMotion || process.env.NODE_ENV === 'test') return;
+    if (reduceMotion || process.env.NODE_ENV === 'test' || Platform.OS === 'web') return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -42,7 +61,7 @@ export function Skeleton({ children, style, testID = 'skeleton' }: { children: R
   }, [opacity, reduceMotion]);
 
   return (
-    <Pulse.Provider value={opacity}>
+    <Pulse.Provider value={Platform.OS === 'web' ? (reduceMotion ? null : 'css') : opacity}>
       <View testID={testID} accessible accessibilityRole="progressbar" accessibilityLabel={t('common.loading')} accessibilityState={{ busy: true }} style={style}>
         {children}
       </View>
@@ -69,7 +88,9 @@ export function Bone({
   const opacity = useContext(Pulse);
   const w = size ?? width;
   const h = size ?? height;
-  return <Animated.View style={[{ width: w, height: h, borderRadius: circle && size ? size / 2 : r, backgroundColor: BONE }, opacity ? { opacity } : { opacity: 0.7 }, style]} />;
+  const base = { width: w, height: h, borderRadius: circle && size ? size / 2 : r, backgroundColor: BONE };
+  if (opacity === 'css') return <View style={[base, webPulse, style]} />;
+  return <Animated.View style={[base, opacity ? { opacity } : { opacity: 0.7 }, style]} />;
 }
 
 const repeat = (n: number) => Array.from({ length: n }, (_, i) => i);

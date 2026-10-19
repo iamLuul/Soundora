@@ -63,6 +63,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "web:prod": "expo export -p web --output-dir dist && npx --yes serve -s dist -l 8088",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --watch",

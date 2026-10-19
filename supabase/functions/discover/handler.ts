@@ -174,6 +174,8 @@ export interface Deps {
   lastfmInfo?(ref: TrackRef): Promise<LastfmTrackInfo | null>;
   /** Pausa entre os lotes de busca na Deezer (limite de 50 pedidos a cada 5 s). */
   pauseMs?: number;
+  /** Quanto a resposta espera pelo Last.fm antes de sair com o que tem (o resto continua em segundo plano). */
+  lastfmBudgetMs?: number;
   now?: () => Date;
   debug?: boolean;
   log?: (...args: unknown[]) => void;
@@ -186,6 +188,8 @@ function json(body: unknown, status = 200): Response {
 /** Slug de gênero do catálogo (milhares; os que não existem só não dão sugestão). */
 const isGenre = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9_]{1,80}$/.test(v);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A resposta do Descobrir não espera pelo Last.fm mais que isto. */
+const LASTFM_BUDGET_MS = 1500;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function createHandler(deps: Deps) {
@@ -301,6 +305,8 @@ export function createHandler(deps: Deps) {
   /**
    * Nome, álbum e capa de cada cartão pelo Last.fm. O que já foi achado vem do banco; o resto é
    * perguntado agora (de 5 em 5) e guardado. Se o Last.fm falhar, o cartão segue com o que tem.
+   * A resposta não espera mais que `LASTFM_BUDGET_MS`: o que não deu tempo continua depois da
+   * resposta e fica guardado para a próxima vez (o cartão sai com o que a Deezer achou).
    */
   async function lastfmMetaFor(items: { row: TrackRow; candidate: Candidate }[]): Promise<Map<string, LastfmMeta>> {
     const out = new Map<string, LastfmMeta>();
@@ -314,34 +320,51 @@ export function createHandler(deps: Deps) {
       if (m) out.set(it.row.id, m);
       if (!m || ((!m.found || !m.image_url) && old(m))) todo.push(it);
     }
-    for (let i = 0; i < todo.length; i += 5) {
-      if (i > 0) await wait(deps.pauseMs ?? 400);
-      const batch = todo.slice(i, i + 5);
-      const found = await Promise.all(
-        batch.map((it) =>
-          deps
-            .lastfmInfo!({ artist: it.candidate.artist, title: it.candidate.title })
-            .then((info) => ({ ok: true as const, info }))
-            .catch((err) => {
-              log('discover: Last.fm indisponível', err);
-              return { ok: false as const, info: null };
-            }),
-        ),
-      );
-      for (const [j, f] of found.entries()) {
-        if (!f.ok) continue;
-        const meta: LastfmMeta = f.info
-          ? { found: true, title: f.info.title, artist: f.info.artist, album: f.info.album, image_url: f.info.imageUrl }
-          : { found: false, title: null, artist: null, album: null, image_url: null };
-        // Conhece a música mas sem capa agora: não apaga a que já tínhamos.
-        const prev = out.get(batch[j]!.row.id);
-        const merged = { ...meta, image_url: meta.image_url ?? prev?.image_url ?? null, album: meta.album ?? prev?.album ?? null };
-        out.set(batch[j]!.row.id, merged.found || !prev?.found ? merged : prev);
-        await deps.saveLastfm?.(batch[j]!.row.id, merged).catch(() => undefined);
+    const fill = async () => {
+      for (let i = 0; i < todo.length; i += 5) {
+        if (i > 0) await wait(deps.pauseMs ?? 400);
+        const batch = todo.slice(i, i + 5);
+        const found = await Promise.all(
+          batch.map((it) =>
+            deps
+              .lastfmInfo!({ artist: it.candidate.artist, title: it.candidate.title })
+              .then((info) => ({ ok: true as const, info }))
+              .catch((err) => {
+                log('discover: Last.fm indisponível', err);
+                return { ok: false as const, info: null };
+              }),
+          ),
+        );
+        for (const [j, f] of found.entries()) {
+          if (!f.ok) continue;
+          const meta: LastfmMeta = f.info
+            ? { found: true, title: f.info.title, artist: f.info.artist, album: f.info.album, image_url: f.info.imageUrl }
+            : { found: false, title: null, artist: null, album: null, image_url: null };
+          // Conhece a música mas sem capa agora: não apaga a que já tínhamos.
+          const prev = out.get(batch[j]!.row.id);
+          const merged = { ...meta, image_url: meta.image_url ?? prev?.image_url ?? null, album: meta.album ?? prev?.album ?? null };
+          out.set(batch[j]!.row.id, merged.found || !prev?.found ? merged : prev);
+          await deps.saveLastfm?.(batch[j]!.row.id, merged).catch(() => undefined);
+        }
       }
+    };
+    if (todo.length) {
+      const work = fill().catch(() => undefined);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finished = await Promise.race([
+        work.then(() => true),
+        new Promise<boolean>((r) => {
+          timer = setTimeout(() => r(false), deps.lastfmBudgetMs ?? LASTFM_BUDGET_MS);
+        }),
+      ]);
+      clearTimeout(timer);
+      // Estourou o tempo: o resto termina em segundo plano (e fica guardado para a próxima pilha).
+      if (!finished && deps.background) deps.background(work);
     }
-    for (const [id, m] of out) if (!m.found) out.delete(id);
-    return out;
+    // Uma cópia: o que chegar depois do prazo não muda a resposta que já está saindo.
+    const result = new Map(out);
+    for (const [id, m] of result) if (!m.found) result.delete(id);
+    return result;
   }
 
   /**

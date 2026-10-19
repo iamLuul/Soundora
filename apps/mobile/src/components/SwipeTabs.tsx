@@ -79,9 +79,14 @@ let releasing = false;
 // Acessibilidade › Reduzir movimento: a troca é instantânea e a tela não acompanha o dedo.
 const SLIDE_CONFIG = { duration: display.reduceMotion ? 0 : 300, easing: Easing.out(Easing.cubic) };
 
-/** Opções de cada aba no navegador: o + não tem animação; as outras, o carrossel. */
-export function carouselOptions(name: string) {
-  if (name === 'compose') return {};
+/**
+ * Opções de cada aba no navegador: o + não tem animação; as outras, o carrossel.
+ * `carousel` false (barra lateral do desktop, onde não se arrasta): troca na hora. Na web a
+ * animação roda em JavaScript e re-renderiza a tela inteira a cada quadro; no desktop ela só
+ * fazia cada clique parecer lento.
+ */
+export function carouselOptions(name: string, carousel = true) {
+  if (name === 'compose' || !carousel) return {};
   const myLane = lane(name);
   return {
     transitionSpec: { animation: 'timing' as const, config: SLIDE_CONFIG },

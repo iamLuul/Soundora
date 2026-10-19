@@ -293,6 +293,7 @@
     "onlyGenre": "Só {{genre}}",
     "allGenres": "Voltar para todas as sugestões",
     "loading": "Procurando músicas para você…",
+    "likedMore": "Ver mais músicas curtidas",
     "likedSongs": "Músicas curtidas",
     "likedEmpty": "Arraste para a direita (ou toque na estrela) para guardar aqui as músicas que você curtir.",
     "unlike": "Descurtir",
