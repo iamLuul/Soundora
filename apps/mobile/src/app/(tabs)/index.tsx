@@ -10,6 +10,8 @@ import { SuspendedBanner } from '../../components/SuspendedBanner';
 import { useFeed, useFollowingFeed, useSuggestedAccounts } from '../../lib/queries';
 import { colors, space, text } from '../../theme';
 import { formatError } from '../../lib/errors';
+import { useAds } from '../../lib/ads';
+import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 
 type FeedTab = 'feed' | 'following';
 
@@ -26,6 +28,9 @@ export default function FeedScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<FeedTab>('feed');
+  const ads = useAds();
+  // Antes do primeiro anúncio, o aviso de que eles existem (prometido na página de Anúncios).
+  const [adsTip, closeAdsTip] = useFirstTimeTip('ads-intro');
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
@@ -39,18 +44,24 @@ export default function FeedScreen() {
         style={{ marginHorizontal: space.lg }}
       />
       <SuspendedBanner />
+      <CoachMarks
+        testID="coach-ads"
+        visible={ads.ready && adsTip}
+        onClose={closeAdsTip}
+        steps={[{ icon: 'megaphone-outline', title: t('ads.introTitle'), body: t('ads.introBody') }]}
+      />
       {/* As duas ficam montadas: trocar de aba não perde a rolagem nem busca de novo. */}
       <View style={{ flex: 1, display: tab === 'feed' ? 'flex' : 'none' }}>
-        <ForYou />
+        <ForYou adsEvery={ads.feedEvery} />
       </View>
       <View style={{ flex: 1, display: tab === 'following' ? 'flex' : 'none' }}>
-        <Following active={tab === 'following'} />
+        <Following active={tab === 'following'} adsEvery={ads.feedEvery} />
       </View>
     </View>
   );
 }
 
-function ForYou() {
+function ForYou({ adsEvery }: { adsEvery: number }) {
   const { t } = useTranslation();
   const feed = useFeed();
   const items = feed.data?.pages.flat() ?? [];
@@ -66,11 +77,12 @@ function ForYou() {
       errorText={feed.isError ? formatError(t, feed.error) : null}
       followable
       interstitial={{ after: SUGGESTIONS_AFTER, element: <SuggestedAccounts /> }}
+      adsEvery={adsEvery}
     />
   );
 }
 
-function Following({ active }: { active: boolean }) {
+function Following({ active, adsEvery }: { active: boolean; adsEvery: number }) {
   const { t } = useTranslation();
   // Só busca quando a aba é aberta pela primeira vez.
   const [opened, setOpened] = useState(active);
@@ -88,6 +100,7 @@ function Following({ active }: { active: boolean }) {
       onEndReached={() => feed.hasNextPage && !feed.isFetchingNextPage && feed.fetchNextPage()}
       loadingMore={feed.isFetchingNextPage}
       emptyText={t('feed.followingEmptyNoSuggestions')}
+      adsEvery={adsEvery}
       errorText={feed.isError ? formatError(t, feed.error) : null}
       empty={
         feed.isError || !hasSuggestions ? undefined : (

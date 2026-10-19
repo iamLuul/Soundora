@@ -26,12 +26,13 @@ import { confirmAction, notify } from '../../lib/dialogs';
 import { showToast } from '../../components/Toast';
 import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 import { itemsOf } from '../../components/vibes/textStyle';
+import { AdVibe } from '../../components/ads/AdVibe';
+import { useAds, withAds } from '../../lib/ads';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
 /** Vibe de música com prévia: 15 s tocando, como nos Stories. */
 const TICK_MS = 50;
-
 
 type Params = { author: string; queue?: string; username?: string; avatar?: string };
 
@@ -40,11 +41,14 @@ type Params = { author: string; queue?: string; username?: string; avatar?: stri
  * A tela abre uma vez para a fila toda (a pessoa tocada e as seguintes): quando as vibes de
  * alguém acabam, as da próxima pessoa entram na hora, sem fechar e abrir de novo. Voltar na
  * primeira vibe de alguém leva à pessoa anterior. No fim da fila, fecha.
+ * Com os anúncios ligados, uma vibe anunciada entra entre duas pessoas a cada N pessoas (nunca
+ * no fim). A fila (com os anúncios) é montada ao abrir e não muda enquanto a tela está aberta.
  */
 export default function VibeViewerScreen() {
   const { author, queue, username, avatar } = useLocalSearchParams<Params>();
   const qc = useQueryClient();
-  const [authors] = useState(() => [...new Set([author, ...(queue ?? '').split(',')].filter(Boolean))]);
+  const ads = useAds();
+  const [slots] = useState(() => withAds([...new Set([author, ...(queue ?? '').split(',')].filter(Boolean))], ads.vibesEvery));
   const [pos, setPos] = useState(0);
 
   const close = useCallback(() => {
@@ -54,32 +58,36 @@ export default function VibeViewerScreen() {
   }, [qc]);
 
   const next = useCallback(() => {
-    if (pos >= authors.length - 1) close();
+    if (pos >= slots.length - 1) close();
     else setPos(pos + 1);
-  }, [pos, authors.length, close]);
+  }, [pos, slots.length, close]);
   const previous = useCallback(() => setPos((p) => Math.max(0, p - 1)), []);
 
   // Já busca as vibes (e a primeira mídia) da próxima pessoa, para a troca ser imediata.
-  const upcoming = authors[pos + 1];
+  const upcoming = slots.slice(pos + 1).find((s) => s.kind === 'item')?.item;
   useEffect(() => {
     if (upcoming) void prefetchAuthor(qc, upcoming);
   }, [qc, upcoming]);
 
-  const current = authors[pos]!;
+  const slot = slots[pos]!;
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
-      <AuthorVibes
-        key={current}
-        author={current}
-        // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
-        fallbackUsername={pos === 0 ? username : undefined}
-        fallbackAvatar={pos === 0 ? avatar : undefined}
-        hasPrevious={pos > 0}
-        onDone={next}
-        onPrevious={previous}
-        onClose={close}
-      />
+      {slot.kind === 'ad' ? (
+        <AdVibe key={`ad-${slot.slot}`} slot={slot.slot} hasPrevious={pos > 0} onDone={next} onPrevious={previous} onClose={close} />
+      ) : (
+        <AuthorVibes
+          key={slot.item}
+          author={slot.item}
+          // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
+          fallbackUsername={pos === 0 ? username : undefined}
+          fallbackAvatar={pos === 0 ? avatar : undefined}
+          hasPrevious={pos > 0}
+          onDone={next}
+          onPrevious={previous}
+          onClose={close}
+        />
+      )}
     </View>
   );
 }
@@ -89,9 +97,7 @@ async function prefetchAuthor(qc: QueryClient, authorId: string) {
   const first = list?.find((v) => !v.seen) ?? list?.[0];
   if (!first?.media_path) return;
   const path = first.media_path;
-  const url = await qc
-    .fetchQuery({ queryKey: ['vibe-media', path], queryFn: () => vibeMediaUrl(path), staleTime: 50 * 60_000 })
-    .catch(() => null);
+  const url = await qc.fetchQuery({ queryKey: ['vibe-media', path], queryFn: () => vibeMediaUrl(path), staleTime: 50 * 60_000 }).catch(() => null);
   if (url && first.kind === 'photo') void Image.prefetch(url).catch(() => undefined);
 }
 
@@ -249,7 +255,12 @@ function AuthorVibes({
 
   return (
     <>
-      <CoachMarks testID="coach-vibe-view" visible={tipOpen} onClose={closeTip} steps={[{ icon: 'hand-left-outline', title: t('tips.vibeViewTitle'), body: t('tips.vibeViewBody') }]} />
+      <CoachMarks
+        testID="coach-vibe-view"
+        visible={tipOpen}
+        onClose={closeTip}
+        steps={[{ icon: 'hand-left-outline', title: t('tips.vibeViewTitle'), body: t('tips.vibeViewBody') }]}
+      />
       {!current ? (
         <Spinner color={colors.text} style={{ flex: 1 }} />
       ) : (
@@ -264,7 +275,13 @@ function AuthorVibes({
             onVideoEnd={goNext}
             music={
               current.kind === 'music' && current.preview_url
-                ? { url: current.preview_url, platform: current.preview_platform ?? '', title: current.preview_title ?? '', artist: current.preview_artist, imageUrl: current.preview_image_url }
+                ? {
+                    url: current.preview_url,
+                    platform: current.preview_platform ?? '',
+                    title: current.preview_title ?? '',
+                    artist: current.preview_artist,
+                    imageUrl: current.preview_image_url,
+                  }
                 : null
             }
             post={
@@ -275,7 +292,13 @@ function AuthorVibes({
                     avatarUrl: current.post_author_avatar_url,
                     body: current.post_body,
                     music: current.preview_url
-                      ? { url: current.preview_url, platform: current.preview_platform ?? '', title: current.preview_title ?? '', artist: current.preview_artist, imageUrl: current.preview_image_url }
+                      ? {
+                          url: current.preview_url,
+                          platform: current.preview_platform ?? '',
+                          title: current.preview_title ?? '',
+                          artist: current.preview_artist,
+                          imageUrl: current.preview_image_url,
+                        }
                       : null,
                   }
                 : null
@@ -283,19 +306,28 @@ function AuthorVibes({
           />
 
           {/* Faixas de toque: esquerda volta, direita avança. O meio fica livre para os botões da vibe. */}
-          <Pressable testID="vibe-prev" accessibilityRole="button" accessibilityLabel={t('vibes.previous')} style={[styles.zone, { left: 0 }]} onPress={goPrev} {...hold} />
-          <Pressable testID="vibe-next" accessibilityRole="button" accessibilityLabel={t('vibes.next')} style={[styles.zone, { right: 0 }]} onPress={goNext} {...hold} />
+          <Pressable
+            testID="vibe-prev"
+            accessibilityRole="button"
+            accessibilityLabel={t('vibes.previous')}
+            style={[styles.zone, { left: 0 }]}
+            onPress={goPrev}
+            {...hold}
+          />
+          <Pressable
+            testID="vibe-next"
+            accessibilityRole="button"
+            accessibilityLabel={t('vibes.next')}
+            style={[styles.zone, { right: 0 }]}
+            onPress={goNext}
+            {...hold}
+          />
 
           <View style={[styles.header, { paddingTop: insets.top + space.sm }]} pointerEvents="box-none">
             <View style={styles.bars}>
               {list.map((v, i) => (
                 <View key={v.id} style={styles.bar}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      { width: i < (index ?? 0) ? '100%' : i === index ? `${Math.min(100, (elapsed / duration) * 100)}%` : '0%' },
-                    ]}
-                  />
+                  <View style={[styles.barFill, { width: i < (index ?? 0) ? '100%' : i === index ? `${Math.min(100, (elapsed / duration) * 100)}%` : '0%' }]} />
                 </View>
               ))}
             </View>
@@ -306,10 +338,24 @@ function AuthorVibes({
                 <Verified username={username} />
                 <Text style={styles.time}>{relativeTime(current.created_at)}</Text>
               </Pressable>
-              <Pressable testID="vibe-menu" accessibilityRole="button" accessibilityLabel={t('vibes.options')} onPress={() => setMenu('options')} hitSlop={10} style={webTouch(10)}>
+              <Pressable
+                testID="vibe-menu"
+                accessibilityRole="button"
+                accessibilityLabel={t('vibes.options')}
+                onPress={() => setMenu('options')}
+                hitSlop={10}
+                style={webTouch(10)}
+              >
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
               </Pressable>
-              <Pressable testID="vibe-close" accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={close} hitSlop={10} style={webTouch(10)}>
+              <Pressable
+                testID="vibe-close"
+                accessibilityRole="button"
+                accessibilityLabel={t('common.close')}
+                onPress={close}
+                hitSlop={10}
+                style={webTouch(10)}
+              >
                 <Ionicons name="close" size={26} color={colors.text} />
               </Pressable>
             </View>

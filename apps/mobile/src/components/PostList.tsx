@@ -19,10 +19,11 @@ import { Spinner } from './Spinner';
 import { confirmAction, notify } from '../lib/dialogs';
 import { showToast } from './Toast';
 import { ErrorState } from './ErrorState';
+import { AdPostCard } from './ads/AdPostCard';
+import { withAds } from '../lib/ads';
 
-
-/** Linha da lista: um post ou o bloco extra no meio (ex.: contas sugeridas). */
-type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' };
+/** Linha da lista: um post, o bloco extra no meio (ex.: contas sugeridas) ou um post anunciado. */
+type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' } | { kind: 'ad'; slot: number };
 
 /** Lista de posts com curtir, comentários e o menu de denúncia/bloqueio. */
 export function PostList({
@@ -37,6 +38,7 @@ export function PostList({
   empty,
   followable = false,
   interstitial,
+  adsEvery = 0,
 }: {
   items: FeedItem[];
   loading: boolean;
@@ -54,6 +56,8 @@ export function PostList({
   followable?: boolean;
   /** Bloco no meio da lista, depois de `after` posts (ou no fim, se houver menos). */
   interstitial?: { after: number; element: ReactElement };
+  /** Post anunciado depois de cada N posts (0 ou sem: nenhum). Veja lib/ads.ts. */
+  adsEvery?: number;
 }) {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -63,8 +67,13 @@ export function PostList({
   // Só mostra o botão depois de saber quem eu sigo (senão ele piscaria em quem já sigo).
   const canFollow = (p: FeedItem) => followable && !!followingIds.data && p.author_id !== me && !followingIds.data.has(p.author_id);
   const posts = uniqueBy(items, (i) => i.id, 'posts');
-  const rows: Row[] = posts.map((item) => ({ kind: 'post', item }));
-  if (interstitial && posts.length) rows.splice(Math.min(interstitial.after, posts.length), 0, { kind: 'extra' });
+  const rows: Row[] = withAds(posts, adsEvery).map((r) => (r.kind === 'item' ? { kind: 'post', item: r.item } : r));
+  // O bloco extra entra logo depois do post número `after` (contando só posts, não anúncios).
+  if (interstitial && posts.length) {
+    const after = Math.min(interstitial.after, posts.length);
+    const at = rows.findIndex((r) => r.kind === 'post' && r.item.id === posts[after - 1]!.id) + 1;
+    rows.splice(at, 0, { kind: 'extra' });
+  }
   const qc = useQueryClient();
   const toggleLike = useToggleLike();
   const [menuFor, setMenuFor] = useState<FeedItem | null>(null);
@@ -115,11 +124,12 @@ export function PostList({
         <FlatList
           {...listPerf}
           data={rows}
-          keyExtractor={(row) => (row.kind === 'post' ? row.item.id : 'extra')}
+          keyExtractor={(row) => (row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : 'extra')}
           ListHeaderComponent={header}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
           renderItem={({ item: row }) => {
             if (row.kind === 'extra') return interstitial?.element ?? null;
+            if (row.kind === 'ad') return <AdPostCard slot={row.slot} />;
             const item = row.item;
             return (
               <PostCard
@@ -133,7 +143,13 @@ export function PostList({
             );
           }}
           ListEmptyComponent={
-            loading ? <PostSkeleton /> : errorText ? <ErrorState message={errorText} onRetry={onRefresh} /> : empty ?? <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>
+            loading ? (
+              <PostSkeleton />
+            ) : errorText ? (
+              <ErrorState message={errorText} onRetry={onRefresh} />
+            ) : (
+              (empty ?? <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{emptyText}</Text>)
+            )
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}

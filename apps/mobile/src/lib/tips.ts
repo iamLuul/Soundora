@@ -1,7 +1,7 @@
 // Dicas de primeira vez (Descobrir, criar vibe, ver vibes): aparecem uma vez por aparelho.
 import 'expo-sqlite/localStorage/install';
 
-export type TipKey = 'discover' | 'vibe-new' | 'vibe-view';
+export type TipKey = 'discover' | 'vibe-new' | 'vibe-view' | 'ads-intro';
 const key = (tip: TipKey) => `soundora.tip.${tip}`;
 
 export function tipSeen(tip: TipKey): boolean {

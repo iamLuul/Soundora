@@ -806,5 +806,14 @@
     "copyright": "Soundhora · {{year}}",
     "sidebar": "Main menu",
     "panel": "Suggestions and most listened"
+  },
+  "ads": {
+    "sponsored": "Sponsored",
+    "a11yPost": "Ad from {{name}}",
+    "a11yVibe": "Sponsored vibe from {{name}}",
+    "skip": "Skip",
+    "back": "Back",
+    "introTitle": "Soundhora now has ads",
+    "introBody": "Every now and then you'll see a post or a vibe labeled Sponsored. Ads are not chosen using your profile, your tastes or what you do in the app."
   }
 }

@@ -806,5 +806,14 @@
     "copyright": "Soundhora · {{year}}",
     "sidebar": "Menu principal",
     "panel": "Sugestões e mais ouvidas"
+  },
+  "ads": {
+    "sponsored": "Patrocinado",
+    "a11yPost": "Anúncio de {{name}}",
+    "a11yVibe": "Vibe anunciada de {{name}}",
+    "skip": "Pular",
+    "back": "Voltar",
+    "introTitle": "O Soundhora agora tem anúncios",
+    "introBody": "De vez em quando aparece um post ou uma vibe com o selo Patrocinado. Os anúncios não usam seu perfil, seus gostos nem o que você faz no app para serem escolhidos."
   }
 }

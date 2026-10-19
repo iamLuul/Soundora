@@ -124,6 +124,16 @@ Corpo dos pedidos às Edge Functions: até 8 KB no `link-preview` e 4 KB no `aut
 
 Contra DDoS de verdade, de muitos IPs ao mesmo tempo, quem segura é a rede do Supabase. As travas acima evitam que uma conta ou um script sozinho derrube o app ou gere custo.
 
+## Anúncios (AdMob)
+
+O SDK do Google Mobile Ads é o único código de terceiros no app que fala com um servidor fora do Soundhora e da Supabase (só no celular; a web não tem anúncios).
+
+- **Nada da conta sai do app para o Google.** O pedido de anúncio leva só a unidade de anúncio e as opções fixas de `ads-sdk.ts` (sem personalização, vídeo sem som). Nunca passe @, e-mail, idade, gênero, gostos ou conteúdo em `keywords`, `contentUrl` ou `customTargeting`.
+- **O SDK coleta dados do aparelho** (IP, identificador de publicidade, modelo, interações com o anúncio). Isso precisa aparecer na "Segurança dos dados" do Google Play, nos rótulos de privacidade da App Store e na página Anúncios do app (já descrito lá).
+- **Só depois do login.** O SDK só é iniciado com o app liberado e os anúncios ligados no banco (`delayAppMeasurementInit` no `app.config.js`): até lá ele não roda nem coleta nada.
+- **Menores (16 e 17 anos):** `tagForUnderAgeOfConsent` e classificação máxima T, além de nunca personalizados.
+- **Chave de emergência:** `update public.app_config set ads_enabled = false;` desliga os anúncios em todos os aparelhos: o app guarda a configuração por até 10 minutos e depois busca de novo (ao abrir a Início ou voltar para o app).
+
 ## Na nuvem: o que ligar no painel
 
 O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os nomes dos menus podem mudar um pouco entre versões do painel):

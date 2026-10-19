@@ -40,3 +40,29 @@ jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock
 jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
 // Gesture Handler: o módulo nativo de mentira da própria biblioteca (gestos testáveis com jest-utils).
 require('react-native-gesture-handler/jestSetup');
+
+// AdMob usa módulo nativo: no Jest, um SDK de mentira. O anúncio que o useNativeAd devolve é
+// controlado pelos testes em globalThis.__mockNativeAd ({ status, nativeAd }); sem nada, sem estoque.
+jest.mock('react-native-google-mobile-ads', () => {
+  const { View } = require('react-native');
+  const sdk = { setRequestConfiguration: jest.fn(async () => undefined), initialize: jest.fn(async () => []) };
+  return {
+    __esModule: true,
+    default: () => sdk,
+    __sdk: sdk,
+    MaxAdContentRating: { G: 'G', PG: 'PG', T: 'T', MA: 'MA' },
+    NativeAdChoicesPlacement: { TOP_LEFT: 0, TOP_RIGHT: 1, BOTTOM_RIGHT: 2, BOTTOM_LEFT: 3 },
+    NativeMediaAspectRatio: { ANY: 1, LANDSCAPE: 2, PORTRAIT: 3, SQUARE: 4 },
+    NativeAssetType: { ADVERTISER: 'advertiser', BODY: 'body', CALL_TO_ACTION: 'callToAction', HEADLINE: 'headline', ICON: 'icon', IMAGE: 'image' },
+    TestIds: { NATIVE: 'test-native-unit' },
+    useNativeAd: jest.fn((opts: { adUnitId: string | null; requestOptions?: unknown }) => {
+      const mock = (globalThis as { __mockNativeAd?: { status: string; nativeAd: unknown } }).__mockNativeAd;
+      const base = { autoLoad: true, retry: jest.fn(), destroy: jest.fn() };
+      if (!opts.adUnitId || !mock) return { ...base, status: 'no-fill', nativeAd: null, error: { reason: 'no-fill', phase: 'load' } };
+      return { ...base, status: mock.status, nativeAd: mock.status === 'loaded' ? mock.nativeAd : null, error: null };
+    }),
+    NativeAdView: ({ children, nativeAd: _n, ...props }: { children?: unknown; nativeAd?: unknown }) => require('react').createElement(View, props, children),
+    NativeAsset: ({ children }: { children: unknown }) => children,
+    NativeMediaView: (props: object) => require('react').createElement(View, { ...props, testID: 'ad-media' }),
+  };
+});

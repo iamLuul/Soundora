@@ -17,6 +17,7 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 - perfis verificados com insígnia ao lado do nome; só a equipe verifica, direto no banco: `update public.profiles set verified = true where username = 'fulano';` (o app não consegue mudar essa coluna);
 - notificações de curtidas, comentários, respostas e novos seguidores (aba Todas e Respostas, bolinha no sino), que chegam ao vivo pelo Supabase Realtime (canal privado de cada pessoa, sem puxar para atualizar), e aviso no celular (push) para quem ativar;
 - Vibes (como os Stories): foto, vídeo de até 30 s, texto escrito direto na tela, card de música (com a prévia de 30 s tocando de fundo, quando a Apple Music ou a Deezer oferecem) ou post compartilhado, que somem em 24 horas; fila no topo da Home com anel de "não visto", tela cheia com avançar/voltar/pausar, quem viu, apagar e denunciar;
+- anúncios no app do celular (AdMob): posts anunciados no feed da Início e vibes anunciadas entre uma pessoa e outra, com o selo "Patrocinado", nunca personalizados; desligados até a equipe ligar no banco;
 - interface em português do Brasil e inglês.
 
 ## Estrutura
@@ -89,6 +90,18 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
   from public.link_previews where url = 'https://open.spotify.com/track/<id>';
   ```
 
+- **Anúncios (AdMob).** Só no app do celular (a web não tem anúncios). Um post anunciado a cada `ads_feed_every` posts no feed da Início (Para você e Seguindo) e uma vibe anunciada a cada `ads_vibes_every` pessoas na fila de vibes, nunca no fim da lista. Ficam **desligados** até a equipe ligar, sem publicar o app de novo:
+
+  ```sql
+  update public.app_config set ads_enabled = true;             -- liga (false desliga na hora)
+  update public.app_config set ads_feed_every = 10, ads_vibes_every = 5;  -- frequência
+  ```
+
+  - **Nunca personalizados:** todo pedido sai com `requestNonPersonalizedAdsOnly`, e o app não manda nada da conta para o Google (nem @, e-mail, idade ou gostos). Por isso não há o aviso de rastreamento do iOS (ATT). Para quem tem 16 ou 17 anos (`is_minor`), o SDK também recebe `tagForUnderAgeOfConsent` e anúncios até a classificação T (ECA Digital, arts. 22 e 26). Código: `apps/mobile/src/lib/ads.ts` e `ads-sdk.ts`.
+  - **Política do AdMob:** o anúncio tem o selo "Patrocinado" (18 px), visual diferente do post, o ícone AdChoices no canto e nenhum botão do app por cima. Na vibe anunciada, voltar, pular e fechar ficam fora da área do anúncio; sem anúncio em 5 s, a fila segue sozinha.
+  - **IDs:** o `app.config.js` usa `ADMOB_ANDROID_APP_ID` e `ADMOB_IOS_APP_ID`, e o app usa `EXPO_PUBLIC_ADMOB_NATIVE_ANDROID` e `EXPO_PUBLIC_ADMOB_NATIVE_IOS` (unidades de anúncio **nativo**). Nenhum deles é segredo. Sem eles, o build usa os IDs de teste do Google; o app publicado sem as unidades não mostra anúncio nenhum. Precisa de development build (o AdMob não roda no Expo Go).
+  - **Antes de ligar em produção:** acordo comercial com o Last.fm (os termos da API só permitem uso não comercial), conferir os termos da API da Deezer, criar o app e as duas unidades nativas no AdMob, publicar o `app-ads.txt` no site do app, preencher a "Segurança dos dados" do Google Play e os rótulos de privacidade da App Store (o SDK do Google coleta IP, identificador de publicidade e dados do aparelho), e, antes de abrir para a Europa, o formulário de consentimento (UMP).
+
 - **Moderação.** Para virar administrador: `insert into public.admins (user_id) values ('<seu id>');` (só pelo banco). Aí aparece **Configurações › Painel admin**, com:
   - **Denúncias** agrupadas por conteúdo (as mais denunciadas primeiro): ver, remover o post/comentário/vibe, dispensar ou suspender o autor;
   - **Usuários**: busca por @ ou nome, filtros (verificados, comuns, admins, suspensos, com denúncias) e ordenação (relevância, mais/menos seguidores, A a Z, Z a A); verificar/tirar a insígnia, suspender por 7 dias, 30 dias ou sem data, e reativar. Conta suspensa continua vendo o app, mas o banco recusa posts, comentários, curtidas, seguir, vibes e denúncias, e ela vê um aviso na Início;
@@ -97,4 +110,4 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 
 ## Próximos passos do roteiro
 
-Vínculo com responsável e anúncios.
+Vínculo com responsável (hoje o cadastro é só para 16 anos ou mais).
