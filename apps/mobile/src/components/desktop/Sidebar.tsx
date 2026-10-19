@@ -3,19 +3,21 @@ import { router, usePathname, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { IconName } from '../../assets/icons';
+import { SvgXml } from 'react-native-svg';
+import { SIDEBAR_STROKE, sidebarIcons, type SidebarIconName } from '../../assets/sidebarIcons';
 import { useAuth } from '../../lib/auth';
 import { confirmAction } from '../../lib/dialogs';
+import { iconScale } from '../../lib/display';
 import { useUnreadNotifications } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
-import { Icon, Logo } from '../figma';
+import { Logo } from '../figma';
 import { Avatar } from '../ui';
 
 interface NavItem {
   key: string;
   href: Href;
   label: string;
-  icon: IconName | 'settings';
+  icon: SidebarIconName;
   /** A tela atual é desta seção? */
   active: (path: string) => boolean;
 }
@@ -67,7 +69,7 @@ export function Sidebar() {
               style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [styles.item, (hovered || pressed) && styles.itemHover]}
             >
               <View style={styles.icon}>
-                {item.icon === 'settings' ? <Ionicons name="settings-outline" size={24} color={color} /> : <Icon name={item.icon} size={24} color={color} />}
+                <StrokeIcon name={item.icon} color={color} />
                 {item.key === 'notifications' && unread > 0 ? (
                   <View style={styles.badge} testID="side-unread">
                     <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
@@ -93,6 +95,17 @@ export function Sidebar() {
       {profile ? <AccountChip name={profile.display_name} username={profile.username} avatar={profile.avatar_url} /> : null}
     </View>
   );
+}
+
+/**
+ * Ícone de contorno com a espessura fixa em 2,5 px, qualquer que seja o tamanho (o ajuste de
+ * acessibilidade "Tamanho dos ícones" aumenta o desenho, e o traço é corrigido na mesma conta).
+ */
+function StrokeIcon({ name, color, size = 24 }: { name: SidebarIconName; color: string; size?: number }) {
+  const px = size * iconScale;
+  const stroke = (SIDEBAR_STROKE * 24) / px;
+  const xml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">${sidebarIcons[name]}</svg>`;
+  return <SvgXml xml={xml} width={px} height={px} color={color} />;
 }
 
 /** A conta logada (Figma: Frame 350): abre o menu com Ver perfil e Sair. */
@@ -172,7 +185,16 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: fonts.bold, fontSize: 9, color: colors.text },
   post: { marginTop: space.xxl, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   postText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
-  account: { flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 50, borderRadius: 25, backgroundColor: colors.card, paddingLeft: 5, paddingRight: space.lg },
+  account: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.card,
+    paddingLeft: 5,
+    paddingRight: space.lg,
+  },
   accountName: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   accountHandle: { fontFamily: fonts.regular, fontSize: 10, color: colors.handle },
   menu: { backgroundColor: colors.card, borderRadius: 14, paddingVertical: space.xs, marginBottom: space.sm, borderWidth: 1, borderColor: colors.border },
