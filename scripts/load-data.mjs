@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Carga para teste de desempenho no Supabase LOCAL: centenas de contas e milhares de posts,
 // curtidas, comentários, respostas, seguidores, vibes (com um ou vários textos estilizados),
-// curtidas do Descobrir e cache de dados do Last.fm, espalhados
+// curtidas do Descobrir e cache de dados do Last.fm, reviews de álbuns (com curtidas), músicas
+// favoritas, contas privadas com pedidos para seguir, bloqueios, selo de verificado, gêneros
+// silenciados, notificações desligadas, gênero, visualizações de vibes, destaques do Descobrir,
+// denúncias, painel admin e contas suspensas, espalhados
 // pelos últimos dias, para ver como o app se comporta com o banco cheio.
 //
 //   npm run load                       carga média (300 contas, 3.000 posts)
@@ -194,6 +197,16 @@ const vibeTexts = (chance, max) => {
   }
   return { text: one(VIBE_TEXT), text_x: 0.5, text_y: 0.45 };
 };
+const REVIEW_BODIES = [
+  'Ouvi três vezes seguidas e ainda descubro algo novo a cada faixa. Mistura de texturas muito bem pensada.',
+  'Não é o meu estilo favorito, mas reconheço a qualidade. A abertura do disco é de arrepiar.',
+  'Disco para ouvir de fone, no escuro, sem pular nada. Cada camada de som tem uma função.',
+  'Envelheceu muito bem. Quase vinte anos depois continua soando fresco e cheio de personalidade.',
+  'Começa arrasando, mas o meio do disco perde um pouco o fôlego. Ainda assim, o fechamento compensa.',
+  'Produção caprichada e letras honestas. Dá para ouvir o disco inteiro de uma vez só, sem cansar.',
+];
+const REPORT_REASONS = ['spam', 'harassment', 'hate', 'sexual', 'violence', 'copyright', 'other'];
+const MUTABLE_NOTIFICATIONS = ['like', 'comment', 'reply', 'follow', 'comment_reply', 'comment_like', 'review_like'];
 const STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'];
 
 // Paradas da Deezer por gênero → slug do Soundhora.
@@ -446,6 +459,19 @@ async function removeUserRows(ids) {
     ['discover_swipes', 'user_id'],
     ['notifications', 'user_id'],
     ['notifications', 'actor_id'],
+    ['review_likes', 'user_id'],
+    ['album_reviews', 'author_id'], // leva junto as curtidas das reviews
+    ['vibe_views', 'viewer_id'],
+    ['follow_requests', 'requester_id'],
+    ['follow_requests', 'target_id'],
+    ['blocks', 'blocker_id'],
+    ['blocks', 'blocked_id'],
+    ['profile_favorite_songs', 'user_id'],
+    ['muted_genres', 'user_id'],
+    ['notification_settings', 'user_id'],
+    ['reports', 'reporter_id'],
+    ['admin_actions', 'admin_id'],
+    ['admins', 'user_id'],
   ];
   for (const [table, column] of steps) {
     for (let i = 0; i < ids.length; i += 50) {
@@ -453,6 +479,8 @@ async function removeUserRows(ids) {
       progress(`limpando ${table}`, Math.min(i + 50, ids.length), ids.length);
     }
   }
+  // Destaques do Descobrir criados por esta carga (a nota começa com "Teste:").
+  must('limpar destaques')(await admin.from('featured').delete().like('note_pt', 'Teste:%'));
 }
 
 /** Guarda e tira os tokens de push das contas de verdade (devolve uma função que restaura). */
@@ -541,8 +569,13 @@ async function main() {
         progress('fotos de perfil e banners', ++k, people.length);
       });
     }
-    await insertBatches('profiles', people.map((p) => ({ id: p.id, username: p.username, display_name: p.name, bio: one(BIOS), locale: 'pt-BR', avatar_url: p.avatar ?? null, banner_url: p.banner ?? null })));
-    await insertBatches('profile_private', people.map((p) => ({ user_id: p.id, birthdate: `${int(1975, 2005)}-0${int(1, 9)}-1${int(0, 9)}`, is_minor: false, streaming_platform: one(['spotify', 'deezer', 'apple_music', 'youtube_music']) })));
+    // ~2% verificadas, ~6% privadas e a primeira conta é administradora.
+    for (const p of people) {
+      p.verified = rand() < 0.02;
+      p.isPrivate = rand() < 0.06;
+    }
+    await insertBatches('profiles', people.map((p) => ({ id: p.id, username: p.username, display_name: p.name, bio: one(BIOS), locale: 'pt-BR', avatar_url: p.avatar ?? null, banner_url: p.banner ?? null, verified: p.verified, is_private: p.isPrivate })));
+    await insertBatches('profile_private', people.map((p) => ({ user_id: p.id, birthdate: `${int(1975, 2005)}-0${int(1, 9)}-1${int(0, 9)}`, is_minor: false, streaming_platform: one(['spotify', 'deezer', 'apple_music', 'youtube_music']), gender: rand() < 0.7 ? one(['female', 'male', 'non_binary', 'other']) : null })));
     await insertBatches('user_genres', people.flatMap((p) => p.genres.map((genre) => ({ user_id: p.id, genre }))), { upsert: 'user_id,genre' });
 
     // Quem segue quem (alguns perfis muito seguidos, a maioria pouco)
@@ -689,7 +722,7 @@ async function main() {
         progress('fotos e vídeos das vibes', ++k, withFile.length);
       });
     }
-    await insertBatches('vibes', vibeRows.map(({ file, ...v }) => (void file, v)));
+    const vibes = await insertBatches('vibes', vibeRows.map(({ file, ...v }) => (void file, v)), { select: 'id, author_id' });
     await store.cleanup();
 
     // Curtidas do Descobrir (perfil › Curtidas)
@@ -697,12 +730,95 @@ async function main() {
     for (const id of ids) for (const t of some(tracks, int(0, 30))) swipes.push({ user_id: id, link_preview_id: t.id, liked: rand() < 0.75, created_at: agoIso(rand() * DAYS * 24 * HOUR) });
     await insertBatches('discover_swipes', swipes, { size: 1000, upsert: 'user_id,link_preview_id' });
 
+
+    // Reviews de álbuns: os álbuns vêm dos discos das músicas (ou inventados, sem internet).
+    console.log('Reviews, favoritas, bloqueios e denúncias...');
+    const albumMap = new Map();
+    for (const t of songList) if (t.album && !albumMap.has(t.album)) albumMap.set(t.album, t.artist);
+    const albumList = [...albumMap].slice(0, 200).map(([title, artist], i) => ({ title, artist, n: i }));
+    for (let i = albumList.length; i < 40; i++) albumList.push({ title: `Álbum ${i}`, artist: `Artista ${i % 17}`, n: i });
+    await insertBatches(
+      'link_previews',
+      albumList.map((a) => ({ url: `https://www.deezer.com/album/${910000000 + a.n}`, platform: 'deezer', kind: 'album', provider_id: String(910000000 + a.n), title: a.title.slice(0, 200), artist: a.artist?.slice(0, 200) ?? null, release_date: `${int(1975, 2025)}-0${int(1, 9)}-1${int(0, 9)}` })),
+      { size: 200, upsert: 'url' },
+    );
+    const albumIds = [];
+    for (let i = 0; i < albumList.length; i += 100) {
+      albumIds.push(...must('ler álbuns')(await admin.from('link_previews').select('id').in('url', albumList.slice(i, i + 100).map((a) => `https://www.deezer.com/album/${910000000 + a.n}`))).map((r) => r.id));
+    }
+    const reviewKeys = new Map();
+    for (let i = 0, n = Math.round(N_USERS * 0.5); i < n; i++) {
+      const author_id = one(ids);
+      const album_id = one(albumIds);
+      reviewKeys.set(`${author_id}/${album_id}`, { author_id, album_id, rating: Math.min(10, Math.round((3 + rand() * 7.2) * 10) / 10), body: one(REVIEW_BODIES), created_at: agoIso(rand() * DAYS * 24 * HOUR) });
+    }
+    const reviews = await insertBatches('album_reviews', [...reviewKeys.values()], { select: 'id, author_id' });
+    const reviewLikes = reviews.flatMap((r) => some(ids, int(0, 8)).filter((u) => u !== r.author_id).map((u) => ({ user_id: u, review_id: r.id })));
+    await insertBatches('review_likes', reviewLikes, { size: 1000, upsert: 'user_id,review_id' });
+
+    // Músicas favoritas do perfil (1 a 5, em ordem) para ~60% das contas.
+    const favRows = [];
+    for (const id of ids) if (rand() < 0.6) some(tracks, int(1, 5)).forEach((t, k) => favRows.push({ user_id: id, slot: k + 1, link_preview_id: t.id }));
+    await insertBatches('profile_favorite_songs', favRows, { size: 1000, upsert: 'user_id,slot' });
+
+    // Gêneros silenciados e notificações desligadas (~15% das contas cada).
+    const muted = ids.filter(() => rand() < 0.15).flatMap((id) => some(GENRES, int(1, 3)).map((genre) => ({ user_id: id, genre })));
+    await insertBatches('muted_genres', muted, { size: 1000, upsert: 'user_id,genre' });
+    await insertBatches('notification_settings', ids.filter(() => rand() < 0.15).map((id) => ({ user_id: id, muted_kinds: some(MUTABLE_NOTIFICATIONS, int(1, 3)) })), { size: 1000, upsert: 'user_id' });
+
+    // Quem viu cada vibe.
+    await insertBatches('vibe_views', vibes.flatMap((v) => some(ids, int(0, 5)).filter((u) => u !== v.author_id).map((u) => ({ vibe_id: v.id, viewer_id: u }))), { size: 1000, upsert: 'vibe_id,viewer_id' });
+
+    // Contas privadas: pedidos para seguir de quem ainda não segue.
+    const privateIds = people.filter((p) => p.isPrivate).map((p) => p.id);
+    const requests = new Map();
+    for (const target of privateIds) {
+      for (const requester of some(ids, int(2, 12))) {
+        if (requester === target || follows.has(`${requester}|${target}`)) continue;
+        requests.set(`${requester}/${target}`, { requester_id: requester, target_id: target });
+      }
+    }
+    await insertBatches('follow_requests', [...requests.values()], { size: 1000, upsert: 'requester_id,target_id' });
+
+    // Bloqueios (~5% das contas bloqueiam alguém; apagam o "seguir" e os pedidos entre as duas).
+    const blocks = new Map();
+    for (const id of ids) {
+      if (rand() >= 0.05) continue;
+      const other = one(ids);
+      if (other !== id) blocks.set(`${id}/${other}`, { blocker_id: id, blocked_id: other });
+    }
+    await insertBatches('blocks', [...blocks.values()], { size: 500, upsert: 'blocker_id,blocked_id' });
+
+    // Destaques do Descobrir, administradora e denúncias (abertas e já resolvidas) com o registro do admin.
+    await insertBatches('featured', some(tracks, 5).map((t, k) => ({ link_preview_id: t.id, note_pt: 'Teste: escolha da casa', note_en: 'Test: staff pick', position: k + 1 })));
+    const adminId = people[0].id;
+    await insertBatches('admins', [{ user_id: adminId }], { upsert: 'user_id' });
+    const targets = [
+      () => ({ target_type: 'post', target_id: one(posts).id }),
+      () => ({ target_type: 'profile', target_id: one(ids) }),
+      () => ({ target_type: 'vibe', target_id: one(vibes).id }),
+      () => ({ target_type: 'review', target_id: one(reviews).id }),
+    ].filter((_, k) => [posts, ids, vibes, reviews][k].length);
+    const reportMap = new Map();
+    for (let i = 0, n = Math.max(5, Math.round(N_USERS * 0.1)); i < n; i++) {
+      const reporter_id = one(ids);
+      const target = one(targets)();
+      const open = rand() < 0.7;
+      reportMap.set(`${reporter_id}/${target.target_type}/${target.target_id}`, { reporter_id, ...target, reason: one(REPORT_REASONS), details: rand() < 0.4 ? 'Teste de denúncia.' : null, status: open ? 'open' : one(['resolved', 'dismissed']), resolved_at: open ? null : agoIso(rand() * DAYS * 12 * HOUR) });
+    }
+    await insertBatches('reports', [...reportMap.values()], { size: 500, upsert: 'reporter_id,target_type,target_id' });
+    await insertBatches('admin_actions', [...reportMap.values()].filter((r) => r.status !== 'open').map((r) => ({ admin_id: adminId, action: r.status === 'dismissed' ? 'dismiss' : 'remove', target_type: r.target_type, target_id: r.target_id, details: { teste: true } })), { size: 500 });
+
+    // Contas suspensas por alguns dias (por último: suspensa não publica nem curte).
+    const suspendedIds = ids.slice(1).filter(() => rand() < 0.01);
+    for (let i = 0; i < suspendedIds.length; i += 50) must('suspender')(await admin.from('profiles').update({ suspended_until: new Date(Date.now() + int(1, 7) * 24 * HOUR).toISOString() }).in('id', suspendedIds.slice(i, i + 50)));
+
     const s = ((Date.now() - t0) / 1000).toFixed(0);
     if (media) console.log(`\nMídia: ${people.filter((p) => p.avatar).length} fotos de perfil, ${people.filter((p) => p.banner).length} banners, ${mediaRows.filter((m) => m.kind === 'photo').length} fotos e ${mediaRows.filter((m) => m.kind === 'video').length} vídeos em posts, ${vibeRows.filter((v) => v.media_path).length} vibes com foto/vídeo.`);
-    console.log(`\nPronto em ${s}s: ${N_USERS} contas, ${posts.length} posts, ${likes.length} curtidas, ${comments.length + replyRows.length} comentários, ${follows.size} seguidores, ${vibeRows.length} vibes, ${swipes.length} swipes no Descobrir, ${tracks.length} músicas.`);
+    console.log(`\nPronto em ${s}s: ${N_USERS} contas, ${posts.length} posts, ${likes.length} curtidas, ${comments.length + replyRows.length} comentários, ${follows.size} seguidores, ${vibeRows.length} vibes, ${swipes.length} swipes no Descobrir, ${tracks.length} músicas, ${reviews.length} reviews, ${favRows.length} músicas favoritas, ${privateIds.length} contas privadas (${requests.size} pedidos para seguir), ${blocks.size} bloqueios, ${reportMap.size} denúncias e ${suspendedIds.length} contas suspensas.`);
     if (!online) console.log('Aviso: sem internet para a Deezer; as músicas entraram sem capa e sem prévia.');
     console.log(`Suas contas (${realProfiles.map((p) => '@' + p.username).join(', ') || 'nenhuma ainda'}) seguem parte das contas de carga e são seguidas por elas.`);
-    console.log(`Para entrar como uma delas: @${people[0].username}, senha ${PASSWORD}`);
+    console.log(`Para entrar como uma delas: @${people[0].username} (administradora), senha ${PASSWORD}`);
     console.log('Para apagar tudo: npm run load -- --remove');
   } finally {
     await restorePush();

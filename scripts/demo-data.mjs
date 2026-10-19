@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Dados de teste para o Supabase LOCAL: contas, posts (com música e foto), comentários,
 // respostas, curtidas, seguidores, vibes (inclusive com vários textos, fontes, cores e fundos) e
-// swipes do Descobrir (com o cache de dados do Last.fm), para o app não ficar vazio nos testes.
+// swipes do Descobrir (com o cache de dados do Last.fm), reviews de álbuns e curtidas, músicas
+// favoritas, conta privada com pedidos para seguir, bloqueio, selo de verificado, gêneros
+// silenciados, notificações desligadas, gênero, visualizações de vibes, destaques do Descobrir,
+// denúncias e painel admin (a primeira conta de teste vira administradora), para o app não ficar
+// vazio nos testes.
 //
 //   npm run demo                 cria (ou recria) os dados de teste
 //   npm run demo -- --remove     apaga só as contas de teste (e tudo delas)
@@ -142,6 +146,27 @@ const SONGS = {
   chop: { artist: 'System Of A Down', title: 'Chop Suey!', genres: ['metal'] },
 };
 
+/** Álbuns para as reviews (cartões do tipo "album"; o servidor só aceita review de álbum). */
+const ALBUMS = [
+  { id: '900000001', title: 'Elis & Tom', artist: 'Elis Regina', date: '1974-01-01' },
+  { id: '900000002', title: 'Is This It', artist: 'The Strokes', date: '2001-07-30' },
+  { id: '900000003', title: 'Loveless', artist: 'My Bloody Valentine', date: '1991-11-04' },
+  { id: '900000004', title: 'Random Access Memories', artist: 'Daft Punk', date: '2013-05-17' },
+  { id: '900000005', title: 'Utopia', artist: 'Travis Scott', date: '2023-07-28' },
+  { id: '900000006', title: 'Short n\' Sweet', artist: 'Sabrina Carpenter', date: '2024-08-23' },
+];
+const REVIEWS = [
+  ['marina.sons', 0, 9.8, 'Disco perfeito do começo ao fim. A química entre Elis e Tom faz cada faixa soar como uma conversa entre amigos.'],
+  ['caio.beats', 4, 8.2, 'Produção absurda, cada faixa tem uma ideia nova de beat. Perde um pouco de fôlego no final, mas vale a audição.'],
+  ['caio.beats', 3, 9.0, 'Uma aula de produção. Dá para ouvir o cuidado em cada detalhe de som e a mixagem é impecável.'],
+];
+const REVIEW_BODIES = [
+  'Ouvi três vezes seguidas e ainda descubro algo novo a cada faixa. Mistura de texturas muito bem pensada.',
+  'Não é o meu estilo favorito, mas reconheço a qualidade. A abertura do disco é de arrepiar.',
+  'Disco para ouvir de fone, no escuro, sem pular nada. Cada camada de som tem uma função.',
+  'Envelheceu muito bem. Quase vinte anos depois continua soando fresco e cheio de personalidade.',
+];
+
 const POSTS = [
   { by: 'marina.sons', song: 'aguas', body: 'domingo pede Elis. "é pau, é pedra, é o fim do caminho" 🌧️', at: 35 },
   { by: 'marina.sons', song: 'garota', body: 'clássico que nunca cansa', at: 60 * 26 },
@@ -184,6 +209,13 @@ async function removeDemoUsers() {
     ids.push(...users.filter((u) => u.email?.endsWith(`@${DOMAIN}`)).map((u) => u.id));
     if (users.length < 1000) break;
   }
+  if (ids.length) {
+    // O que aponta para as contas sem chave estrangeira: denúncias, registro do admin e destaques de teste.
+    const list = `(${ids.join(',')})`;
+    must('limpar denúncias')(await admin.from('reports').delete().in('reporter_id', ids));
+    must('limpar registro do admin')(await admin.from('admin_actions').delete().or(`admin_id.in.${list},target_id.in.${list}`));
+  }
+  must('limpar destaques')(await admin.from('featured').delete().like('note_pt', 'Teste:%'));
   for (const id of ids) must('apagar usuário')(await admin.auth.admin.deleteUser(id));
   return ids.length;
 }
@@ -287,6 +319,21 @@ async function main() {
   for (const r of realUsers) for (const p of people) follows.push({ follower_id: r.id, followee_id: p.id }, { follower_id: p.id, followee_id: r.id });
   must('seguir')(await admin.from('follows').upsert(follows, { onConflict: 'follower_id,followee_id', ignoreDuplicates: true }));
 
+  // Conta: gênero, selo, conta privada, gêneros silenciados, notificações desligadas, bloqueio e admin.
+  const [marina, caio, , , bloqueadora, bloqueada] = people;
+  for (const [i, p] of people.entries()) must('gênero')(await admin.from('profile_private').update({ gender: ['female', 'male', 'non_binary', 'other', null, 'female'][i % 6] }).eq('user_id', p.id));
+  must('selo de verificado')(await admin.from('profiles').update({ verified: true }).eq('id', marina.id));
+  must('conta privada')(await admin.from('profiles').update({ is_private: true }).eq('id', people[2].id));
+  must('gêneros silenciados')(await admin.from('muted_genres').upsert([{ user_id: people[3].id, genre: 'k_pop' }, { user_id: people[3].id, genre: 'metal' }], { onConflict: 'user_id,genre', ignoreDuplicates: true }));
+  must('notificações desligadas')(await admin.from('notification_settings').upsert({ user_id: caio.id, muted_kinds: ['like', 'comment_like'] }, { onConflict: 'user_id' }));
+  must('administradora')(await admin.from('admins').upsert({ user_id: marina.id }, { onConflict: 'user_id', ignoreDuplicates: true }));
+  // Bloqueio (apaga o "seguir" entre as duas, como no app): elas deixam de se ver.
+  must('bloqueio')(await admin.from('blocks').upsert({ blocker_id: bloqueadora.id, blocked_id: bloqueada.id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }));
+  // Pedidos para seguir a conta privada: de quem ainda não segue ela.
+  const privateFollowers = new Set(follows.filter((f) => f.followee_id === people[2].id).map((f) => f.follower_id));
+  const requesters = people.filter((x) => x !== people[2] && !privateFollowers.has(x.id) && x !== bloqueada && x !== bloqueadora);
+  if (requesters.length) must('pedidos para seguir')(await admin.from('follow_requests').upsert(requesters.map((x) => ({ requester_id: x.id, target_id: people[2].id })), { onConflict: 'requester_id,target_id', ignoreDuplicates: true }));
+
   // Posts
   const previews = {};
   const posts = [];
@@ -334,7 +381,12 @@ async function main() {
   }
 
   // Vibes (somem em 24 h: rode o script de novo para renovar).
-  const vibe = async (p, args) => must(`vibe de ${p.username}`)(await p.client.rpc('vibe_create', { p_style: 'violet', ...args }));
+  const vibeIds = [];
+  const vibe = async (p, args) => {
+    const id = must(`vibe de ${p.username}`)(await p.client.rpc('vibe_create', { p_style: 'violet', ...args }));
+    vibeIds.push({ id, author: p.id });
+    return id;
+  };
   // Textos soltos na tela: { t, x, y, f: fonte, c: cor, b: fundo }, como o editor do app monta.
   const item = (t, x, y, f = 'classic', c = 'white', b = 'none') => ({ t, x, y, f, c, b });
   const TEXT_SETS = [
@@ -363,7 +415,9 @@ async function main() {
       await vibe(p, { p_kind: 'photo', p_media_path: photo.path, p_text_items: caption });
       vibeCount++;
     }
-    const shared = pick(posts.filter((x) => x.author !== p.id), 1)[0];
+    // Não compartilha post de quem bloqueou (ou foi bloqueada por) esta pessoa: o servidor recusa.
+    const blockedPair = (a) => (p === bloqueadora && a === bloqueada.id) || (p === bloqueada && a === bloqueadora.id);
+    const shared = pick(posts.filter((x) => x.author !== p.id && !blockedPair(x.author)), 1)[0];
     if (shared && i % 2 === 0) {
       await vibe(p, { p_kind: 'post', p_post_id: shared.id, p_style: styles[(i + 4) % 6] });
       vibeCount++;
@@ -383,7 +437,60 @@ async function main() {
     swipeCount = swipes.length;
   }
 
-  console.log(`\nPronto! ${people.length} contas, ${posts.length} posts, ${likes.length} curtidas, ${commentCount} comentários, ${vibeCount} vibes e ${swipeCount} swipes no Descobrir.`);
+  // Reviews de álbuns, com curtidas.
+  const albumRows = must('álbuns')(
+    await admin
+      .from('link_previews')
+      .upsert(ALBUMS.map((a) => ({ url: `https://www.deezer.com/album/${a.id}`, platform: 'deezer', kind: 'album', provider_id: a.id, title: a.title, artist: a.artist, release_date: a.date })), { onConflict: 'url' })
+      .select('id, provider_id'),
+  );
+  const albumId = (n) => albumRows.find((r) => r.provider_id === ALBUMS[n].id).id;
+  const reviewRows = [
+    ...REVIEWS.map(([by, a, rating, body]) => ({ author_id: byName[by].id, album_id: albumId(a), rating, body })),
+    ...people.flatMap((p, i) => [1, 2, 5].filter((a) => (a + i) % 2 === 0).map((a) => ({ author_id: p.id, album_id: albumId(a), rating: +(5 + ((a * 7 + i * 3) % 50) / 10).toFixed(1), body: REVIEW_BODIES[(a + i) % REVIEW_BODIES.length] }))),
+  ];
+  const uniqueReviews = [...new Map(reviewRows.map((r) => [`${r.author_id}/${r.album_id}`, r])).values()];
+  const reviews = must('reviews')(await admin.from('album_reviews').upsert(uniqueReviews, { onConflict: 'author_id,album_id', ignoreDuplicates: true }).select('id, author_id'));
+  const reviewLikes = reviews.flatMap((r) => pick(people.filter((x) => x.id !== r.author_id), 3).map((x) => ({ user_id: x.id, review_id: r.id })));
+  must('curtidas de reviews')(await admin.from('review_likes').upsert(reviewLikes, { onConflict: 'user_id,review_id', ignoreDuplicates: true }));
+
+  // Músicas favoritas do perfil (até 5, em ordem).
+  const songIdsAll = Object.values(previews).filter(Boolean);
+  let favoriteCount = 0;
+  if (songIdsAll.length) {
+    for (const p of people) {
+      const favs = pick([...new Set(songIdsAll)], 4).map((id, k) => ({ user_id: p.id, slot: k + 1, link_preview_id: id }));
+      must('favoritas')(await admin.from('profile_favorite_songs').upsert(favs, { onConflict: 'user_id,slot' }));
+      favoriteCount += favs.length;
+    }
+    // Destaques do Descobrir (somem com --remove: a nota começa com "Teste:").
+    const feat = pick([...new Set(songIdsAll)], 2).map((id, k) => ({ link_preview_id: id, note_pt: 'Teste: escolha da casa', note_en: 'Test: staff pick', position: k + 1 }));
+    must('destaques')(await admin.from('featured').insert(feat));
+  }
+
+  // Quem viu cada vibe (a bolinha de "visto" e a lista de espectadores).
+  const views = vibeIds.flatMap((v) => pick(people.filter((x) => x.id !== v.author), 3).map((x) => ({ vibe_id: v.id, viewer_id: x.id })));
+  must('visualizações de vibes')(await admin.from('vibe_views').upsert(views, { onConflict: 'vibe_id,viewer_id', ignoreDuplicates: true }));
+
+  // Denúncias e painel admin: uma aberta em cada tipo, e uma já dispensada (com o registro).
+  const aPost = posts.find((x) => x.author === caio.id) ?? posts[0];
+  const reportRows = [
+    { reporter_id: people[1].id, target_type: 'post', target_id: posts.find((x) => x.author !== people[1].id).id, reason: 'spam', details: 'Teste: parece propaganda.' },
+    { reporter_id: people[3].id, target_type: 'profile', target_id: people[4].id, reason: 'harassment', details: null },
+    { reporter_id: people[2].id, target_type: 'vibe', target_id: vibeIds.find((v) => v.author !== people[2].id).id, reason: 'other', details: 'Teste de denúncia de vibe.' },
+    { reporter_id: people[0].id, target_type: 'review', target_id: reviews.find((r) => r.author_id !== people[0].id).id, reason: 'hate', details: null },
+  ];
+  must('denúncias')(await admin.from('reports').upsert(reportRows, { onConflict: 'reporter_id,target_type,target_id', ignoreDuplicates: true }));
+  const dismissed = must('denúncia dispensada')(
+    await admin.from('reports').upsert({ reporter_id: people[5].id, target_type: 'post', target_id: aPost.id, reason: 'copyright', details: 'Teste: dispensada.', status: 'dismissed', resolved_at: new Date().toISOString() }, { onConflict: 'reporter_id,target_type,target_id' }).select('id'),
+  );
+  must('registro do admin')(await admin.from('admin_actions').insert([{ admin_id: marina.id, action: 'dismiss', target_type: 'post', target_id: aPost.id, details: { report: dismissed[0].id } }, { admin_id: marina.id, action: 'verify', target_type: 'profile', target_id: marina.id }]));
+
+  // Conta suspensa por 3 dias (aparece suspensa no painel admin); é a última, que não tem destaque nos testes.
+  must('suspensão')(await admin.from('profiles').update({ suspended_until: new Date(Date.now() + 3 * 24 * 3600_000).toISOString() }).eq('id', bloqueada.id));
+
+  console.log(`\nPronto! ${people.length} contas, ${posts.length} posts, ${likes.length} curtidas, ${commentCount} comentários, ${vibeCount} vibes, ${swipeCount} swipes no Descobrir, ${uniqueReviews.length} reviews e ${favoriteCount} músicas favoritas.`);
+  console.log(`Também: @${marina.username} é administradora e verificada, @${people[2].username} é privada (com pedidos para seguir), @${bloqueadora.username} bloqueou @${bloqueada.username} (que está suspensa por 3 dias) e há denúncias abertas no painel admin.`);
   if (realUsers.length) console.log(`Suas contas (${realUsers.map((r) => '@' + r.username).join(', ')}) agora seguem as de teste e são seguidas por elas.`);
   else console.log('Nenhuma conta sua ainda: crie a sua no app e rode de novo para seguir as de teste.');
   console.log(`\nPara entrar como uma delas: @${PEOPLE[0].username} (ou ${people[0].email}), senha ${PASSWORD}`);
