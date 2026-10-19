@@ -7,12 +7,12 @@
 // Local:  supabase/functions/.env com LASTFM_API_KEY=...  e  npx supabase functions serve
 // Nuvem:  npx supabase functions deploy discover
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { chartKey, fetchPlatformTracks, isStreamingChoice, LastfmKeyError } from '../_shared/links/charts.ts';
+import { chartKey, fetchLastfmTrackInfo, fetchPlatformTracks, isStreamingChoice, LastfmKeyError } from '../_shared/links/charts.ts';
 import { deezerAlbumById, deezerAlbumGenres, deezerTrackById, findDeezerTrack, recommend, searchDeezerAlbums, searchDeezerTracks } from '../_shared/links/discover.ts';
 import { isAllowedAudioUrl, sameTrack } from '../_shared/links/genres.ts';
 import { buildLinkPreview, type FetchLike } from '../_shared/links/preview.ts';
 import { apiKey, isDebug } from '../_shared/keys.ts';
-import { createHandler, RATE, type PlatformTrack, type TrackRow } from './handler.ts';
+import { createHandler, RATE, type LastfmMeta, type PlatformTrack, type TrackRow } from './handler.ts';
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -189,6 +189,32 @@ Deno.serve(
     // Chave do song.link (opcional): sem ela, o limite é de ~10 pedidos por minuto.
     fetchLinks: (sourceUrl) => fetchPlatformTracks(sourceUrl, { fetch: http, timeoutMs: 6000, apiKey: Deno.env.get('SONGLINK_API_KEY') }),
     background: typeof EdgeRuntime !== 'undefined' ? (task) => EdgeRuntime!.waitUntil(task) : undefined,
+    async lastfmInfo(ref) {
+      const key = Deno.env.get('LASTFM_API_KEY');
+      if (!key) throw new LastfmKeyError();
+      return fetchLastfmTrackInfo(key, ref, opts);
+    },
+    async findLastfm(ids) {
+      const map = new Map<string, LastfmMeta>();
+      if (!ids.length) return map;
+      const { data, error } = await admin.from('lastfm_tracks').select('link_preview_id, found, title, artist, album, image_url, checked_at').in('link_preview_id', ids);
+      if (error) throw error;
+      for (const r of data as (LastfmMeta & { link_preview_id: string })[]) map.set(r.link_preview_id, r);
+      return map;
+    },
+    async saveLastfm(id, m) {
+      const https = (u: string | null) => (u && u.startsWith('https://') ? u : null);
+      const { error } = await admin.from('lastfm_tracks').upsert({
+        link_preview_id: id,
+        found: m.found,
+        title: m.title,
+        artist: m.artist,
+        album: m.album,
+        image_url: https(m.image_url),
+        checked_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
     async platformOf(userId) {
       const { data, error } = await admin.from('profile_private').select('streaming_platform').eq('user_id', userId).maybeSingle();
       if (error) throw error;

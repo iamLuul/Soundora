@@ -204,6 +204,41 @@ export async function findOnItunes(ref: { title: string; artist: string }, opts:
   };
 }
 
+/** O que o Last.fm sabe de uma música (track.getInfo): nomes certos, álbum e capa do álbum. */
+export interface LastfmTrackInfo {
+  title: string;
+  artist: string;
+  album: string | null;
+  imageUrl: string | null;
+}
+
+/**
+ * Metadados da música pelo Last.fm (track.getInfo). Null = o Last.fm não conhece a música.
+ * Falha de rede/limite = lança, para quem chama tentar de novo depois (e não guardar "não achou").
+ * A foto do artista não vem daqui: desde 2019 o Last.fm só devolve uma imagem padrão para artistas.
+ */
+export async function fetchLastfmTrackInfo(
+  apiKey: string,
+  ref: { title: string; artist: string },
+  opts: { fetch: FetchLike; timeoutMs?: number },
+): Promise<LastfmTrackInfo | null> {
+  if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKey)) throw new LastfmKeyError();
+  const url = `${LASTFM}?method=track.getinfo&api_key=${apiKey}&format=json&autocorrect=1&artist=${encodeURIComponent(ref.artist)}&track=${encodeURIComponent(ref.title)}`;
+  const data = (await getJson(opts.fetch, url, opts.timeoutMs ?? 5000)) as {
+    error?: unknown;
+    track?: { name?: unknown; artist?: { name?: unknown }; album?: { title?: unknown; image?: { '#text'?: unknown }[] } };
+  } | null;
+  if (data === null) throw new Error('lastfm_unavailable');
+  if (data.error === 10 || data.error === 26) throw new LastfmKeyError();
+  const track = data.track;
+  if (!track) return null;
+  const title = str(track.name) ?? ref.title;
+  const artist = str(track.artist?.name) ?? ref.artist;
+  const images = Array.isArray(track.album?.image) ? track.album.image : [];
+  const biggest = [...images].reverse().find((i) => typeof i['#text'] === 'string' && i['#text'] && !i['#text'].includes(LASTFM_PLACEHOLDER));
+  return { title, artist, album: str(track.album?.title), imageUrl: safeImageUrl(biggest?.['#text'] as string | undefined) };
+}
+
 /** Capa do álbum pelo próprio Last.fm (track.getInfo), quando as lojas não acharam. */
 export async function findOnLastfm(
   apiKey: string,
@@ -211,12 +246,8 @@ export async function findOnLastfm(
   opts: { fetch: FetchLike; timeoutMs?: number },
 ): Promise<{ album: string | null; imageUrl: string | null }> {
   if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKey)) return { album: null, imageUrl: null };
-  const url = `${LASTFM}?method=track.getinfo&api_key=${apiKey}&format=json&autocorrect=1&artist=${encodeURIComponent(ref.artist)}&track=${encodeURIComponent(ref.title)}`;
-  const data = (await getJson(opts.fetch, url, opts.timeoutMs ?? 5000)) as { track?: { album?: { title?: unknown; image?: { '#text'?: unknown }[] } } } | null;
-  const album = data?.track?.album;
-  const images = Array.isArray(album?.image) ? album.image : [];
-  const biggest = [...images].reverse().find((i) => typeof i['#text'] === 'string' && i['#text'] && !i['#text'].includes(LASTFM_PLACEHOLDER));
-  return { album: str(album?.title), imageUrl: safeImageUrl(biggest?.['#text'] as string | undefined) };
+  const info = await fetchLastfmTrackInfo(apiKey, ref, opts).catch(() => null);
+  return { album: info?.album ?? null, imageUrl: info?.imageUrl ?? null };
 }
 
 /** Junta o que cada fonte achou: o primeiro valor que existir vence. */

@@ -2,7 +2,7 @@
 // npm run test:functions
 import { chartKey, LastfmKeyError } from '../_shared/links/charts.ts';
 import type { Candidate, DeezerAlbum, DeezerTrack } from '../_shared/links/discover.ts';
-import { createHandler, type Deps, type TrackRow } from './handler.ts';
+import { createHandler, type Deps, type LastfmMeta, type TrackRow } from './handler.ts';
 import type { StreamingChoice } from '../_shared/links/charts.ts';
 
 function assertEquals(actual: unknown, expected: unknown, msg = '') {
@@ -12,6 +12,8 @@ function assertEquals(actual: unknown, expected: unknown, msg = '') {
 }
 
 const NOW = new Date('2026-10-11T12:00:00Z');
+const LASTFM_COVER = 'https://lastfm.freetls.fastly.net/i/u/300x300/capa.jpg';
+const DEEZER_COVER = 'https://e-cdns-images.dzcdn.net/images/cover/x/500x500.jpg';
 const cand = (artist: string, title: string, reason: Candidate['reason']): Candidate => ({ artist, title, key: chartKey(artist, title), reason });
 const deezer = (id: number, artist: string, title: string): DeezerTrack => ({
   id: String(id),
@@ -28,7 +30,8 @@ const deezer = (id: number, artist: string, title: string): DeezerTrack => ({
 function setup(overrides: Partial<Deps> = {}) {
   const rows = new Map<string, TrackRow>();
   const lookups = new Map<string, string | null>();
-  const calls = { find: 0, byId: 0, fetchLinks: 0, albums: 0, recommend: [] as (string | null)[] };
+  const lastfm = new Map<string, LastfmMeta>();
+  const calls = { find: 0, byId: 0, fetchLinks: 0, albums: 0, lastfm: 0, recommend: [] as (string | null)[] };
   let n = 0;
   const deps: Deps = {
     debug: true,
@@ -85,6 +88,13 @@ function setup(overrides: Partial<Deps> = {}) {
     },
     saveGenreIds: async (id, ids) => void (rows.get(id)!.store_genre_ids = ids),
     getTrack: async (id) => rows.get(id) ?? null,
+    // Last.fm: só "Parecida" tem álbum e capa por lá; as outras ficam com o que a Deezer achou.
+    lastfmInfo: async (ref) => {
+      calls.lastfm++;
+      return ref.title === 'Parecida' ? { title: 'Parecida', artist: 'Banda', album: 'Álbum do Last.fm', imageUrl: LASTFM_COVER } : null;
+    },
+    findLastfm: async (ids) => new Map(ids.filter((id) => lastfm.has(id)).map((id) => [id, lastfm.get(id)!])),
+    saveLastfm: async (id, m) => void lastfm.set(id, { ...m, checked_at: NOW.toISOString() }),
     findLinks: async () => null,
     saveLinks: async () => {},
     fetchLinks: async () => {
@@ -102,7 +112,7 @@ function setup(overrides: Partial<Deps> = {}) {
     saveAlbum: async (a) => ({ id: 'alb-1', url: a.url, platform: 'deezer', kind: 'album', title: a.title, artist: a.artist, image_url: a.imageUrl, release_year: a.year }),
     ...overrides,
   };
-  return { handler: createHandler(deps), rows, lookups, calls };
+  return { handler: createHandler(deps), rows, lookups, calls, lastfm };
 }
 
 const post = (body: unknown, auth = 'Bearer ok') =>
@@ -337,12 +347,12 @@ function withPlatform(platform: StreamingChoice | null, extra: Partial<Deps> = {
 type Card = { link_preview_id: string; title: string; url: string; platform: string; image_url: string | null; artist_image_url: string | null; audio_url: string | null; preview_platform: string | null };
 const deckOf = async (h: (r: Request) => Promise<Response>) => (await (await h(post({ action: 'deck' }))).json()).cards as Card[];
 
-Deno.test('Apple Music: link, capa e prévia da Apple; o que não está na Apple fica de fora; da segunda vez, do cache', async () => {
+Deno.test('Apple Music: link e prévia da Apple (a capa é do Last.fm); o que não está na Apple fica de fora; da segunda vez, do cache', async () => {
   const s = withPlatform('apple_music');
   const cards = await deckOf(s.handler);
   assertEquals(
     cards.map((c) => [c.title, c.platform, c.url, c.image_url, c.audio_url, c.preview_platform, c.artist_image_url]),
-    [['Parecida', 'apple_music', 'https://music.apple.com/br/album/x/1?i=2', 'https://is1-ssl.mzstatic.com/a/600x600bb.jpg', 'https://audio-ssl.itunes.apple.com/p.m4a', 'apple_music', null]],
+    [['Parecida', 'apple_music', 'https://music.apple.com/br/album/x/1?i=2', LASTFM_COVER, 'https://audio-ssl.itunes.apple.com/p.m4a', 'apple_music', null]],
   );
   const before = s.platformCalls.apple;
   await deckOf(s.handler);
@@ -351,28 +361,30 @@ Deno.test('Apple Music: link, capa e prévia da Apple; o que não está na Apple
   assertEquals(s.calls.byId, 0);
 });
 
-Deno.test('Spotify (sem prévia): link e capa do Spotify, nunca áudio nem capa da Deezer', async () => {
-  const s = withPlatform('spotify');
+Deno.test('Spotify (sem prévia): link do Spotify, nunca áudio; a capa vem do Last.fm, não da plataforma', async () => {
+  const s = withPlatform('spotify', { fetchLinks: async () => ({ links: { spotify: 'https://open.spotify.com/track/abc' }, images: { spotify: 'https://i.scdn.co/image/do-spotify' } }) });
   const cards = await deckOf(s.handler);
   assertEquals(cards.length, 2);
+  assertEquals(cards.map((c) => c.image_url), [LASTFM_COVER, DEEZER_COVER], 'Last.fm primeiro; sem ele, a Deezer; nunca a capa do Spotify');
   for (const c of cards) {
-    assertEquals([c.platform, c.url, c.image_url, c.audio_url, c.preview_platform, c.artist_image_url], ['spotify', 'https://open.spotify.com/track/abc', 'https://i.scdn.co/image/capa', null, null, null]);
+    assertEquals([c.platform, c.url, c.audio_url, c.preview_platform], ['spotify', 'https://open.spotify.com/track/abc', null, null]);
   }
 });
 
-Deno.test('Spotify: música que o song.link não achou abre a busca do Spotify, sem capa', async () => {
+Deno.test('Spotify: música que o song.link não achou abre a busca do Spotify (a capa continua a do Last.fm)', async () => {
   const s = withPlatform('spotify', { fetchLinks: async () => ({ links: { deezer: 'https://www.deezer.com/track/1' }, images: {} }) });
   const cards = await deckOf(s.handler);
   for (const c of cards) {
-    assertEquals([c.platform, c.url.startsWith('https://open.spotify.com/search/'), c.image_url, c.audio_url], ['spotify', true, null, null]);
+    assertEquals([c.platform, c.url.startsWith('https://open.spotify.com/search/'), !!c.image_url, c.audio_url], ['spotify', true, true, null]);
   }
 });
 
-Deno.test('sem plataforma escolhida: sem prévia e sem capa', async () => {
+Deno.test('sem plataforma escolhida: sem prévia, mas com os dados do Last.fm', async () => {
   const s = withPlatform(null);
   const cards = await deckOf(s.handler);
   assertEquals(cards.length, 2);
-  for (const c of cards) assertEquals([c.image_url, c.audio_url, c.preview_platform], [null, null, null]);
+  for (const c of cards) assertEquals([c.audio_url, c.preview_platform], [null, null]);
+  assertEquals(cards[0]!.image_url, LASTFM_COVER);
 });
 
 Deno.test('prévia renovada só da plataforma da pessoa', async () => {
@@ -394,9 +406,9 @@ Deno.test('abrir no Spotify guarda o link e a capa: a próxima pilha já mostra 
       return { links: { spotify: 'https://open.spotify.com/track/abc' }, images: {} };
     },
   });
-  // song.link fora: cartões com a busca do Spotify e sem capa (nada guardado).
+  // song.link fora: cartões com a busca do Spotify (nada guardado).
   const first = await deckOf(s.handler);
-  assertEquals(first.map((c) => c.image_url), [null, null]);
+  assertEquals(first.map((c) => c.url.startsWith('https://open.spotify.com/search/')), [true, true]);
   assertEquals(s.saved.size, 0);
   // Volta; abrir a música resolve o link exato e guarda link + capa do Spotify.
   songlinkUp = true;
@@ -405,7 +417,7 @@ Deno.test('abrir no Spotify guarda o link e a capa: a próxima pilha já mostra 
   assertEquals(s.saved.get(`spotify:${id}`), { found: true, url: 'https://open.spotify.com/track/abc', image_url: 'https://i.scdn.co/image/capa', audio_url: null });
 });
 
-Deno.test('capa da plataforma vem do song.link; já guarda nas outras plataformas sem prévia', async () => {
+Deno.test('o song.link ainda guarda links e capas das outras plataformas sem prévia (mas o cartão mostra a capa do Last.fm)', async () => {
   const s = withPlatform('amazon_music', {
     fetchLinks: async () => ({
       links: { amazon_music: 'https://music.amazon.com/albums/B0D1?trackAsin=B0D2', spotify: 'https://open.spotify.com/track/abc', tidal: 'https://tidal.com/browse/track/1' },
@@ -413,7 +425,8 @@ Deno.test('capa da plataforma vem do song.link; já guarda nas outras plataforma
     }),
   });
   const cards = await deckOf(s.handler);
-  assertEquals(cards.map((c) => c.image_url), ['https://m.media-amazon.com/images/I/capa.jpg', 'https://m.media-amazon.com/images/I/capa.jpg']);
+  assertEquals(cards.map((c) => c.image_url), [LASTFM_COVER, DEEZER_COVER]);
+  assertEquals(cards.map((c) => c.url), ['https://music.amazon.com/albums/B0D1?trackAsin=B0D2', 'https://music.amazon.com/albums/B0D1?trackAsin=B0D2']);
   assertEquals(s.platformCalls.cover, 0, 'não precisou ler a página do link');
   const id = cards[0]!.link_preview_id;
   assertEquals(s.saved.get(`spotify:${id}`)?.image_url, 'https://i.scdn.co/image/sl');
@@ -432,10 +445,10 @@ Deno.test('song.link pedindo para esperar não marca a música como "não está 
   await deckOf(s.handler);
   assertEquals(s.saved.size, 0);
   up = true;
-  assertEquals((await deckOf(s.handler)).map((c) => c.image_url), ['https://i.scdn.co/image/sl', 'https://i.scdn.co/image/sl']);
+  assertEquals((await deckOf(s.handler)).map((c) => c.url), ['https://open.spotify.com/track/abc', 'https://open.spotify.com/track/abc']);
 });
 
-Deno.test('cartões com capa primeiro; as capas que faltaram são procuradas depois da resposta', async () => {
+Deno.test('a ordem da pilha não depende da plataforma; links que faltaram abrem a busca', async () => {
   const tasks: Promise<unknown>[] = [];
   let n = 0;
   const s = withPlatform('spotify', {
@@ -444,18 +457,55 @@ Deno.test('cartões com capa primeiro; as capas que faltaram são procuradas dep
     background: (t) => void tasks.push(t),
   });
   const cards = await deckOf(s.handler);
-  assertEquals(cards[0]!.image_url, 'https://i.scdn.co/image/sl');
-  assertEquals(cards.at(-1)!.image_url, null);
+  assertEquals(cards.map((c) => c.title), ['Parecida', 'Do Gênero']);
+  assertEquals(cards[0]!.url, 'https://open.spotify.com/track/abc');
+  assertEquals(cards.at(-1)!.url.startsWith('https://open.spotify.com/search/'), true);
   assertEquals(tasks.length, 0, 'tudo coube no limite da pilha: nada para depois');
 });
 
-Deno.test('links guardados antes das capas: busca de novo para trazer a capa', async () => {
+Deno.test('links guardados antes das capas: busca de novo no song.link', async () => {
   const saved: unknown[] = [];
   const s = withPlatform('spotify', {
     findLinks: async () => ({ links: { spotify: 'https://open.spotify.com/track/abc' }, images: null, checked_at: new Date().toISOString() }),
     saveLinks: async (_u, links, images) => void saved.push({ links, images }),
     fetchLinks: async () => ({ links: { spotify: 'https://open.spotify.com/track/abc' }, images: { spotify: 'https://i.scdn.co/image/sl' } }),
   });
-  assertEquals((await deckOf(s.handler)).map((c) => c.image_url), ['https://i.scdn.co/image/sl', 'https://i.scdn.co/image/sl']);
+  assertEquals((await deckOf(s.handler)).map((c) => c.url), ['https://open.spotify.com/track/abc', 'https://open.spotify.com/track/abc']);
   assertEquals(saved.length, 2);
+});
+
+Deno.test('Last.fm: título, artista, álbum e capa são os mesmos em qualquer plataforma; só o link e a prévia mudam', async () => {
+  const meta = (c: Card & { artist: string; album: string }) => [c.title, c.artist, c.album, c.image_url];
+  const seen: unknown[] = [];
+  for (const platform of ['deezer', 'apple_music', 'spotify', null] as const) {
+    const s = withPlatform(platform, {
+      // O Last.fm corrige o nome do artista e traz o álbum e a capa dele.
+      lastfmInfo: async (ref) => (ref.title === 'Parecida' ? { title: 'Parecida', artist: 'Banda Oficial', album: 'Álbum LF', imageUrl: LASTFM_COVER } : null),
+    });
+    const cards = (await deckOf(s.handler)) as (Card & { artist: string; album: string })[];
+    seen.push(meta(cards.find((c) => c.title === 'Parecida')!));
+  }
+  const expected = ['Parecida', 'Banda Oficial', 'Álbum LF', LASTFM_COVER];
+  for (const m of seen) assertEquals(m, expected);
+});
+
+Deno.test('Last.fm: guarda o resultado (não pergunta de novo) e, se estiver fora do ar, o cartão segue com os dados da Deezer sem guardar "não achou"', async () => {
+  const s = setup();
+  await s.handler(post({ action: 'deck' }));
+  const first = s.calls.lastfm;
+  await s.handler(post({ action: 'deck' }));
+  // "Parecida" já está guardada com capa; "Do Gênero" (não achada) só é perguntada de novo depois de 7 dias.
+  assertEquals(s.calls.lastfm, first, 'segunda pilha sem perguntar ao Last.fm de novo');
+
+  const down = setup({
+    lastfmInfo: async () => {
+      throw new Error('lastfm_unavailable');
+    },
+  });
+  const cards = (await (await down.handler(post({ action: 'deck' }))).json()).cards as (Card & { album: string })[];
+  assertEquals(cards.map((c) => [c.title, c.album, c.image_url]), [
+    ['Parecida', 'Parecida (álbum)', DEEZER_COVER],
+    ['Do Gênero', 'Do Gênero (álbum)', DEEZER_COVER],
+  ]);
+  assertEquals(down.lastfm.size, 0, 'falha de rede não vira "o Last.fm não conhece"');
 });

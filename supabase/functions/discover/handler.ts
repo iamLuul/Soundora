@@ -9,7 +9,7 @@
 // { action: 'tracks', query }             → músicas da Deezer pelo nome (favoritas do perfil)
 // { action: 'track', trackId }            → guarda a música escolhida como cartão e devolve o cartão
 import { readJsonLimited } from '../_shared/body.ts';
-import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, type PlatformTracks, type StreamingChoice } from '../_shared/links/charts.ts';
+import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, type LastfmTrackInfo, type PlatformTracks, type StreamingChoice } from '../_shared/links/charts.ts';
 import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerAlbum, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
@@ -26,8 +26,8 @@ export const LINKS_TTL_MS = 30 * 86_400_000;
 /** Por pilha, no máximo estas buscas novas na Apple (o iTunes aceita ~20 por minuto) e no song.link. */
 export const APPLE_LOOKUPS_PER_DECK = 15;
 export const LINK_LOOKUPS_PER_DECK = 5;
-/** Música achada sem capa numa plataforma: procura a capa de novo depois disso. */
-export const COVER_RETRY_MS = 7 * 86_400_000;
+/** Última busca no Last.fm sem resultado (ou sem capa): tenta de novo depois disso. */
+export const LASTFM_RETRY_MS = 7 * 86_400_000;
 /** Plataformas sem prévia: o cartão leva o link e a capa delas (vindos do song.link). */
 const LINK_ONLY: StreamingChoice[] = ['spotify', 'youtube_music', 'amazon_music', 'tidal', 'soundcloud'];
 /** Pedidos por pessoa (por minuto). */
@@ -65,6 +65,17 @@ export interface PlatformTrack {
   image_url: string | null;
   audio_url: string | null;
   /** Quando foi procurada (para procurar a capa de novo, se não veio). */
+  checked_at?: string | null;
+}
+
+/** Dados da música no Last.fm, guardados por cartão (public.lastfm_tracks). */
+export interface LastfmMeta {
+  /** false = o Last.fm não conhece a música. */
+  found: boolean;
+  title: string | null;
+  artist: string | null;
+  album: string | null;
+  image_url: string | null;
   checked_at?: string | null;
 }
 
@@ -156,6 +167,11 @@ export interface Deps {
   appleTrack?(ref: TrackRef): Promise<AppleTrack | null | 'quota'>;
   /** Capa oficial de um link de plataforma (oEmbed/og). */
   coverOf?(url: string): Promise<string | null>;
+  /** Dados do Last.fm já guardados (por id do cartão). */
+  findLastfm?(ids: string[]): Promise<Map<string, LastfmMeta>>;
+  saveLastfm?(id: string, meta: LastfmMeta): Promise<void>;
+  /** Nome, álbum e capa no Last.fm (null = não conhece; erro = esperar e tentar depois). */
+  lastfmInfo?(ref: TrackRef): Promise<LastfmTrackInfo | null>;
   /** Pausa entre os lotes de busca na Deezer (limite de 50 pedidos a cada 5 s). */
   pauseMs?: number;
   now?: () => Date;
@@ -248,34 +264,84 @@ export function createHandler(deps: Deps) {
       }),
     );
 
-    const { views, later } = await viewsFor(platform, unique.map((c) => c.row));
+    const [{ views, later }, meta] = await Promise.all([viewsFor(platform, unique.map((c) => c.row)), lastfmMetaFor(unique)]);
     const shown = unique.flatMap((c) => {
       const view = views.get(c.row.id);
       return view ? [{ ...c, view }] : [];
     });
-    // Nas plataformas sem prévia, os cartões com capa vêm primeiro; os que ainda não têm ficam
-    // para o fim, e as capas que faltaram são procuradas depois da resposta (para a próxima pilha).
-    if (platform && platform !== 'deezer') shown.sort((a, b) => Number(!a.view.image_url) - Number(!b.view.image_url));
+    // Os links que faltaram nas outras plataformas são procurados depois da resposta (para a próxima pilha).
     if (platform && later.length && deps.background) deps.background(lookupMany(platform, later.slice(0, LINK_LOOKUPS_PER_DECK)).catch(() => undefined));
 
     if (!shown.length) log(`discover: nenhuma sugestão (${candidates.length} candidatas, quota=${quota}, plataforma=${platform})`);
     return json({
-      cards: shown.map(({ row, candidate, view }) => ({
+      cards: shown.map(({ row, candidate, view }) => {
+        // Nomes, álbum e capa vêm sempre do Last.fm, seja qual for a plataforma da pessoa (a
+        // plataforma só decide o link e a prévia). Sem resposta do Last.fm, vale o que a Deezer
+        // achou. A foto do artista vem da Deezer: o Last.fm não tem foto de artista.
+        const lf = meta.get(row.id);
+        return {
         link_preview_id: row.id,
         url: view.url,
         platform: view.platform,
-        title: row.title,
-        artist: row.artist,
-        album: row.album,
-        image_url: view.image_url,
-        artist_image_url: view.artist_image_url,
+        title: lf?.title ?? candidate.title ?? row.title,
+        artist: lf?.artist ?? candidate.artist ?? row.artist,
+        album: lf?.album ?? row.album,
+        image_url: lf?.image_url ?? row.image_url,
+        artist_image_url: row.artist_image_url,
         audio_url: view.audio_url,
         preview_platform: view.preview_platform,
         genre: candidate.reason.kind === 'genre' ? candidate.reason.genre : (row.genres?.find(isGenre) ?? null),
         reason: candidate.reason.kind,
         because: candidate.reason.kind === 'similar' ? `${candidate.reason.because.artist} – ${candidate.reason.because.title}` : null,
-      })),
+        };
+      }),
     });
+  }
+
+  /**
+   * Nome, álbum e capa de cada cartão pelo Last.fm. O que já foi achado vem do banco; o resto é
+   * perguntado agora (de 5 em 5) e guardado. Se o Last.fm falhar, o cartão segue com o que tem.
+   */
+  async function lastfmMetaFor(items: { row: TrackRow; candidate: Candidate }[]): Promise<Map<string, LastfmMeta>> {
+    const out = new Map<string, LastfmMeta>();
+    if (!deps.lastfmInfo || !items.length) return out;
+    const cached = (await deps.findLastfm?.(items.map((i) => i.row.id)).catch(() => undefined)) ?? new Map<string, LastfmMeta>();
+    const t = now().getTime();
+    const old = (m: LastfmMeta) => !m.checked_at || t - new Date(m.checked_at).getTime() > LASTFM_RETRY_MS;
+    const todo: typeof items = [];
+    for (const it of items) {
+      const m = cached.get(it.row.id);
+      if (m) out.set(it.row.id, m);
+      if (!m || ((!m.found || !m.image_url) && old(m))) todo.push(it);
+    }
+    for (let i = 0; i < todo.length; i += 5) {
+      if (i > 0) await wait(deps.pauseMs ?? 400);
+      const batch = todo.slice(i, i + 5);
+      const found = await Promise.all(
+        batch.map((it) =>
+          deps
+            .lastfmInfo!({ artist: it.candidate.artist, title: it.candidate.title })
+            .then((info) => ({ ok: true as const, info }))
+            .catch((err) => {
+              log('discover: Last.fm indisponível', err);
+              return { ok: false as const, info: null };
+            }),
+        ),
+      );
+      for (const [j, f] of found.entries()) {
+        if (!f.ok) continue;
+        const meta: LastfmMeta = f.info
+          ? { found: true, title: f.info.title, artist: f.info.artist, album: f.info.album, image_url: f.info.imageUrl }
+          : { found: false, title: null, artist: null, album: null, image_url: null };
+        // Conhece a música mas sem capa agora: não apaga a que já tínhamos.
+        const prev = out.get(batch[j]!.row.id);
+        const merged = { ...meta, image_url: meta.image_url ?? prev?.image_url ?? null, album: meta.album ?? prev?.album ?? null };
+        out.set(batch[j]!.row.id, merged.found || !prev?.found ? merged : prev);
+        await deps.saveLastfm?.(batch[j]!.row.id, merged).catch(() => undefined);
+      }
+    }
+    for (const [id, m] of out) if (!m.found) out.delete(id);
+    return out;
   }
 
   /**
@@ -300,14 +366,8 @@ export function createHandler(deps: Deps) {
       return { views: out, later: [] };
     }
     const cached = (await deps.findPlatformTracks?.(rows.map((r) => r.id), platform)) ?? new Map<string, PlatformTrack>();
-    // Nunca procurada, ou achada sem capa há um tempo (a capa pode ter aparecido).
-    const t = now().getTime();
-    const needs = (r: TrackRow) => {
-      const pt = cached.get(r.id);
-      if (!pt) return true;
-      return platform !== 'apple_music' && pt.found && !pt.image_url && !!pt.checked_at && t - new Date(pt.checked_at).getTime() > COVER_RETRY_MS;
-    };
-    const missing = rows.filter(needs);
+    // Nunca procurada nessa plataforma (a capa não importa: vem do Last.fm).
+    const missing = rows.filter((r) => !cached.has(r.id));
     const budget = platform === 'apple_music' ? APPLE_LOOKUPS_PER_DECK : LINK_LOOKUPS_PER_DECK;
     const done = await lookupMany(platform, missing.slice(0, budget));
     for (const [id, f] of done) cached.set(id, f);
@@ -365,8 +425,7 @@ export function createHandler(deps: Deps) {
     if (found === 'failed') return 'quota';
     const url = found?.links[platform] ?? null;
     if (!found || !url) return none;
-    // A capa da própria plataforma: a que o song.link trouxe ou, sem ela, a da página do link.
-    const image = found.images?.[platform] ?? (deps.coverOf ? await deps.coverOf(url).catch(() => null) : null);
+    const image = found.images?.[platform] ?? null;
     // Busca nova: já guarda o link e a capa nas outras plataformas sem prévia (outras pessoas).
     if (found.fresh) {
       for (const p of LINK_ONLY) {

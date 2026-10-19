@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartKey, fetchPlatformLinks, fetchPlatformTracks, fetchWorldChart, findTrackMeta, isChartSourceUrl, LastfmKeyError, platformSearchUrl, rankWithMoves, SongLinkUnavailableError, type ChartEntry } from './charts.ts';
+import { chartKey, fetchLastfmTrackInfo, fetchPlatformLinks, fetchPlatformTracks, fetchWorldChart, findTrackMeta, isChartSourceUrl, LastfmKeyError, platformSearchUrl, rankWithMoves, SongLinkUnavailableError, type ChartEntry } from './charts.ts';
 import type { FetchLike } from './preview.ts';
 
 const KEY = 'abcdef0123456789abcdef0123456789';
@@ -156,6 +156,43 @@ describe('capa e links quando a Deezer não acha', () => {
       'https://api.deezer.com/search?q=Kendrick': deezer('Not Like Us', 'Kendrick Lamar', 9),
     });
     expect((await findTrackMeta(ref, { fetch, useItunes: false })).deezerUrl).toBe('https://www.deezer.com/track/9');
+  });
+});
+
+describe('dados da música no Last.fm (track.getInfo)', () => {
+  const ref = { artist: 'banda', title: 'parecida' };
+  const info = {
+    track: {
+      name: 'Parecida',
+      artist: { name: 'Banda' },
+      album: {
+        title: 'Álbum',
+        image: [
+          { '#text': 'https://lastfm.freetls.fastly.net/i/u/34s/a.jpg', size: 'small' },
+          { '#text': 'https://lastfm.freetls.fastly.net/i/u/300x300/a.jpg', size: 'extralarge' },
+        ],
+      },
+    },
+  };
+
+  it('traz o nome certo, o álbum e a maior capa', async () => {
+    expect(await fetchLastfmTrackInfo(KEY, ref, { fetch: fakeFetch({ 'https://ws.audioscrobbler.com/2.0/': info }) })).toEqual({
+      title: 'Parecida',
+      artist: 'Banda',
+      album: 'Álbum',
+      imageUrl: 'https://lastfm.freetls.fastly.net/i/u/300x300/a.jpg',
+    });
+  });
+
+  it('ignora a imagem cinza de "sem capa" e não conhecer a música é null (não erro)', async () => {
+    const gray = { track: { ...info.track, album: { title: 'X', image: [{ '#text': 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png' }] } } };
+    expect((await fetchLastfmTrackInfo(KEY, ref, { fetch: fakeFetch({ 'https://ws.audioscrobbler.com/2.0/': gray }) }))?.imageUrl).toBeNull();
+    expect(await fetchLastfmTrackInfo(KEY, ref, { fetch: fakeFetch({ 'https://ws.audioscrobbler.com/2.0/': { error: 6, message: 'Track not found' } }) })).toBeNull();
+  });
+
+  it('chave recusada e Last.fm fora do ar viram erro (para não guardar "não achou")', async () => {
+    await expect(fetchLastfmTrackInfo(KEY, ref, { fetch: fakeFetch({ 'https://ws.audioscrobbler.com/2.0/': { error: 10 } }) })).rejects.toBeInstanceOf(LastfmKeyError);
+    await expect(fetchLastfmTrackInfo(KEY, ref, { fetch: fakeFetch({}) })).rejects.toThrow('lastfm_unavailable');
   });
 });
 
