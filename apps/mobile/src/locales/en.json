@@ -552,6 +552,7 @@
     "textBg": "Text background",
     "font": "Font",
     "textColor": "Text color",
+    "colorTools": "Color and background",
     "maxTexts": "Up to {{max}} texts per vibe.",
     "bg": {
       "none": "No background",

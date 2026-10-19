@@ -73,6 +73,7 @@ describe('Nova vibe', () => {
     await fireEvent.changeText(screen.getByTestId('vibe-text'), 'bom dia');
     await fireEvent.press(screen.getByTestId('vibe-text-done'));
     expect(screen.getByText('bom dia')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('vibe-tool-color'));
     await fireEvent.press(screen.getByTestId('vibe-style-pink'));
     await fireEvent.press(screen.getByTestId('vibe-publish'));
     await waitFor(() =>
@@ -96,7 +97,9 @@ describe('Nova vibe', () => {
     expect(screen.getByTestId('vibe-text').props.value).toBe('');
     await fireEvent.changeText(screen.getByTestId('vibe-text'), 'segundo');
     // Estilo só deste texto: fonte com serifa, amarelo, fundo (sem → cheio).
+    await fireEvent.press(screen.getByTestId('vibe-tool-font'));
     await fireEvent.press(screen.getByTestId('vibe-font-serif'));
+    await fireEvent.press(screen.getByTestId('vibe-tool-color'));
     await fireEvent.press(screen.getByTestId('vibe-color-yellow'));
     await fireEvent.press(screen.getByTestId('vibe-text-bg'));
     await fireEvent.press(screen.getByTestId('vibe-text-done'));
@@ -126,6 +129,31 @@ describe('Nova vibe', () => {
     ]);
     // Cada um no seu lugar.
     expect(new Set(sent.map((i) => `${i.x.toFixed(2)},${i.y.toFixed(2)}`)).size).toBe(3);
+  });
+
+  test('barra de ferramentas: Aa e pincel abrem fontes e cores; sem texto na tela valem para o próximo', async () => {
+    await wrap(<NewVibeScreen />);
+    // Nada aberto de início; a lixeira só vale com um texto sendo editado.
+    expect(screen.queryByTestId('vibe-font-serif')).toBeNull();
+    expect(screen.queryByTestId('vibe-color-yellow')).toBeNull();
+    await fireEvent.press(screen.getByTestId('vibe-tool-font'));
+    expect(screen.getByTestId('vibe-font-serif')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('vibe-font-serif'));
+    // Tocar no Aa de novo fecha o painel; o pincel abre o das cores (e do fundo da vibe).
+    await fireEvent.press(screen.getByTestId('vibe-tool-font'));
+    expect(screen.queryByTestId('vibe-font-serif')).toBeNull();
+    await fireEvent.press(screen.getByTestId('vibe-tool-color'));
+    expect(screen.getByTestId('vibe-style-pink')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('vibe-color-yellow'));
+    await fireEvent.press(screen.getByTestId('vibe-text-delete'));
+    // O próximo texto já nasce com o que foi escolhido antes de escrever.
+    await fireEvent.press(screen.getByTestId('vibe-canvas'), { nativeEvent: { locationX: 40, locationY: 60 } });
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'oi');
+    await fireEvent.press(screen.getByTestId('vibe-text-done'));
+    await fireEvent.press(screen.getByTestId('vibe-publish'));
+    await waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ textItems: [expect.objectContaining({ t: 'oi', f: 'serif', c: 'yellow' })] })),
+    );
   });
 
   test('apagar o texto pela lixeira; no máximo 8 textos', async () => {

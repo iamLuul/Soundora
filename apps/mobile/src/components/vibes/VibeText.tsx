@@ -1,11 +1,15 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
-import { VIBE_FONTS, VIBE_TEXT_BGS, VIBE_TEXT_COLORS, VIBE_TEXT_MAX, type VibeKind, type VibeTextItem } from '../../lib/api';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
+import { SvgXml } from 'react-native-svg';
+import { vibeIcons, type VibeIconName } from '../../assets/vibeIcons';
+import { VIBE_FONTS, VIBE_STYLES, VIBE_TEXT_BGS, VIBE_TEXT_COLORS, VIBE_TEXT_MAX, type VibeKind, type VibeStyle, type VibeTextItem } from '../../lib/api';
 import { colors, fonts, space } from '../../theme';
+import { VIBE_BACKGROUND } from './colors';
 import { FONT_STYLE, itemStyle, TEXT_COLOR } from './textStyle';
+
+const SERIF_BOLD = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
@@ -189,96 +193,179 @@ function EditorItemView({
   );
 }
 
+/** Qual painel de opções está aberto sobre a parte de baixo da vibe. */
+export type ToolPanel = 'font' | 'color' | null;
+
+/** Um botão redondo do Figma (círculo roxo com o desenho dentro). */
+export function VibeIconButton({
+  icon,
+  children,
+  testID,
+  label,
+  onPress,
+  active,
+  dim,
+}: {
+  icon: VibeIconName;
+  children?: ReactNode;
+  testID: string;
+  label: string;
+  onPress: () => void;
+  active?: boolean;
+  dim?: boolean;
+}) {
+  const { size, xml } = vibeIcons[icon];
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: !!active }}
+      onPress={onPress}
+      hitSlop={6}
+      style={[
+        { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', opacity: dim ? 0.45 : 1 },
+        active && styles.iconOn,
+      ]}
+    >
+      <SvgXml xml={xml} width={size} height={size} style={StyleSheet.absoluteFill} />
+      {children}
+    </Pressable>
+  );
+}
+
 /**
- * Opções do texto que está sendo editado (como no Instagram): fundo (sem, cheio, suave), fonte e cor.
- * Fica sobre a parte de baixo da vibe, longe do texto.
+ * Ferramentas sobre a vibe (Figma: Vibes): lixeira no canto de cima à esquerda; fonte (Aa) e cor
+ * (pincel) no canto de cima à direita. Fonte abre as fontes; pincel abre cor do texto, fundo do
+ * texto e fundo da vibe. Com um texto sendo editado, mudam só ele; sem texto, mudam o jeito do
+ * próximo (como no Instagram).
  */
-export function VibeTextToolbar({
-  item,
+export function VibeEditTools({
+  look,
+  editing,
+  panel,
+  onPanel,
   onChange,
   onDelete,
   onDone,
+  background,
 }: {
-  item: EditorItem;
+  look: Pick<VibeTextItem, 'f' | 'c' | 'b'>;
+  editing: boolean;
+  panel: ToolPanel;
+  onPanel: (p: ToolPanel) => void;
   onChange: (patch: Partial<Pick<VibeTextItem, 'f' | 'c' | 'b'>>) => void;
   onDelete: () => void;
   onDone: () => void;
+  /** Fundo da vibe (texto, música e post); some quando a vibe é foto ou vídeo. */
+  background?: { value: VibeStyle; onChange: (s: VibeStyle) => void };
 }) {
   const { t } = useTranslation();
-  const nextBg = VIBE_TEXT_BGS[(VIBE_TEXT_BGS.indexOf(item.b) + 1) % VIBE_TEXT_BGS.length]!;
+  const nextBg = VIBE_TEXT_BGS[(VIBE_TEXT_BGS.indexOf(look.b) + 1) % VIBE_TEXT_BGS.length]!;
   return (
     <>
       <View style={styles.topBar} pointerEvents="box-none">
-        <Pressable
-          testID="vibe-text-delete"
-          accessibilityRole="button"
-          accessibilityLabel={t('vibes.deleteText')}
-          onPress={onDelete}
-          hitSlop={8}
-          style={styles.roundBtn}
-        >
-          <Ionicons name="trash-outline" size={18} color={colors.text} />
-        </Pressable>
-        <Pressable
-          testID="vibe-text-bg"
-          accessibilityRole="button"
-          accessibilityLabel={t('vibes.textBg')}
-          accessibilityValue={{ text: t(`vibes.bg.${item.b}`) }}
-          onPress={() => onChange({ b: nextBg })}
-          hitSlop={8}
-          style={[styles.roundBtn, item.b !== 'none' && { backgroundColor: colors.text }]}
-        >
-          <Text style={[styles.bgGlyph, item.b !== 'none' && { color: colors.background }]}>A</Text>
-        </Pressable>
-        <View style={{ flex: 1 }} />
-        <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={onDone} style={styles.done} hitSlop={8}>
-          <Text style={styles.doneText}>{t('vibes.done')}</Text>
-        </Pressable>
+        <VibeIconButton icon="trash" testID="vibe-text-delete" label={t('vibes.deleteText')} onPress={onDelete} dim={!editing} />
+        {editing ? (
+          <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={onDone} style={styles.done} hitSlop={8}>
+            <Text style={styles.doneText}>{t('vibes.done')}</Text>
+          </Pressable>
+        ) : null}
+        <View style={styles.rightTools}>
+          <VibeIconButton
+            icon="disc38"
+            testID="vibe-tool-font"
+            label={t('vibes.font')}
+            active={panel === 'font'}
+            onPress={() => onPanel(panel === 'font' ? null : 'font')}
+          >
+            <Text style={styles.aaTop}>Aa</Text>
+          </VibeIconButton>
+          <VibeIconButton
+            icon="brush"
+            testID="vibe-tool-color"
+            label={t('vibes.colorTools')}
+            active={panel === 'color'}
+            onPress={() => onPanel(panel === 'color' ? null : 'color')}
+          />
+        </View>
       </View>
-      <View style={styles.bottomBar} pointerEvents="box-none">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          contentContainerStyle={styles.chips}
-          accessibilityRole="radiogroup"
-          accessibilityLabel={t('vibes.font')}
-        >
-          {VIBE_FONTS.map((f) => (
-            <Pressable
-              key={f}
-              testID={`vibe-font-${f}`}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: item.f === f }}
-              accessibilityLabel={t(`vibes.fonts.${f}`)}
-              onPress={() => onChange({ f })}
-              style={[styles.chip, item.f === f && styles.chipOn]}
+      {panel ? (
+        <View style={styles.bottomBar} pointerEvents="box-none">
+          {panel === 'font' ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              contentContainerStyle={styles.chips}
+              accessibilityRole="radiogroup"
+              accessibilityLabel={t('vibes.font')}
             >
-              <Text style={[styles.chipText, FONT_STYLE[f], { textTransform: 'none' }, item.f === f && { color: colors.background }]}>Aa</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          contentContainerStyle={styles.chips}
-          accessibilityRole="radiogroup"
-          accessibilityLabel={t('vibes.textColor')}
-        >
-          {VIBE_TEXT_COLORS.map((c) => (
-            <Pressable
-              key={c}
-              testID={`vibe-color-${c}`}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: item.c === c }}
-              accessibilityLabel={t(`vibes.colors.${c}`)}
-              onPress={() => onChange({ c })}
-              style={[styles.swatch, { backgroundColor: TEXT_COLOR[c] }, item.c === c && styles.swatchOn]}
-            />
-          ))}
-        </ScrollView>
-      </View>
+              {VIBE_FONTS.map((f) => (
+                <Pressable
+                  key={f}
+                  testID={`vibe-font-${f}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: look.f === f }}
+                  accessibilityLabel={t(`vibes.fonts.${f}`)}
+                  onPress={() => onChange({ f })}
+                  style={[styles.chip, look.f === f && styles.chipOn]}
+                >
+                  <Text style={[styles.chipText, FONT_STYLE[f], { textTransform: 'none' }, look.f === f && { color: colors.background }]}>Aa</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="always"
+                contentContainerStyle={styles.chips}
+                accessibilityRole="radiogroup"
+                accessibilityLabel={t('vibes.textColor')}
+              >
+                <Pressable
+                  testID="vibe-text-bg"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('vibes.textBg')}
+                  accessibilityValue={{ text: t(`vibes.bg.${look.b}`) }}
+                  onPress={() => onChange({ b: nextBg })}
+                  style={[styles.chip, look.b !== 'none' && styles.chipOn]}
+                >
+                  <Text style={[styles.bgGlyph, look.b !== 'none' && { color: colors.background }]}>A</Text>
+                </Pressable>
+                {VIBE_TEXT_COLORS.map((c) => (
+                  <Pressable
+                    key={c}
+                    testID={`vibe-color-${c}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: look.c === c }}
+                    accessibilityLabel={t(`vibes.colors.${c}`)}
+                    onPress={() => onChange({ c })}
+                    style={[styles.swatch, { backgroundColor: TEXT_COLOR[c] }, look.c === c && styles.swatchOn]}
+                  />
+                ))}
+              </ScrollView>
+              {background ? (
+                <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={t('vibes.background')}>
+                  {VIBE_STYLES.map((s) => (
+                    <Pressable
+                      key={s}
+                      testID={`vibe-style-${s}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: background.value === s }}
+                      accessibilityLabel={t(`vibes.style.${s}`)}
+                      onPress={() => background.onChange(s)}
+                      style={[styles.swatch, { backgroundColor: VIBE_BACKGROUND[s] }, background.value === s && styles.swatchOn]}
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </>
+          )}
+        </View>
+      ) : null}
     </>
   );
 }
@@ -290,8 +377,11 @@ const styles = StyleSheet.create({
   // O texto quebra a linha dentro da largura máxima, em vez de vazar para os lados.
   wrap: { flexShrink: 1, maxWidth: '100%' },
   input: { outlineWidth: 0 },
-  topBar: { position: 'absolute', top: space.md, left: space.md, right: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  roundBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  // Figma: lixeira a 20 px do canto de cima à esquerda; Aa e pincel a 20 px do canto de cima à direita.
+  topBar: { position: 'absolute', top: 20, left: 20, right: 20, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  rightTools: { gap: 10 },
+  aaTop: { fontFamily: SERIF_BOLD, fontWeight: 'bold', fontSize: 16, color: '#FFFFFF' },
+  iconOn: { borderWidth: 2, borderColor: '#FFFFFF' },
   bgGlyph: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   done: { backgroundColor: colors.text, borderRadius: 16, paddingHorizontal: space.md, paddingVertical: 6 },
   doneText: { fontFamily: fonts.bold, fontSize: 13, color: colors.background },
