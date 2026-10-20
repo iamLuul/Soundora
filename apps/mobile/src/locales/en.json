@@ -153,7 +153,11 @@
     "request_not_found": "That request no longer exists.",
     "identity_not_found": "That account isn’t connected.",
     "single_identity_not_deletable": "This is the only way to sign in to your account. Connect another one first.",
-    "manual_linking_disabled": "Connecting accounts isn’t enabled on the server."
+    "manual_linking_disabled": "Connecting accounts isn’t enabled on the server.",
+    "badge_unavailable": "This badge isn't being given right now (paused or retired).",
+    "badge_retired": "This badge was retired and can't be reopened.",
+    "badge_not_manual": "This badge is given automatically by the app.",
+    "user_not_found": "No account with that @."
   },
   "tabs": {
     "feed": "For you",
@@ -610,7 +614,7 @@
   "admin": {
     "title": "Admin panel",
     "entry": "Admin panel",
-    "entryHint": "Reports, users and featured",
+    "entryHint": "Reports, users, featured and badges",
     "noAccess": "Only admins can open this screen.",
     "tabReports": "Reports",
     "tabUsers": "Users",
@@ -675,7 +679,29 @@
     "sort_name_desc": "Z to A",
     "followers_zero": "no followers",
     "followers_one": "{{count}} follower",
-    "followers_other": "{{count}} followers"
+    "followers_other": "{{count}} followers",
+    "tabBadges": "Badges",
+    "badgeOpen": "Open",
+    "badgePaused": "Paused",
+    "badgeRetired": "Retired",
+    "badgeAuto": "Automatic",
+    "badgeUntil": "Ends on {{date}}",
+    "badgeHolders_zero": "nobody has it",
+    "badgeHolders_one": "{{count}} person has it",
+    "badgeHolders_other": "{{count}} people have it",
+    "badgeGrantTo": "@ of who gets it",
+    "badgeGrant": "Grant",
+    "badgePause": "Pause granting",
+    "badgeReopen": "Reopen granting",
+    "badgeRetireNow": "Retire forever",
+    "badgeConfirmRetire": "Retire the \"{{name}}\" badge forever? Nobody else will be able to get it, not even from the panel. People who have it keep it. This can't be undone.",
+    "badgeDays": "End in (days)",
+    "badgeSetDate": "Set date",
+    "badgeClearDate": "Remove date",
+    "badgeShowHolders": "See who has it",
+    "badgeHideHolders": "Hide list",
+    "badgeConfirmRevoke": "Remove the badge from @{{username}}? If the badge is retired, it can't be given again.",
+    "badgeGranted": "Badge granted to @{{username}}."
   },
   "reviews": {
     "tab": "Reviews",
@@ -815,5 +841,16 @@
     "back": "Back",
     "introTitle": "Soundhora now has ads",
     "introBody": "Every now and then you'll see a post or a vibe labeled Sponsored. Ads are not chosen using your profile, your tastes or what you do in the app."
+  },
+  "badges": {
+    "title": "Badges",
+    "openHint": "Opens the badge with its name, date and what it stands for",
+    "receivedOn": "Received on {{date}}",
+    "limited": "Limited badge: can no longer be earned"
+  },
+  "support": {
+    "cta": "Support Soundhora on Patreon",
+    "title": "Support Soundhora",
+    "body": "Soundhora has no ads. Supporters help keep the network running and get the Early supporter badge on their profile."
   }
 }

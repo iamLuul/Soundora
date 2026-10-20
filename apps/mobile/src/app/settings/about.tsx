@@ -2,12 +2,20 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
+import { SupportRow, useSupportUrl } from '../../components/SupportLink';
 
-/** Configurações › Sobre: textos legais e versão. */
+/** Configurações › Sobre: apoio (só na Web), textos legais e versão. */
 export default function AboutSettingsScreen() {
   const { t } = useTranslation();
+  const supportUrl = useSupportUrl();
   return (
     <SettingsScreen title={t('settings.catAbout')}>
+      {/* Só na Web, e só com o link configurado. */}
+      {supportUrl ? (
+        <SettingsSection>
+          <SupportRow />
+        </SettingsSection>
+      ) : null}
       <SettingsSection>
         <SettingsRow testID="settings-terms" icon="document-text-outline" label={t('legal.terms')} onPress={() => router.push('/legal/terms')} />
         <SettingsRow testID="settings-privacy-policy" icon="lock-closed-outline" label={t('legal.privacy')} onPress={() => router.push('/legal/privacy')} />

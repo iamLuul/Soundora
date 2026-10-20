@@ -90,6 +90,19 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
   from public.link_previews where url = 'https://open.spotify.com/track/<id>';
   ```
 
+- **Selos do perfil.** Só para exibir (não dão vantagem nenhuma): ficam numa fileira entre a bio e as músicas favoritas, e tocar num selo mostra ele grande, com nome, data e descrição. O catálogo fica em `public.badges` e quem tem cada um em `public.user_badges`; o app só lê pelas funções `profile_badges` e as do painel. Em **Configurações › Painel admin › Selos** a equipe concede pelo @, tira de alguém, pausa e reabre a entrega, marca uma data para encerrar ou encerra na hora. **Selo encerrado não volta**: depois da data ninguém mais recebe, nem pelo painel nem por SQL (trigger), e a data não muda mais; quem já tem continua tendo. Selos `award = 'auto'` ficam reservados para regras do sistema no futuro (seguidores, reviews, dias ativos) e não são concedidos pelo painel. Para criar um selo novo, insira no banco e desenhe o ícone em `apps/mobile/src/assets/badgeIcons.ts` (sem desenho, aparece uma medalha):
+
+  ```sql
+  insert into public.badges (slug, icon, name_pt, name_en, description_pt, description_en, award, position)
+  values ('beta', 'beta', 'Conta da beta', 'Beta account', 'Criou a conta na fase de testes.', 'Joined during the beta.', 'manual', 2);
+  ```
+
+- **Apoio (Patreon), só na Web.** O botão "Apoie o Soundhora" aparece na coluna da direita do desktop, em Configurações › Sobre e no selo Contribuidor inicial, só na versão Web (nos apps nada fala de doação, pelas regras das lojas). O pagamento é todo no Patreon; a equipe confere lá e concede o selo pelo painel. O link vem do banco (só aceita `https://patreon.com/...`); sem link, o botão não aparece:
+
+  ```sql
+  update public.app_config set support_url = 'https://www.patreon.com/<sua-pagina>';
+  ```
+
 - **Anúncios (AdMob).** Só no app do celular (a web não tem anúncios). Um post anunciado a cada `ads_feed_every` posts no feed da Início (Para você e Seguindo) e uma vibe anunciada a cada `ads_vibes_every` pessoas na fila de vibes, nunca no fim da lista. Ficam **desligados** até a equipe ligar, sem publicar o app de novo:
 
   ```sql

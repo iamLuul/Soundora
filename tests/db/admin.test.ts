@@ -122,7 +122,10 @@ describe('painel admin: usuários', () => {
 
     type U = { username: string; follower_count: number };
     const list = async (filter: string, sort = 'relevance') =>
-      (await db.as<U>(admin, `select username, follower_count from public.admin_users('adm_', $1, $2, 100)`, [filter, sort])).map((u) => u.username);
+      // Só as contas deste arquivo (a busca por "adm_" também acha, por exemplo, "discadmin" de outro arquivo).
+      (await db.as<U>(admin, `select username, follower_count from public.admin_users('adm_', $1, $2, 100)`, [filter, sort]))
+        .map((u) => u.username)
+        .filter((u) => u.startsWith('adm_'));
 
     expect(await list('verified')).toEqual(['adm_famosa']);
     expect(await list('admin')).toEqual(['adm_chefe']);
@@ -156,6 +159,8 @@ describe('painel admin: usuários', () => {
   it('resumo do painel', async () => {
     const [o] = await db.as<{ open_reports: number; suspended: number }>(admin, `select * from public.admin_overview()`);
     expect(o!.open_reports).toBeGreaterThanOrEqual(1);
-    expect(o!.suspended).toBe(0);
+    // Outros arquivos podem deixar contas suspensas: o número tem de bater com o banco.
+    const [n] = await db.sql<{ n: number }>(`select count(*)::int as n from public.profiles where suspended_until > now()`);
+    expect(o!.suspended).toBe(n!.n);
   });
 });

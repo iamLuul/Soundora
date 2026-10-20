@@ -3,18 +3,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
 import { convertProfileImage } from './image-convert';
 import { supabase } from './supabase';
-import type {
-  AppConfig,
-  CommentRow,
-  DiscoverCard,
-  FeedItem,
-  LinkPreviewRow,
-  LikedSong,
-  PersonCard,
-  Profile,
-  ProfileSummary,
-  TrackResult,
-} from './types';
+import type { AppConfig, CommentRow, DiscoverCard, FeedItem, LinkPreviewRow, LikedSong, PersonCard, Profile, ProfileSummary, TrackResult } from './types';
 
 export const FEED_PAGE_SIZE = 20;
 
@@ -29,6 +18,34 @@ export async function getAppConfig(): Promise<AppConfig> {
   const { data, error } = await supabase.from('app_config').select('min_age, guardian_required_under, guardian_flow_enabled').single();
   if (error) throw error;
   return data;
+}
+
+/** Link da página de apoio (Patreon), mostrado só na versão Web. null = sem botão. */
+export async function fetchSupportUrl(): Promise<string | null> {
+  const { data, error } = await supabase.from('app_config').select('support_url').single();
+  if (error) throw error;
+  const url = (data as { support_url: string | null }).support_url;
+  // O banco só aceita https://patreon.com/...; confere de novo antes de virar link.
+  return url && /^https:\/\/(www\.)?patreon\.com\//.test(url) ? url : null;
+}
+
+/** Um selo do perfil (só exibição; não dá vantagem nenhuma). */
+export interface ProfileBadge {
+  slug: string;
+  icon: string;
+  name_pt: string;
+  name_en: string;
+  description_pt: string;
+  description_en: string;
+  granted_at: string;
+  /** Não dá mais para receber (pausado ou encerrado). */
+  limited: boolean;
+}
+
+export async function fetchProfileBadges(userId: string): Promise<ProfileBadge[]> {
+  const { data, error } = await supabase.rpc('profile_badges', { p_user: userId });
+  if (error) throw error;
+  return (data ?? []) as ProfileBadge[];
 }
 
 export async function getMyProfile(): Promise<Profile | null> {
@@ -277,7 +294,7 @@ export async function fetchProfilePosts(authorId: string, before: PostCursor | n
 export async function fetchProfileSummary(username: string): Promise<ProfileSummary | null> {
   const { data, error } = await supabase.rpc('profile_summary', { p_username: username });
   if (error) throw error;
-  return ((data as ProfileSummary[])[0] ?? null);
+  return (data as ProfileSummary[])[0] ?? null;
 }
 
 export async function setLiked(postId: string, liked: boolean): Promise<void> {

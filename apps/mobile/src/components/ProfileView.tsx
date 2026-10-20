@@ -17,6 +17,7 @@ import { colors, fonts, space, text } from '../theme';
 import { TopTabs } from './figma';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
 import { FavoriteSongs, ProfileGenres, profileKeys } from './ProfileExtras';
+import { ProfileBadges } from './ProfileBadges';
 import { ReviewList } from './ReviewList';
 import { PostList } from './PostList';
 import { Avatar } from './ui';
@@ -312,6 +313,9 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
           <Text style={styles.bio}>{p.bio}</Text>
         </View>
       ) : null}
+
+      {/* Selos (só exibição), entre a bio e as músicas favoritas. */}
+      <ProfileBadges userId={p.id} />
 
       <FavoriteSongs userId={p.id} isMe={p.is_me} />
 

@@ -153,7 +153,11 @@
     "request_not_found": "Esse pedido não existe mais.",
     "identity_not_found": "Essa conta não está conectada.",
     "single_identity_not_deletable": "É a única forma de entrar na sua conta. Conecte outra antes.",
-    "manual_linking_disabled": "Conectar contas não está ativado no servidor."
+    "manual_linking_disabled": "Conectar contas não está ativado no servidor.",
+    "badge_unavailable": "Este selo não está sendo entregue agora (pausado ou encerrado).",
+    "badge_retired": "Este selo foi encerrado e não pode mais ser reaberto.",
+    "badge_not_manual": "Este selo é entregue automaticamente pelo app.",
+    "user_not_found": "Nenhuma conta com esse @."
   },
   "tabs": {
     "feed": "Para você",
@@ -610,7 +614,7 @@
   "admin": {
     "title": "Painel admin",
     "entry": "Painel admin",
-    "entryHint": "Denúncias, usuários e destaques",
+    "entryHint": "Denúncias, usuários, destaques e selos",
     "noAccess": "Só administradores acessam esta tela.",
     "tabReports": "Denúncias",
     "tabUsers": "Usuários",
@@ -675,7 +679,29 @@
     "sort_name_desc": "Z a A",
     "followers_zero": "nenhum seguidor",
     "followers_one": "{{count}} seguidor",
-    "followers_other": "{{count}} seguidores"
+    "followers_other": "{{count}} seguidores",
+    "tabBadges": "Selos",
+    "badgeOpen": "Aberto",
+    "badgePaused": "Pausado",
+    "badgeRetired": "Encerrado",
+    "badgeAuto": "Automático",
+    "badgeUntil": "Encerra em {{date}}",
+    "badgeHolders_zero": "ninguém tem",
+    "badgeHolders_one": "{{count}} pessoa tem",
+    "badgeHolders_other": "{{count}} pessoas têm",
+    "badgeGrantTo": "@ de quem vai receber",
+    "badgeGrant": "Conceder",
+    "badgePause": "Pausar entrega",
+    "badgeReopen": "Reabrir entrega",
+    "badgeRetireNow": "Encerrar para sempre",
+    "badgeConfirmRetire": "Encerrar o selo \"{{name}}\" para sempre? Ninguém mais vai poder receber, nem pelo painel. Quem já tem continua tendo. Não dá para desfazer.",
+    "badgeDays": "Encerrar daqui a (dias)",
+    "badgeSetDate": "Definir data",
+    "badgeClearDate": "Tirar data",
+    "badgeShowHolders": "Ver quem tem",
+    "badgeHideHolders": "Esconder lista",
+    "badgeConfirmRevoke": "Tirar o selo de @{{username}}? Se o selo estiver encerrado, não dá para dar de novo.",
+    "badgeGranted": "Selo concedido a @{{username}}."
   },
   "reviews": {
     "tab": "Reviews",
@@ -815,5 +841,16 @@
     "back": "Voltar",
     "introTitle": "O Soundhora agora tem anúncios",
     "introBody": "De vez em quando aparece um post ou uma vibe com o selo Patrocinado. Os anúncios não usam seu perfil, seus gostos nem o que você faz no app para serem escolhidos."
+  },
+  "badges": {
+    "title": "Selos",
+    "openHint": "Abre o selo com o nome, a data e o que ele representa",
+    "receivedOn": "Recebido em {{date}}",
+    "limited": "Selo limitado: não pode mais ser conquistado"
+  },
+  "support": {
+    "cta": "Apoie o Soundhora no Patreon",
+    "title": "Apoie o Soundhora",
+    "body": "O Soundhora não tem anúncios. Quem apoia ajuda a manter a rede no ar e recebe o selo Contribuidor inicial no perfil."
   }
 }

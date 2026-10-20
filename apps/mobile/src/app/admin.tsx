@@ -16,11 +16,14 @@ import { Verified } from '../components/Verified';
 import {
   isSuspended,
   useAdminActions,
+  useAdminBadges,
+  useBadgeHolders,
   useAdminOverview,
   useAdminReports,
   useAdminUsers,
   useFeaturedAdmin,
   useIsAdmin,
+  type AdminBadge,
   type AdminReport,
   type AdminUser,
   type ReportStatus,
@@ -34,18 +37,19 @@ import { listPerf } from '../lib/list';
 import { colors, fonts, radius, space, text } from '../theme';
 import { confirmAction, notify } from '../lib/dialogs';
 import { ErrorState } from '../components/ErrorState';
+import { SvgXml } from 'react-native-svg';
+import { badgeIcon } from '../assets/badgeIcons';
+import { showToast } from '../components/Toast';
 
-type Tab = 'reports' | 'users' | 'featured';
-
+type Tab = 'reports' | 'users' | 'featured' | 'badges';
 
 /** O destaque já saiu do ar? */
 function hasEnded(endsAt: string | null): boolean {
   return !!endsAt && Date.parse(endsAt) < Date.now();
 }
 
-
 /**
- * Painel admin: denúncias, usuários (verificar e suspender) e destaques do Descobrir, sem SQL.
+ * Painel admin: denúncias, usuários (verificar e suspender), destaques do Descobrir e selos, sem SQL.
  * Só abre para administradores; e quem decide é o banco (cada função confere is_admin).
  */
 export default function AdminScreen() {
@@ -76,10 +80,11 @@ export default function AdminScreen() {
             { value: 'reports', label: t('admin.tabReports') },
             { value: 'users', label: t('admin.tabUsers') },
             { value: 'featured', label: t('admin.tabFeatured') },
+            { value: 'badges', label: t('admin.tabBadges') },
           ]}
         />
         <Overview />
-        {tab === 'reports' ? <ReportsTab /> : tab === 'users' ? <UsersTab /> : <FeaturedTab />}
+        {tab === 'reports' ? <ReportsTab /> : tab === 'users' ? <UsersTab /> : tab === 'featured' ? <FeaturedTab /> : <BadgesTab />}
       </View>
     </View>
   );
@@ -123,8 +128,10 @@ function ReportsTab() {
         ListEmptyComponent={
           reports.isLoading ? (
             <PeopleSkeleton count={4} />
+          ) : reports.isError ? (
+            <ErrorState message={formatError(t, reports.error)} onRetry={() => reports.refetch()} />
           ) : (
-            reports.isError ? <ErrorState message={formatError(t, reports.error)} onRetry={() => reports.refetch()} /> : <Text style={[text.body, styles.empty]}>{t('admin.noReports')}</Text>
+            <Text style={[text.body, styles.empty]}>{t('admin.noReports')}</Text>
           )
         }
       />
@@ -175,7 +182,14 @@ function ReportCard({ report: r }: { report: AdminReport }) {
       <View style={styles.actions}>
         {r.exists_now && (r.post_id || r.author_username) ? <Button size="sm" variant="ghost" title={t('admin.view')} onPress={view} /> : null}
         {open && r.exists_now && r.target_type !== 'profile' ? (
-          <Button testID={`report-remove-${r.target_id}`} size="sm" variant="danger" title={t('admin.remove')} onPress={() => act('remove')} loading={resolve.isPending} />
+          <Button
+            testID={`report-remove-${r.target_id}`}
+            size="sm"
+            variant="danger"
+            title={t('admin.remove')}
+            onPress={() => act('remove')}
+            loading={resolve.isPending}
+          />
         ) : null}
         {open ? <Button testID={`report-dismiss-${r.target_id}`} size="sm" variant="ghost" title={t('admin.dismiss')} onPress={() => act('dismiss')} /> : null}
         {r.author_id && !suspended ? <Button size="sm" variant="ghost" title={t('admin.suspendAuthor')} onPress={() => setMenu(true)} /> : null}
@@ -192,7 +206,17 @@ function ReportCard({ report: r }: { report: AdminReport }) {
   );
 }
 
-function SuspendSheet({ visible, username, onClose, onPick }: { visible: boolean; username: string; onClose: () => void; onPick: (days: number | null) => void }) {
+function SuspendSheet({
+  visible,
+  username,
+  onClose,
+  onPick,
+}: {
+  visible: boolean;
+  username: string;
+  onClose: () => void;
+  onPick: (days: number | null) => void;
+}) {
   const { t } = useTranslation();
   const pick = (days: number | null) => () => {
     onClose();
@@ -271,7 +295,13 @@ function UsersTab() {
         contentContainerStyle={{ paddingBottom: space.xxl }}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          users.isLoading ? <PeopleSkeleton count={5} /> : users.isError ? <ErrorState message={formatError(t, users.error)} onRetry={() => users.refetch()} /> : <Text style={[text.body, styles.empty]}>{t('admin.noUsers')}</Text>
+          users.isLoading ? (
+            <PeopleSkeleton count={5} />
+          ) : users.isError ? (
+            <ErrorState message={formatError(t, users.error)} onRetry={() => users.refetch()} />
+          ) : (
+            <Text style={[text.body, styles.empty]}>{t('admin.noUsers')}</Text>
+          )
         }
       />
     </View>
@@ -301,7 +331,8 @@ function UserRow({ user: u }: { user: AdminUser }) {
         </View>
       </Pressable>
       <Text style={text.small}>
-        {t('admin.followers', { count: u.follower_count ?? 0 })} · {t('admin.posts', { count: u.post_count })} · {t('admin.openReports', { count: u.open_reports })}
+        {t('admin.followers', { count: u.follower_count ?? 0 })} · {t('admin.posts', { count: u.post_count })} ·{' '}
+        {t('admin.openReports', { count: u.open_reports })}
       </Text>
       {suspended ? (
         <Text style={[text.small, { color: colors.danger }]}>
@@ -318,12 +349,23 @@ function UserRow({ user: u }: { user: AdminUser }) {
           loading={verify.isPending}
         />
         {u.is_admin ? null : suspended ? (
-          <Button testID={`admin-unsuspend-${u.username}`} size="sm" variant="ghost" title={t('admin.unsuspend')} onPress={() => suspend.mutate({ userId: u.id, days: 0 }, { onError })} />
+          <Button
+            testID={`admin-unsuspend-${u.username}`}
+            size="sm"
+            variant="ghost"
+            title={t('admin.unsuspend')}
+            onPress={() => suspend.mutate({ userId: u.id, days: 0 }, { onError })}
+          />
         ) : (
           <Button testID={`admin-suspend-${u.username}`} size="sm" variant="danger" title={t('admin.suspend')} onPress={() => setMenu(true)} />
         )}
       </View>
-      <SuspendSheet visible={menu} username={u.username} onClose={() => setMenu(false)} onPick={(days) => suspend.mutate({ userId: u.id, days }, { onError })} />
+      <SuspendSheet
+        visible={menu}
+        username={u.username}
+        onClose={() => setMenu(false)}
+        onPick={(days) => suspend.mutate({ userId: u.id, days }, { onError })}
+      />
     </View>
   );
 }
@@ -361,7 +403,14 @@ function FeaturedTab() {
         <View style={[styles.card, { gap: space.md }]}>
           <TextField testID="featured-url" label={t('admin.featuredLink')} value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" />
           <TextField testID="featured-note" label={t('admin.featuredNote')} value={note} onChangeText={setNote} maxLength={140} />
-          <TextField testID="featured-position" label={t('admin.featuredPosition')} value={position} onChangeText={setPosition} keyboardType="number-pad" maxLength={4} />
+          <TextField
+            testID="featured-position"
+            label={t('admin.featuredPosition')}
+            value={position}
+            onChangeText={setPosition}
+            keyboardType="number-pad"
+            maxLength={4}
+          />
           <Button testID="featured-add" title={t('admin.featuredAdd')} onPress={add} disabled={!url.trim()} loading={addFeatured.isPending} />
         </View>
       }
@@ -384,12 +433,187 @@ function FeaturedTab() {
                 </Text>
               ) : null}
             </View>
-            <Button size="sm" variant="ghost" title={t('admin.remove')} onPress={() => removeFeatured.mutate(f.id, { onError: (err) => notify(formatError(t, err)) })} />
+            <Button
+              size="sm"
+              variant="ghost"
+              title={t('admin.remove')}
+              onPress={() => removeFeatured.mutate(f.id, { onError: (err) => notify(formatError(t, err)) })}
+            />
           </View>
         );
       }}
-      ListEmptyComponent={featured.isLoading ? <Spinner style={{ margin: space.lg }} /> : <Text style={[text.body, styles.empty]}>{t('admin.noFeatured')}</Text>}
+      ListEmptyComponent={
+        featured.isLoading ? <Spinner style={{ margin: space.lg }} /> : <Text style={[text.body, styles.empty]}>{t('admin.noFeatured')}</Text>
+      }
     />
+  );
+}
+
+// ---------------------------------------------------------------- selos
+
+/**
+ * Selos: conceder pelo @ (só os manuais e disponíveis), tirar de alguém, pausar e reabrir a
+ * entrega, data para encerrar e encerrar para sempre. O banco aplica as regras (selo encerrado
+ * não volta, nem pelo painel); aqui só mostra e chama as funções.
+ */
+function BadgesTab() {
+  const { t } = useTranslation();
+  const badges = useAdminBadges();
+  return (
+    <FlatList
+      {...listPerf}
+      data={badges.data ?? []}
+      keyExtractor={(b) => b.id}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl }}
+      renderItem={({ item }) => <BadgeCard badge={item} />}
+      ListEmptyComponent={
+        badges.isLoading ? (
+          <Spinner style={{ margin: space.lg }} />
+        ) : badges.isError ? (
+          <ErrorState message={formatError(t, badges.error)} onRetry={() => badges.refetch()} />
+        ) : null
+      }
+    />
+  );
+}
+
+function BadgeCard({ badge: b }: { badge: AdminBadge }) {
+  const { t, i18n } = useTranslation();
+  const { grantBadge, revokeBadge, setBadgeOpen, setBadgeUntil } = useAdminActions();
+  const [username, setUsername] = useState('');
+  const [days, setDays] = useState('');
+  const [showHolders, setShowHolders] = useState(false);
+  const holders = useBadgeHolders(b.id, showHolders);
+  const pt = i18n.language.startsWith('pt');
+  const name = pt ? b.name_pt : b.name_en;
+  const onError = (err: unknown) => notify(formatError(t, err));
+  const status = b.retired ? t('admin.badgeRetired') : !b.grants_open ? t('admin.badgePaused') : t('admin.badgeOpen');
+  const canGrant = b.award === 'manual' && b.grantable;
+
+  const grant = () =>
+    grantBadge.mutate(
+      { badgeId: b.id, username: username.trim() },
+      {
+        onSuccess: () => {
+          showToast(t('admin.badgeGranted', { username: username.trim().replace(/^@/, '') }));
+          setUsername('');
+        },
+        onError,
+      },
+    );
+  const retire = async () => {
+    if (!(await confirmAction(t('admin.badgeConfirmRetire', { name }), t('admin.badgeRetireNow'), t('common.cancel')))) return;
+    setBadgeUntil.mutate({ badgeId: b.id, until: new Date().toISOString() }, { onError });
+  };
+  const setDate = () => {
+    const n = Number.parseInt(days, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 3650) return;
+    setBadgeUntil.mutate({ badgeId: b.id, until: new Date(Date.now() + n * 86_400_000).toISOString() }, { onError, onSuccess: () => setDays('') });
+  };
+
+  return (
+    <View style={[styles.card, { gap: space.md }]} testID={`admin-badge-${b.slug}`}>
+      <View style={styles.row}>
+        <SvgXml xml={badgeIcon(b.icon)} width={44} height={44} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.detail} numberOfLines={2}>
+            {pt ? b.description_pt : b.description_en}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.row}>
+        <Text style={[styles.tag, b.retired && styles.tagDanger]}>{status}</Text>
+        {b.award === 'auto' ? <Text style={styles.tag}>{t('admin.badgeAuto')}</Text> : null}
+        {b.available_until && !b.retired ? <Text style={styles.count}>{t('admin.badgeUntil', { date: exactTime(b.available_until) })}</Text> : null}
+        <Text style={styles.count}>{t('admin.badgeHolders', { count: b.holders })}</Text>
+      </View>
+
+      {canGrant ? (
+        <View style={[styles.row, { alignItems: 'flex-end' }]}>
+          <View style={{ flex: 1, minWidth: 180 }}>
+            <TextField
+              testID={`badge-grant-user-${b.slug}`}
+              label={t('admin.badgeGrantTo')}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={21}
+            />
+          </View>
+          <Button
+            testID={`badge-grant-${b.slug}`}
+            size="sm"
+            title={t('admin.badgeGrant')}
+            onPress={grant}
+            disabled={!username.trim()}
+            loading={grantBadge.isPending}
+          />
+        </View>
+      ) : null}
+
+      {!b.retired ? (
+        <View style={styles.actions}>
+          <Button
+            testID={`badge-toggle-${b.slug}`}
+            size="sm"
+            variant="secondary"
+            title={b.grants_open ? t('admin.badgePause') : t('admin.badgeReopen')}
+            onPress={() => setBadgeOpen.mutate({ badgeId: b.id, open: !b.grants_open }, { onError })}
+          />
+          {b.available_until ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              title={t('admin.badgeClearDate')}
+              onPress={() => setBadgeUntil.mutate({ badgeId: b.id, until: null }, { onError })}
+            />
+          ) : null}
+          <Button testID={`badge-retire-${b.slug}`} size="sm" variant="ghost" title={t('admin.badgeRetireNow')} onPress={retire} />
+        </View>
+      ) : null}
+      {!b.retired ? (
+        <View style={[styles.row, { alignItems: 'flex-end' }]}>
+          <View style={{ width: 160 }}>
+            <TextField label={t('admin.badgeDays')} value={days} onChangeText={setDays} keyboardType="number-pad" maxLength={4} />
+          </View>
+          <Button size="sm" variant="secondary" title={t('admin.badgeSetDate')} onPress={setDate} disabled={!days.trim()} />
+        </View>
+      ) : null}
+
+      {b.holders > 0 ? (
+        <Pressable testID={`badge-holders-${b.slug}`} accessibilityRole="button" onPress={() => setShowHolders((v) => !v)} style={styles.sortButton}>
+          <Text style={styles.sortText}>{showHolders ? t('admin.badgeHideHolders') : t('admin.badgeShowHolders')}</Text>
+          <Ionicons name={showHolders ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textMuted} />
+        </Pressable>
+      ) : null}
+      {showHolders
+        ? (holders.data ?? []).map((h) => (
+            <View key={h.user_id} style={styles.row}>
+              <RingAvatar uri={h.avatar_url} name={h.display_name} size={32} ring={false} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {h.display_name}
+                </Text>
+                <Text style={styles.handle}>
+                  @{h.username} · {exactTime(h.granted_at)}
+                </Text>
+              </View>
+              <Button
+                size="sm"
+                variant="ghost"
+                title={t('admin.remove')}
+                onPress={async () => {
+                  if (!(await confirmAction(t('admin.badgeConfirmRevoke', { username: h.username }), t('admin.remove'), t('common.cancel')))) return;
+                  revokeBadge.mutate({ badgeId: b.id, userId: h.user_id }, { onError });
+                }}
+              />
+            </View>
+          ))
+        : null}
+    </View>
   );
 }
 
@@ -400,7 +624,16 @@ const styles = StyleSheet.create({
   overview: { textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space.md, gap: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
-  tag: { fontFamily: fonts.bold, fontSize: 11, color: colors.text, backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+  tag: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
   tagDanger: { backgroundColor: colors.danger, color: colors.background },
   count: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMutedOnSurface },
   reasons: { fontFamily: fonts.semibold, fontSize: 13, color: colors.text },

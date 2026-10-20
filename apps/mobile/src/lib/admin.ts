@@ -71,12 +71,40 @@ export function isSuspended(until: string | null | undefined, now = Date.now()):
   return Number.isNaN(t) ? false : t > now;
 }
 
+export interface AdminBadge {
+  id: string;
+  slug: string;
+  icon: string;
+  name_pt: string;
+  name_en: string;
+  description_pt: string;
+  description_en: string;
+  award: 'manual' | 'auto';
+  grants_open: boolean;
+  available_until: string | null;
+  /** Dá para entregar agora (aberto e antes da data). */
+  grantable: boolean;
+  /** A data já passou: encerrado para sempre. */
+  retired: boolean;
+  holders: number;
+}
+
+export interface BadgeHolder {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  granted_at: string;
+}
+
 export const adminKeys = {
   isAdmin: ['is-admin'] as const,
   overview: ['admin', 'overview'] as const,
   reports: (status: ReportStatus) => ['admin', 'reports', status] as const,
   users: (q: string, filter: UserFilter, sort: UserSort) => ['admin', 'users', q, filter, sort] as const,
   featured: ['admin', 'featured'] as const,
+  badges: ['admin', 'badges'] as const,
+  badgeHolders: (badgeId: string) => ['admin', 'badges', badgeId, 'holders'] as const,
 };
 
 export function useIsAdmin(enabled = true) {
@@ -141,6 +169,29 @@ export function useFeaturedAdmin() {
   });
 }
 
+export function useAdminBadges() {
+  return useQuery({
+    queryKey: adminKeys.badges,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_badges');
+      if (error) throw error;
+      return data as AdminBadge[];
+    },
+  });
+}
+
+export function useBadgeHolders(badgeId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: adminKeys.badgeHolders(badgeId),
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_badge_holders', { p_badge: badgeId, p_limit: 200 });
+      if (error) throw error;
+      return data as BadgeHolder[];
+    },
+  });
+}
+
 /** As ações do painel; depois de cada uma, atualiza as listas (e as insígnias, se mudou). */
 export function useAdminActions() {
   const qc = useQueryClient();
@@ -185,6 +236,47 @@ export function useAdminActions() {
         if (error) throw error;
       },
       onSuccess: done,
+    }),
+    grantBadge: useMutation({
+      mutationFn: async ({ badgeId, username }: { badgeId: string; username: string }) => {
+        const { error } = await supabase.rpc('admin_grant_badge', { p_badge: badgeId, p_username: username });
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        done();
+        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+      },
+    }),
+    revokeBadge: useMutation({
+      mutationFn: async ({ badgeId, userId }: { badgeId: string; userId: string }) => {
+        const { error } = await supabase.rpc('admin_revoke_badge', { p_badge: badgeId, p_user: userId });
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        done();
+        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+      },
+    }),
+    setBadgeOpen: useMutation({
+      mutationFn: async ({ badgeId, open }: { badgeId: string; open: boolean }) => {
+        const { error } = await supabase.rpc('admin_set_badge_open', { p_badge: badgeId, p_open: open });
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        done();
+        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+      },
+    }),
+    /** until: data ISO (a partir dela ninguém mais recebe; agora = encerrar já) ou null (tirar a data). */
+    setBadgeUntil: useMutation({
+      mutationFn: async ({ badgeId, until }: { badgeId: string; until: string | null }) => {
+        const { error } = await supabase.rpc('admin_set_badge_until', { p_badge: badgeId, p_until: until });
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        done();
+        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+      },
     }),
     removeFeatured: useMutation({
       mutationFn: async (id: string) => {

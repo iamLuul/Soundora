@@ -12,6 +12,7 @@ import { SearchField } from '../figma';
 import { TrackListSkeleton } from '../Skeleton';
 import { useStreamingOpener } from '../StreamingOpener';
 import { SuggestedAccounts } from '../SuggestedAccounts';
+import { SupportCard } from '../SupportLink';
 import { ChartRow } from '../WorldChart';
 
 /** Músicas da lista "mais ouvidas" na coluna (Figma: 10). */
@@ -41,6 +42,7 @@ export function RightPanel() {
       {discover ? null : <PanelSearch />}
       <SuggestedAccounts panel testID="panel-suggested" />
       {discover ? <DiscoverLiked panel /> : <MostListened />}
+      <SupportCard />
       <Footer />
     </ScrollView>
     </View>
