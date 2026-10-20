@@ -231,10 +231,14 @@ function Bell() {
   );
 }
 
-/** Avatar com o anel roxo do Figma (posts e fila de quem você segue). */
-export function RingAvatar({ uri, name, size = 38 }: { uri: string | null; name: string; size?: number }) {
+/** Avatar com o anel roxo do Figma. `ring` = false tira o anel (nos posts, o anel só aparece para quem tem vibe ativa). */
+export function RingAvatar({ uri, name, size = 38, ring = true }: { uri: string | null; name: string; size?: number; ring?: boolean }) {
+  // Sem anel, a borda fica transparente: a foto mantém o mesmo tamanho e lugar.
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+    <View
+      testID={ring ? 'avatar-ring' : undefined}
+      style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: ring ? colors.primary : 'transparent', alignItems: 'center', justifyContent: 'center' }}
+    >
       <Avatar uri={uri} name={name} size={size - 6} />
     </View>
   );

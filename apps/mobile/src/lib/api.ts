@@ -1100,6 +1100,14 @@ export async function fetchVibesTray(): Promise<VibeTrayItem[]> {
   return (data ?? []) as VibeTrayItem[];
 }
 
+/** Dos autores pedidos (até 200), os que têm vibe ativa que eu posso ver (anel roxo da foto). */
+export async function fetchAuthorsWithVibes(authorIds: string[]): Promise<Set<string>> {
+  if (!authorIds.length) return new Set();
+  const { data, error } = await supabase.rpc('authors_with_vibes', { p_ids: authorIds.slice(0, 200) });
+  if (error) throw error;
+  return new Set((data ?? []) as string[]);
+}
+
 export async function fetchVibesOf(authorId: string): Promise<Vibe[]> {
   const { data, error } = await supabase.rpc('vibes_of', { p_author: authorId });
   if (error) throw error;

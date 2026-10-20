@@ -10,6 +10,7 @@ import { MentionText } from './MentionText';
 import { MusicCard } from './MusicCard';
 import { PostMedia } from './PostMedia';
 import { webTouch } from '../lib/touch';
+import { useHasActiveVibes } from '../lib/vibe-ring';
 import { Verified } from './Verified';
 
 export interface PostCardProps {
@@ -30,6 +31,8 @@ export interface PostCardProps {
 export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink, onOpen, expanded = false, onFollow }: PostCardProps) {
   const { t, i18n } = useTranslation();
   const genres = useGenres();
+  // Anel roxo na foto só para quem tem vibe ativa (que eu posso ver).
+  const hasVibes = useHasActiveVibes(item.author_id);
   const share = () => {
     const music = item.preview_url ? `${item.preview_title}${item.preview_artist ? ` · ${item.preview_artist}` : ''}\n${item.preview_url}` : '';
     const message = [item.body, music].filter(Boolean).join('\n\n') || `@${item.author_username}`;
@@ -49,7 +52,7 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
       <View style={styles.header}>
         <Link href={`/u/${item.author_username}`} asChild>
           <Pressable style={styles.author} accessibilityRole="link">
-            <RingAvatar uri={item.author_avatar_url} name={item.author_display_name} size={38} />
+            <RingAvatar uri={item.author_avatar_url} name={item.author_display_name} size={38} ring={hasVibes} />
             <View style={{ flexShrink: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
@@ -76,7 +79,13 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
           </Pressable>
         ) : null}
         {onMore ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={t('feed.postOptions')} hitSlop={12} onPress={() => onMore(item)} style={[styles.more, webTouch(12, { vertical: 2, horizontal: space.sm })]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('feed.postOptions')}
+            hitSlop={12}
+            onPress={() => onMore(item)}
+            style={[styles.more, webTouch(12, { vertical: 2, horizontal: space.sm })]}
+          >
             <View style={styles.dot} />
             <View style={styles.dot} />
             <View style={styles.dot} />
@@ -135,7 +144,13 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
           <Icon name={item.liked_by_me ? 'heartFilled' : 'heart'} size={14} color={item.liked_by_me ? colors.primary : colors.text} />
           <Text style={styles.count}>{item.like_count}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('feed.comments')} onPress={() => onOpenComments?.(item)} style={[styles.action, webTouch(10)]} hitSlop={10}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('feed.comments')}
+          onPress={() => onOpenComments?.(item)}
+          style={[styles.action, webTouch(10)]}
+          hitSlop={10}
+        >
           <Icon name="comment" size={13} />
           <Text style={styles.count}>{item.comment_count}</Text>
         </Pressable>
