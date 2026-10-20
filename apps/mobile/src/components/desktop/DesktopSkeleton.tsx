@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useWebLayout } from '../../lib/layout';
 import { colors, space } from '../../theme';
 import { AppSkeleton, Bone, Skeleton } from '../Skeleton';
@@ -10,9 +10,26 @@ const repeat = (n: number) => Array.from({ length: n }, (_, i) => i);
  * Esqueleto do app abrindo (fontes e sessão), no formato da tela: no desktop, a barra lateral,
  * a coluna do meio e (em tela larga) a coluna da direita, nas mesmas medidas do DesktopShell;
  * no celular (e abaixo de 960 px), o esqueleto de celular.
+ *
+ * Na web, este esqueleto vai pronto no HTML gerado no servidor, que não sabe a largura da tela.
+ * Por isso a web desenha os dois e o CSS do +html.tsx (BOOT_SKELETON_CSS, em lib/layout.ts) mostra o certo pela
+ * largura, antes mesmo de o JavaScript rodar; a coluna da direita aparece só a partir de 1280 px.
+ * O primeiro desenho no navegador é igual ao do servidor (sem trocar nada na hidratação).
  */
 export function BootSkeleton() {
   const layout = useWebLayout();
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.boot}>
+        <View testID="boot-mobile" style={styles.boot}>
+          <AppSkeleton />
+        </View>
+        <View testID="boot-desktop" style={styles.boot}>
+          <DesktopAppSkeleton wide />
+        </View>
+      </View>
+    );
+  }
   if (layout === 'mobile') return <AppSkeleton />;
   return <DesktopAppSkeleton wide={layout === 'wide'} />;
 }
@@ -89,7 +106,7 @@ function SidebarBones() {
 /** Coluna da direita: busca, contas para seguir, mais ouvidas e o rodapé. */
 function PanelBones() {
   return (
-    <View style={styles.panel}>
+    <View testID="skeleton-desktop-panel" style={styles.panel}>
       <Bone height={42} radius={21} />
       <View style={{ gap: space.md }}>
         <Bone width={150} height={14} />
@@ -128,6 +145,7 @@ function PanelBones() {
 
 // Medidas iguais às do DesktopShell, Sidebar e RightPanel (a tela não "pula" quando o app abre).
 const styles = StyleSheet.create({
+  boot: { flex: 1 },
   root: { flex: 1, flexDirection: 'row', justifyContent: 'center', backgroundColor: colors.background, overflow: 'hidden' },
   sidebar: { width: 232, flexShrink: 0, paddingTop: 26, paddingBottom: space.xl, paddingRight: space.lg, height: '100%' },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 48, paddingHorizontal: space.sm },

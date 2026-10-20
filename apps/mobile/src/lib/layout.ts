@@ -29,3 +29,14 @@ export function useWebLayout(): WebLayout {
 export function useIsDesktop(): boolean {
   return useWebLayout() !== 'mobile';
 }
+
+/**
+ * CSS do esqueleto de abertura na web (vai no <head> do +html.tsx). O HTML gerado no servidor
+ * traz o esqueleto de celular e o de desktop; isto mostra só o da largura da tela, antes mesmo
+ * de o JavaScript rodar. Os testIDs são os do BootSkeleton (components/desktop/DesktopSkeleton).
+ */
+export const BOOT_SKELETON_CSS = [
+  `@media (min-width: ${DESKTOP_MIN}px) { [data-testid="boot-mobile"] { display: none !important; } }`,
+  `@media (max-width: ${DESKTOP_MIN - 0.02}px) { [data-testid="boot-desktop"] { display: none !important; } }`,
+  `@media (max-width: ${WIDE_MIN - 0.02}px) { [data-testid="skeleton-desktop-panel"] { display: none !important; } }`,
+].join('');

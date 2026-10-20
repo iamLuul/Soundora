@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { BOOT_SKELETON_CSS } from '../lib/layout';
 
 /**
  * HTML de cada página na web (só no build estático). Idioma e título para leitores de tela e
@@ -23,6 +24,8 @@ export default function Root({ children }: PropsWithChildren) {
         <ScrollViewStyleReset />
         {/* overscroll-behavior: puxar a lista para baixo não recarrega a página (o app atualiza os dados). */}
         <style dangerouslySetInnerHTML={{ __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}' }} />
+        {/* Esqueleto de abertura: o de celular ou o de desktop, pela largura (antes do JavaScript). */}
+        <style dangerouslySetInnerHTML={{ __html: BOOT_SKELETON_CSS }} />
       </head>
       <body>{children}</body>
     </html>
