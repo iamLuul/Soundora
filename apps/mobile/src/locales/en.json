@@ -854,5 +854,26 @@
     "cta": "Support Soundhora on Patreon",
     "title": "Support Soundhora",
     "body": "Soundhora has no ads. Supporters help keep the network running and get the Early supporter badge on their profile."
+  },
+  "reviewStrip": {
+    "title": "Reviews you might like",
+    "open": "Review by @{{username}} of {{album}}, {{artist}}, rated {{rating}}. Open the album"
+  },
+  "searchHistory": {
+    "title": "Search history",
+    "row": "Search history",
+    "rowOn": "Used for recommendations",
+    "rowOff": "Off",
+    "use": "Use my searches for recommendations",
+    "hint": "We keep only what you search for (the text), for 90 days and at most the last 100, so For You and reviews match your taste. Nobody else sees it. Turning it off deletes everything and stops saving.",
+    "empty": "No saved searches yet.",
+    "off": "Off: your searches aren’t saved.",
+    "saved_one": "{{count}} saved search",
+    "saved_other": "{{count}} saved searches",
+    "remove": "Delete \"{{term}}\"",
+    "clear": "Delete all",
+    "clearConfirm": "Delete all saved searches?",
+    "turnOff": "Turn off",
+    "offConfirm": "Turning it off deletes your saved searches and stops saving new ones. Continue?"
   }
 }

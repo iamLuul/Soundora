@@ -112,6 +112,7 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
         <Stack.Screen name="settings/privacy" options={{ title: '' }} />
         <Stack.Screen name="settings/follow-requests" options={{ title: '' }} />
         <Stack.Screen name="settings/muted-genres" options={{ title: '' }} />
+        <Stack.Screen name="settings/search-history" options={{ title: '' }} />
         <Stack.Screen name="settings/preferences" options={{ title: '' }} />
         <Stack.Screen name="settings/notifications" options={{ title: '' }} />
         <Stack.Screen name="settings/accessibility" options={{ title: '' }} />

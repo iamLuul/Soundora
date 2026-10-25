@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { type GenreHit, searchPostGenres, searchProfiles, searchTracks, unblockUser } from '../lib/api';
+import { type GenreHit, logSearch, searchPostGenres, searchProfiles, searchTracks, unblockUser } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { uniqueBy, useDebouncedValue } from '../lib/hooks';
 import { useSearchPosts } from '../lib/queries';
@@ -176,7 +176,15 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
   const people = useQuery({ queryKey: ['search-people', q], queryFn: () => searchProfiles(q), enabled });
   const tracks = useQuery({ queryKey: ['search-tracks', q], queryFn: () => searchTracks(q), enabled });
   const genres = useQuery({ queryKey: ['search-genres-posts', q], queryFn: () => searchPostGenres(q), enabled, staleTime: 60_000 });
-  const openGenre = (slug: string) => router.push(`/genre/${slug}`);
+  // Pesquisas feitas de verdade (Enter, abrir um gênero, buscar nos posts, ou vindo da busca do
+  // desktop) vão para o histórico usado nas recomendações; o que é só digitado, não.
+  const openGenre = (slug: string) => {
+    logSearch(slug.replace(/_/g, ' '));
+    router.push(`/genre/${slug}`);
+  };
+  useEffect(() => {
+    if (initialQuery.trim()) logSearch(initialQuery);
+  }, [initialQuery]);
   const qc = useQueryClient();
   const [unblocking, setUnblocking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -191,6 +199,7 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
   const submit = () => {
     const word = query.trim();
     // Com menos de 3 letras não busca nos posts (o índice do banco não ajuda): avisa.
+    if (word.length >= MIN_QUERY) logSearch(word);
     if (word.length >= MIN_POST_QUERY) setPostsFor(word);
     else if (word.length >= MIN_QUERY) setMessage(t('search.postsMinChars'));
   };
@@ -249,7 +258,14 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
             onOpenGenre={openGenre}
             onUnblock={unblock}
             unblocking={unblocking}
-            onSearchPosts={query.trim().length >= MIN_POST_QUERY ? () => setPostsFor(query.trim()) : undefined}
+            onSearchPosts={
+              query.trim().length >= MIN_POST_QUERY
+                ? () => {
+                    logSearch(query.trim());
+                    setPostsFor(query.trim());
+                  }
+                : undefined
+            }
           />
           {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
         </ScrollView>

@@ -67,13 +67,15 @@ const PT: Record<LegalDoc, LegalSection[]> = {
         'Conta: e-mail, senha (guardada de forma criptografada pelo serviço de login), @usuário, nome, foto, banner, bio e idioma.',
         'Data de nascimento: só para aplicar as regras de idade. Ela nunca aparece no seu perfil.',
         'O que você faz no app: posts, comentários, reviews, vibes, fotos e vídeos, curtidas, quem você segue, gêneros escolhidos, músicas favoritas, músicas curtidas no Descobrir, bloqueios e denúncias.',
+        'Pesquisas: o texto do que você pesquisa (sem acento), por 90 dias e no máximo as 100 últimas, para recomendar posts e reviews. Você vê, apaga e desliga em Configurações › Privacidade › Histórico de pesquisas; desligar apaga tudo.',
         'Aparelho: se você ativar os avisos no celular, guardamos o código do aparelho para enviar as notificações.',
       ],
     },
     {
       title: '2. Para que usamos',
       paragraphs: [
-        'Para o app funcionar: mostrar seu perfil e conteúdo, montar o feed, sugerir músicas e contas pelo seu gosto, enviar notificações e aplicar limites contra spam.',
+        'Para o app funcionar: mostrar seu perfil e conteúdo, montar o feed, sugerir músicas, reviews e contas pelo seu gosto, enviar notificações e aplicar limites contra spam.',
+        'O seu gosto é calculado pelo servidor a partir dos gêneros, artistas e palavras do que você curte, posta, comenta e pesquisa, das músicas curtidas no Descobrir e dos gêneros de quem você segue. Ele só serve para ordenar o que aparece para você: ninguém mais vê e ele não é usado para anúncios.',
         'Para segurança e moderação: analisar denúncias, suspender contas que quebrem as regras e evitar abuso.',
         'Não vendemos seus dados e não usamos seus dados para escolher anúncios (os anúncios do app do celular não são personalizados; veja a página Anúncios).',
       ],
@@ -237,13 +239,15 @@ const EN: Record<LegalDoc, LegalSection[]> = {
         'Account: email, password (stored encrypted by the sign-in service), @username, name, photo, banner, bio and language.',
         'Date of birth: only to apply age rules. It never appears on your profile.',
         'What you do in the app: posts, comments, reviews, vibes, photos and videos, likes, who you follow, chosen genres, favorite songs, songs liked in Discover, blocks and reports.',
+        'Searches: the text of what you search for, for 90 days and at most the last 100, to recommend posts and reviews. You can see, delete and turn this off in Settings › Privacy › Search history; turning it off deletes everything.',
         'Device: if you turn on phone notifications, we store the device code to send them.',
       ],
     },
     {
       title: '2. What we use it for',
       paragraphs: [
-        'To make the app work: show your profile and content, build the feed, suggest songs and accounts based on your taste, send notifications and apply anti-spam limits.',
+        'To make the app work: show your profile and content, build the feed, suggest songs, reviews and accounts based on your taste, send notifications and apply anti-spam limits.',
+        'Your taste is computed by the server from the genres, artists and words of what you like, post, comment on and search for, songs liked in Discover and the genres of people you follow. It is only used to order what you see: nobody else sees it and it is not used for ads.',
         'For safety and moderation: review reports, suspend accounts that break the rules and prevent abuse.',
         'We don’t sell your data and don’t use it to choose ads (ads in the phone app are not personalized; see the Ads page).',
       ],

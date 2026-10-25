@@ -5,9 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopTabs } from '../../components/figma';
 import { FollowingRow } from '../../components/FollowingRow';
 import { PostList } from '../../components/PostList';
+import { ReviewStrip, reviewStrips } from '../../components/ReviewStrip';
 import { SuggestedAccounts } from '../../components/SuggestedAccounts';
 import { SuspendedBanner } from '../../components/SuspendedBanner';
-import { useFeed, useFollowingFeed, useSuggestedAccounts } from '../../lib/queries';
+import { useFeed, useFollowingFeed, useReviewsForYou, useSuggestedAccounts } from '../../lib/queries';
 import { colors, space, text } from '../../theme';
 import { formatError } from '../../lib/errors';
 import { useAds } from '../../lib/ads';
@@ -17,11 +18,15 @@ type FeedTab = 'feed' | 'following';
 
 /** Contas sugeridas entram depois deste tanto de posts no Para você. */
 const SUGGESTIONS_AFTER = 4;
+/** Faixas de reviews populares: a primeira depois de 10 posts, depois a cada 15. */
+const REVIEWS_FIRST = 10;
+const REVIEWS_EVERY = 15;
 
 /**
  * Início (Figma: Home page/For You): abas do topo com o sino, a fila de vibes e o feed.
- * - Para você: posts pelo seu gosto (gêneros, curtidas, comentários, posts e Descobrir), com
- *   o botão Seguir em quem você ainda não segue e contas sugeridas no meio.
+ * - Para você: posts pelo seu gosto (gêneros, artistas e palavras do que você curte, posta,
+ *   comenta, pesquisa e curte no Descobrir, e o nicho de quem você segue), com o botão Seguir
+ *   em quem você ainda não segue, contas sugeridas e faixas de reviews populares no meio.
  * - Seguindo: só quem você segue, do mais novo ao mais velho, sem sugestões.
  */
 export default function FeedScreen() {
@@ -64,19 +69,22 @@ export default function FeedScreen() {
 function ForYou({ adsEvery }: { adsEvery: number }) {
   const { t } = useTranslation();
   const feed = useFeed();
+  const reviews = useReviewsForYou();
   const items = feed.data?.pages.flat() ?? [];
+  const strips = reviewStrips(reviews.data ?? []).map((list, i) => <ReviewStrip key={i} index={i} reviews={list} />);
   return (
     <PostList
       header={<FollowingRow />}
       items={items}
       loading={feed.isLoading}
-      onRefresh={() => feed.refetch()}
+      onRefresh={() => Promise.all([feed.refetch(), reviews.refetch()])}
       onEndReached={() => feed.hasNextPage && !feed.isFetchingNextPage && feed.fetchNextPage()}
       loadingMore={feed.isFetchingNextPage}
       emptyText={t('feed.empty')}
       errorText={feed.isError ? formatError(t, feed.error) : null}
       followable
       interstitial={{ after: SUGGESTIONS_AFTER, element: <SuggestedAccounts /> }}
+      strips={{ first: REVIEWS_FIRST, every: REVIEWS_EVERY, elements: strips }}
       adsEvery={adsEvery}
     />
   );

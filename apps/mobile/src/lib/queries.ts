@@ -3,6 +3,7 @@ import {
   getStreamingPlatform,
   FEED_PAGE_SIZE,
   fetchFeed,
+  fetchReviewsForYou,
   fetchFollowingFeed,
   fetchGenrePosts,
   searchPosts,
@@ -39,6 +40,7 @@ export const keys = {
   /** Pedidos para seguir que eu recebi. */
   followRequests: ['follow-requests'] as const,
   suggested: ['suggested-accounts'] as const,
+  reviewsForYou: ['reviews-for-you'] as const,
   profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
   profile: (username: string) => ['profile', username] as const,
   comments: (postId: string) => ['comments', postId] as const,
@@ -111,6 +113,11 @@ export function useFeed() {
     // Telas recebem só a lista de posts, sem repetidos (por segurança, caso o servidor repita).
     select: (data) => ({ ...data, pages: dedupePages(data.pages.map((p) => p.items)) }),
   });
+}
+
+/** Reviews populares do gosto da pessoa, para as faixas do Para você. */
+export function useReviewsForYou(enabled = true) {
+  return useQuery({ queryKey: keys.reviewsForYou, queryFn: () => fetchReviewsForYou(), enabled, staleTime: 5 * 60_000 });
 }
 
 /** Aba Seguindo: rolagem infinita por data (cursor = último post da página). */

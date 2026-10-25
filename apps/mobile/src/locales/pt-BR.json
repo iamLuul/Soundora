@@ -854,5 +854,26 @@
     "cta": "Apoie o Soundhora no Patreon",
     "title": "Apoie o Soundhora",
     "body": "O Soundhora não tem anúncios. Quem apoia ajuda a manter a rede no ar e recebe o selo Contribuidor inicial no perfil."
+  },
+  "reviewStrip": {
+    "title": "Reviews que você pode curtir",
+    "open": "Review de @{{username}} sobre {{album}}, {{artist}}, nota {{rating}}. Abrir o álbum"
+  },
+  "searchHistory": {
+    "title": "Histórico de pesquisas",
+    "row": "Histórico de pesquisas",
+    "rowOn": "Usado nas recomendações",
+    "rowOff": "Desligado",
+    "use": "Usar minhas pesquisas nas recomendações",
+    "hint": "Guardamos só o que você pesquisa (o texto, sem acento), por 90 dias e no máximo as 100 últimas, para o Para você e as reviews combinarem com o seu gosto. Ninguém mais vê. Desligar apaga tudo e para de guardar.",
+    "empty": "Nenhuma pesquisa guardada ainda.",
+    "off": "Desligado: suas pesquisas não são guardadas.",
+    "saved_one": "{{count}} pesquisa guardada",
+    "saved_other": "{{count}} pesquisas guardadas",
+    "remove": "Apagar \"{{term}}\"",
+    "clear": "Apagar todas",
+    "clearConfirm": "Apagar todas as pesquisas guardadas?",
+    "turnOff": "Desligar",
+    "offConfirm": "Desligar apaga as pesquisas guardadas e para de guardar novas. Continuar?"
   }
 }

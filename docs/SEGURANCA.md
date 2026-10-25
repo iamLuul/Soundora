@@ -124,6 +124,12 @@ Corpo dos pedidos às Edge Functions: até 8 KB no `link-preview` e 4 KB no `aut
 
 Contra DDoS de verdade, de muitos IPs ao mesmo tempo, quem segura é a rede do Supabase. As travas acima evitam que uma conta ou um script sozinho derrube o app ou gere custo.
 
+## Histórico de pesquisas
+
+- **Só pelas funções.** `search_history` tem RLS ligado e nenhum acesso direto para `anon`/`authenticated`: grava só por `log_search` e lê/apaga só por `my_search_history`, `clear_search_history` e `set_search_history_enabled`, sempre da própria conta (`auth.uid()`).
+- **Mínimo de dados.** Guarda só o termo (minúsculo, sem acento), nunca o que é digitado letra a letra, links ou buscas de pessoa com "@". 90 dias, no máximo 100 por pessoa; `log_search` apaga o excesso a cada gravação. Limite de 60 gravações por hora (passou disso, não guarda, sem erro).
+- **Controle da pessoa.** Desligar apaga tudo e para de guardar; o gosto (`private.taste`) também ignora as pesquisas de quem desligou. Excluir a conta apaga junto (`on delete cascade`).
+
 ## Anúncios (AdMob)
 
 O SDK do Google Mobile Ads é o único código de terceiros no app que fala com um servidor fora do Soundhora e da Supabase (só no celular; a web não tem anúncios).

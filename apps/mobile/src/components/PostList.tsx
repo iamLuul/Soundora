@@ -22,8 +22,8 @@ import { ErrorState } from './ErrorState';
 import { AdPostCard } from './ads/AdPostCard';
 import { withAds } from '../lib/ads';
 
-/** Linha da lista: um post, o bloco extra no meio (ex.: contas sugeridas) ou um post anunciado. */
-type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' } | { kind: 'ad'; slot: number };
+/** Linha da lista: um post, o bloco extra no meio (ex.: contas sugeridas), uma faixa (ex.: reviews) ou um post anunciado. */
+type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' } | { kind: 'strip'; index: number } | { kind: 'ad'; slot: number };
 
 /** Lista de posts com curtir, comentários e o menu de denúncia/bloqueio. */
 export function PostList({
@@ -39,6 +39,7 @@ export function PostList({
   followable = false,
   interstitial,
   adsEvery = 0,
+  strips,
 }: {
   items: FeedItem[];
   loading: boolean;
@@ -58,6 +59,8 @@ export function PostList({
   interstitial?: { after: number; element: ReactElement };
   /** Post anunciado depois de cada N posts (0 ou sem: nenhum). Veja lib/ads.ts. */
   adsEvery?: number;
+  /** Faixas no meio da lista: a 1ª depois de `first` posts, as outras a cada `every` posts (só onde já há posts depois). */
+  strips?: { first: number; every: number; elements: ReactElement[] };
 }) {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -74,6 +77,13 @@ export function PostList({
     const at = rows.findIndex((r) => r.kind === 'post' && r.item.id === posts[after - 1]!.id) + 1;
     rows.splice(at, 0, { kind: 'extra' });
   }
+  // Faixas: só entram com posts depois delas (no fim da lista, esperam a próxima página).
+  strips?.elements.forEach((_, index) => {
+    const after = strips.first + index * strips.every;
+    if (after >= posts.length) return;
+    const at = rows.findIndex((r) => r.kind === 'post' && r.item.id === posts[after - 1]!.id) + 1;
+    rows.splice(at, 0, { kind: 'strip', index });
+  });
   const qc = useQueryClient();
   const toggleLike = useToggleLike();
   const [menuFor, setMenuFor] = useState<FeedItem | null>(null);
@@ -124,11 +134,14 @@ export function PostList({
         <FlatList
           {...listPerf}
           data={rows}
-          keyExtractor={(row) => (row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : 'extra')}
+          keyExtractor={(row) =>
+            row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : row.kind === 'strip' ? `strip-${row.index}` : 'extra'
+          }
           ListHeaderComponent={header}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
           renderItem={({ item: row }) => {
             if (row.kind === 'extra') return interstitial?.element ?? null;
+            if (row.kind === 'strip') return strips?.elements[row.index] ?? null;
             if (row.kind === 'ad') return <AdPostCard slot={row.slot} />;
             const item = row.item;
             return (

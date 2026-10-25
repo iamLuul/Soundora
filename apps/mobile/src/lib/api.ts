@@ -697,6 +697,13 @@ export async function createReview(input: { albumId: string; rating: number; bod
   return (data as { id: string }).id;
 }
 
+/** Reviews populares para o Para você (pelo gosto da pessoa; uma por álbum, sem as que já curtiu). */
+export async function fetchReviewsForYou(openedAt: string | null = null, limit = 20): Promise<AlbumReview[]> {
+  const { data, error } = await supabase.rpc('feed_reviews_for_you', { p_limit: limit, p_now: openedAt });
+  if (error) throw error;
+  return ((data ?? []) as AlbumReview[]).map((r) => ({ ...r, rating: Number(r.rating) }));
+}
+
 export interface ReviewCursor {
   createdAt: string;
   id: string;
@@ -1200,4 +1207,48 @@ export async function createVibe(v: NewVibe): Promise<string> {
   });
   if (error) throw error;
   return data as string;
+}
+
+// ---------------------------------------------------------------- histórico de pesquisas
+
+/**
+ * Guarda uma pesquisa feita de verdade (Enter, abrir um gênero, buscar nos posts) para as
+ * recomendações. O servidor ignora se a pessoa desligou, e nunca dá erro por isso; aqui
+ * também nada quebra se falhar (é só para recomendar).
+ */
+export function logSearch(term: string): void {
+  const t = term.trim();
+  if (t.length < 2) return;
+  try {
+    void Promise.resolve(supabase.rpc('log_search', { p_term: t.slice(0, 100) })).catch(() => undefined);
+  } catch {
+    // sem conexão/cliente: a pesquisa só não entra no histórico
+  }
+}
+
+export interface SearchHistory {
+  enabled: boolean;
+  items: { term: string; searched_at: string }[];
+}
+
+export async function fetchSearchHistory(): Promise<SearchHistory> {
+  const { data, error } = await supabase.rpc('my_search_history', { p_limit: 100 });
+  if (error) throw error;
+  const rows = (data ?? []) as { enabled: boolean; term: string | null; searched_at: string | null }[];
+  return {
+    enabled: rows[0]?.enabled ?? false,
+    items: rows.filter((r) => r.term && r.searched_at).map((r) => ({ term: r.term!, searched_at: r.searched_at! })),
+  };
+}
+
+/** Desligar também apaga as pesquisas guardadas. */
+export async function setSearchHistoryEnabled(enabled: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_search_history_enabled', { p_enabled: enabled });
+  if (error) throw error;
+}
+
+/** Apaga uma pesquisa (term) ou todas (sem term). */
+export async function clearSearchHistory(term?: string): Promise<void> {
+  const { error } = await supabase.rpc('clear_search_history', { p_term: term ?? null });
+  if (error) throw error;
 }

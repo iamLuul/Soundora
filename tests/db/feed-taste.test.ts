@@ -13,6 +13,8 @@ let n = 0;
 async function post(author: string, opts: { hoursAgo?: number; genres?: string[]; musicGenres?: string[]; title?: string } = {}) {
   const preview = await createPreview(db, `https://open.spotify.com/track/taste${String(++n).padStart(17, '0')}`, opts.title ?? `faixa ${n}`);
   if (opts.musicGenres) await db.sql(`update public.link_previews set genres = $2 where id = $1`, [preview, opts.musicGenres]);
+  // Cada música de um artista diferente (o mesmo artista em tudo faria todo post "bater" com o gosto).
+  await db.sql(`update public.link_previews set artist = $2 where id = $1`, [preview, `Artista ${n}`]);
   const [row] = await db.sql<{ id: string }>(
     `insert into public.posts (author_id, link_preview_id, genres, created_at)
      values ($1, $2, $3, ${BASE} - make_interval(hours => $4)) returning id`,
@@ -83,7 +85,7 @@ describe('Para você pelo gosto', () => {
     await db.sql(`insert into public.comments (post_id, author_id, body, created_at) values ($1, $2, 'boa', ${BASE} - interval '1 hour')`, [commented, me]);
     // …e curti uma música de k-pop no Descobrir.
     const song = await createPreview(db, 'https://open.spotify.com/track/kpopdescobrir00000000');
-    await db.sql(`update public.link_previews set genres = '{k_pop}' where id = $1`, [song]);
+    await db.sql(`update public.link_previews set genres = '{k_pop}', artist = 'Grupo de K-pop' where id = $1`, [song]);
     await db.sql(`insert into public.discover_swipes (user_id, link_preview_id, liked, created_at) values ($1, $2, true, ${BASE} - interval '1 hour')`, [me, song]);
 
     ids = await forYou(me);

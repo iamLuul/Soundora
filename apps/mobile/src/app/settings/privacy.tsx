@@ -4,22 +4,24 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Switch } from 'react-native';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
-import { fetchFollowRequests, fetchMutedGenres, fetchMyAccount, setPrivateAccount } from '../../lib/api';
+import { fetchFollowRequests, fetchMutedGenres, fetchMyAccount, fetchSearchHistory, setPrivateAccount } from '../../lib/api';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { keys } from '../../lib/queries';
 import { colors } from '../../theme';
 import { myAccountKey } from './account';
+import { searchHistoryKey } from './search-history';
 
 export const mutedGenresKey = ['muted-genres'] as const;
 
-/** Configurações › Privacidade: conta privada, pedidos para seguir, bloqueados e gêneros silenciados. */
+/** Configurações › Privacidade: conta privada, pedidos para seguir, bloqueados, gêneros silenciados e histórico de pesquisas. */
 export default function PrivacySettingsScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const account = useQuery({ queryKey: myAccountKey, queryFn: fetchMyAccount });
   const requests = useQuery({ queryKey: keys.followRequests, queryFn: fetchFollowRequests });
   const muted = useQuery({ queryKey: mutedGenresKey, queryFn: fetchMutedGenres });
+  const searches = useQuery({ queryKey: searchHistoryKey, queryFn: fetchSearchHistory });
   const [busy, setBusy] = useState(false);
   const isPrivate = account.data?.is_private ?? false;
   const pending = requests.data?.length ?? 0;
@@ -83,6 +85,13 @@ export default function PrivacySettingsScreen() {
           label={t('settings.muted')}
           value={muted.data?.length ? t('settings.mutedCount', { count: muted.data.length }) : t('settings.mutedHint')}
           onPress={() => router.push('/settings/muted-genres')}
+        />
+        <SettingsRow
+          testID="settings-search-history"
+          icon="time-outline"
+          label={t('searchHistory.row')}
+          value={searches.data ? t(searches.data.enabled ? 'searchHistory.rowOn' : 'searchHistory.rowOff') : undefined}
+          onPress={() => router.push('/settings/search-history')}
           last
         />
       </SettingsSection>

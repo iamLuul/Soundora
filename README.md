@@ -97,6 +97,8 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
   values ('beta', 'beta', 'Conta da beta', 'Beta account', 'Criou a conta na fase de testes.', 'Joined during the beta.', 'manual', 2);
   ```
 
+- **Para você e recomendações.** O servidor monta o gosto de cada pessoa (gêneros, artistas e palavras-chave) com o que ela curte, posta, comenta, pesquisa e curte no Descobrir, as músicas favoritas, as reviews que escreveu/curtiu e os gêneros de quem ela segue (`private.taste` e `private.taste_terms`, na migration `20261024000001_recommendations.sql`). O feed soma também quantas pessoas que ela segue curtiram cada post. No meio do Para você entram faixas "Reviews que você pode curtir" (`feed_reviews_for_you`: reviews curtidas de álbuns do gosto da pessoa, uma por álbum). As pesquisas só são guardadas quando a pessoa pesquisa de fato (Enter, abrir um gênero, buscar nos posts): só o texto, por 90 dias, no máximo as 100 últimas; ela vê, apaga e desliga em Configurações › Privacidade › Histórico de pesquisas.
+
 - **Apoio (Patreon), só na Web.** O botão "Apoie o Soundhora" aparece na coluna da direita do desktop, em Configurações › Sobre e no selo Contribuidor inicial, só na versão Web (nos apps nada fala de doação, pelas regras das lojas). O pagamento é todo no Patreon; a equipe confere lá e concede o selo pelo painel. O link vem do banco (só aceita `https://patreon.com/...`); sem link, o botão não aparece:
 
   ```sql
