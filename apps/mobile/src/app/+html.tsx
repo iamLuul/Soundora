@@ -1,6 +1,6 @@
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
-import { BOOT_SKELETON_CSS } from '../lib/layout';
+import { BOOT_SKELETON_CSS, HOVER_CSS } from '../lib/layout';
 
 /**
  * HTML de cada página na web (só no build estático). Idioma e título para leitores de tela e
@@ -34,6 +34,8 @@ export default function Root({ children }: PropsWithChildren) {
             __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}input:focus,textarea:focus,[contenteditable]:focus{outline:none;}',
           }}
         />
+        {/* Mouse por cima de qualquer botão ou link: fundo destacado (ver HOVER_CSS). */}
+        <style dangerouslySetInnerHTML={{ __html: HOVER_CSS }} />
         {/* Esqueleto de abertura: o de celular ou o de desktop, pela largura (antes do JavaScript). */}
         <style dangerouslySetInnerHTML={{ __html: BOOT_SKELETON_CSS }} />
         {headNodes}

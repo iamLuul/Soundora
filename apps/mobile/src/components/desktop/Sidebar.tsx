@@ -66,7 +66,8 @@ export function Sidebar() {
               accessibilityState={{ selected: active }}
               aria-current={active ? 'page' : undefined}
               onPress={() => router.navigate(item.href)}
-              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [styles.item, (hovered || pressed) && styles.itemHover]}
+              // Mouse por cima: o destaque vem do CSS global (HOVER_CSS), igual em todo o app.
+              style={({ pressed }) => [styles.item, pressed && styles.itemHover]}
             >
               <View style={styles.icon}>
                 <StrokeIcon name={item.icon} color={color} />
