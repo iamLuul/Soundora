@@ -76,22 +76,22 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 
 ## Versões
 
-O Soundhora usa 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (ex.: `0.1.0.10.2026`).
+O Soundhora usa 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (ex.: `0.40.0.10.26`). O histórico de todas as versões está no [CHANGELOG.md](CHANGELOG.md).
 
 | Número | Quando sobe | Exemplo |
 | --- | --- | --- |
 | GRANDE | mudança gigante: sistema novo, sair do beta para a versão final. **Fica 0 durante o beta.** | `0.7.3` → `1.0.0` |
-| MÉDIA | funcionalidade nova | `0.1.4` → `0.2.0` |
-| PEQUENA | ajuste pequeno: fonte, botão, ícone | `0.1.0` → `0.1.1` |
-| MÊS.ANO | mês e ano da mudança (automático) | `10.2026` |
+| MÉDIA | funcionalidade nova (ou mudança grande numa que já existe) | `0.40.3` → `0.41.0` |
+| PEQUENA | ajuste pequeno ou correção: fonte, botão, ícone, bug | `0.40.0` → `0.40.1` |
+| MÊS.ANO | mês e ano da mudança, ano com 2 dígitos (automático) | `10.26` |
 
-Subir um número zera os que vêm depois dele. A versão fica em `apps/mobile/version.json` e muda com:
+Subir um número zera os que vêm depois dele. Mudanças só de ferramentas (CI, testes, scripts de dados, configuração local) não mudam a versão. A versão fica em `apps/mobile/version.json` e muda com o comando abaixo; o texto entre aspas entra no CHANGELOG.md:
 
 ```bash
-npm run versao                 # mostra a atual
-npm run versao -- pequena      # ajuste pequeno
-npm run versao -- media        # funcionalidade nova
-npm run versao -- grande --confirmar   # só ao sair do beta
+npm run versao                                        # mostra a atual
+npm run versao -- pequena "Ícone novo do sino"        # ajuste pequeno ou correção
+npm run versao -- media "Mensagens diretas"           # funcionalidade nova
+npm run versao -- grande --confirmar "Versão final"   # só ao sair do beta
 ```
 
 O app mostra os 5 números (Configurações e Configurações › Sobre). As lojas só aceitam 3, então o `app.config.js` manda `GRANDE.MÉDIA.PEQUENA` como versão e calcula o número do build (`GRANDE×1.000.000 + MÉDIA×1.000 + PEQUENA`), que sobe sozinho a cada versão. Para mandar outro build da mesma versão às lojas, suba a PEQUENA.
