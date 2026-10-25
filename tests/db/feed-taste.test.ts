@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connect, createPreview, createUser, type Db } from './helpers.ts';
 
 // "Agora" deste arquivo: 120 dias atrás, longe dos posts dos outros testes (janela de 14 dias).
-const BASE = `now() - interval '120 days'`;
+// Instante fixo (como o app manda): a variação do Para você depende do instante de abertura.
+const BASE = `'${new Date(Date.now() - 120 * 86_400_000).toISOString()}'::timestamptz`;
 // O cadastro pede 3 gêneros; os autores usam estes, fora do gosto de quem lê.
 const OTHER = ['country', 'sertanejo', 'forro'];
 

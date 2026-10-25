@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query';
 import {
   getStreamingPlatform,
   FEED_PAGE_SIZE,
@@ -27,6 +27,7 @@ import {
   type PostCursor,
 } from './api';
 import { useDebouncedValue } from './hooks';
+import { seenSnapshot } from './seen-posts';
 import { supabase } from './supabase';
 import type { FeedItem } from './types';
 
@@ -99,20 +100,47 @@ interface FeedPage {
   page: number;
   /** Instante em que o feed foi aberto (null na primeira página: usa o agora). */
   openedAt: string | null;
+  /** Posts já vistos no momento da abertura (null: pega agora). Fixo em todas as páginas dela. */
+  seen: string[] | null;
 }
 
+interface FeedPageData {
+  items: FeedItem[];
+  openedAt: string;
+  seen: string[];
+}
+
+async function loadFeedPage(param: FeedPage): Promise<FeedPageData> {
+  const openedAt = param.openedAt ?? new Date().toISOString();
+  const seen = param.seen ?? seenSnapshot();
+  return { items: await fetchFeed(param.page, openedAt, seen), openedAt, seen };
+}
+
+/**
+ * Para você. Cada abertura (instante + posts já vistos) tem a sua ordem; as páginas seguintes
+ * usam a mesma abertura. Para conteúdo novo, renewFeed abre de novo.
+ */
 export function useFeed() {
   return useInfiniteQuery({
     queryKey: keys.feed,
-    queryFn: async ({ pageParam }: { pageParam: FeedPage }) => {
-      const openedAt = pageParam.openedAt ?? new Date().toISOString();
-      return { items: await fetchFeed(pageParam.page, openedAt), openedAt };
-    },
-    initialPageParam: { page: 0, openedAt: null } as FeedPage,
-    getNextPageParam: (last, pages) => (last.items.length === FEED_PAGE_SIZE ? { page: pages.length, openedAt: last.openedAt } : undefined),
+    queryFn: ({ pageParam }: { pageParam: FeedPage }) => loadFeedPage(pageParam),
+    initialPageParam: { page: 0, openedAt: null, seen: null } as FeedPage,
+    getNextPageParam: (last, pages) => (last.items.length === FEED_PAGE_SIZE ? { page: pages.length, openedAt: last.openedAt, seen: last.seen } : undefined),
     // Telas recebem só a lista de posts, sem repetidos (por segurança, caso o servidor repita).
     select: (data) => ({ ...data, pages: dedupePages(data.pages.map((p) => p.items)) }),
   });
+}
+
+/**
+ * Abre o Para você de novo (agora, sem o que já foi visto): troca a lista inteira pela primeira
+ * página da nova abertura, sem esvaziar a tela enquanto carrega. Também busca reviews de novo.
+ */
+export async function renewFeed(qc: QueryClient): Promise<void> {
+  const param: FeedPage = { page: 0, openedAt: new Date().toISOString(), seen: seenSnapshot() };
+  void qc.invalidateQueries({ queryKey: keys.reviewsForYou });
+  await qc.cancelQueries({ queryKey: keys.feed, exact: true });
+  const first = await loadFeedPage(param);
+  qc.setQueryData<InfiniteData<FeedPageData, FeedPage>>(keys.feed, { pages: [first], pageParams: [param] });
 }
 
 /** Reviews populares do gosto da pessoa, para as faixas do Para você. */

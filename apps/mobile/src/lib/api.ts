@@ -231,8 +231,14 @@ export async function deletePost(postId: string): Promise<void> {
  * Uma página do feed. `openedAt` é o instante em que a pessoa abriu o feed: todas as páginas
  * usam o mesmo, então a ordem não muda no meio da rolagem (sem posts repetidos ou pulados).
  */
-export async function fetchFeed(page: number, openedAt: string): Promise<FeedItem[]> {
-  const { data, error } = await supabase.rpc('feed_for_you', { p_limit: FEED_PAGE_SIZE, p_offset: page * FEED_PAGE_SIZE, p_now: openedAt });
+/** Para você: página `page` da abertura feita em `openedAt`; `seen` (já vistos) vão para o fim. */
+export async function fetchFeed(page: number, openedAt: string, seen: string[] = []): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('feed_for_you', {
+    p_limit: FEED_PAGE_SIZE,
+    p_offset: page * FEED_PAGE_SIZE,
+    p_now: openedAt,
+    p_seen: seen.slice(0, 500),
+  });
   if (error) throw error;
   return data as FeedItem[];
 }

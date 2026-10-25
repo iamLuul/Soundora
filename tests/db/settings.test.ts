@@ -42,6 +42,9 @@ describe('gêneros silenciados', () => {
     const post = (
       await db.as<{ id: string }>(bia, `insert into public.posts (author_id, link_preview_id, genres) values ($1, $2, '{metal}') returning id`, [bia, preview])
     )[0]!.id;
+    // A Ana gosta de metal: o post fica no topo (no meio dos posts dos outros testes, a variação
+    // do Para você poderia empurrá-lo para fora dos 50).
+    await db.sql(`insert into public.user_genres (user_id, genre) values ($1, 'metal') on conflict do nothing`, [ana]);
     const forYou = async () => (await db.as<{ id: string }>(ana, `select id from public.feed_for_you(50)`)).map((r) => r.id);
     expect(await forYou()).toContain(post);
     await db.as(ana, `select public.set_muted_genres('{metal,jazz}')`);

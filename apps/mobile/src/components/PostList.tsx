@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Text } from 'react-native';
+import { FlatList, Text, type ListViewToken } from 'react-native';
 import { blockUser, deletePost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -40,6 +40,8 @@ export function PostList({
   interstitial,
   adsEvery = 0,
   strips,
+  onSeen,
+  scrollTopKey,
 }: {
   items: FeedItem[];
   loading: boolean;
@@ -61,6 +63,10 @@ export function PostList({
   adsEvery?: number;
   /** Faixas no meio da lista: a 1ª depois de `first` posts, as outras a cada `every` posts (só onde já há posts depois). */
   strips?: { first: number; every: number; elements: ReactElement[] };
+  /** Posts que apareceram na tela (pelo menos metade, por ~0,8 s). */
+  onSeen?: (ids: string[]) => void;
+  /** Mudou: a lista volta para o topo (ex.: o feed foi renovado). */
+  scrollTopKey?: string | number;
 }) {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -83,6 +89,20 @@ export function PostList({
     if (after >= posts.length) return;
     const at = rows.findIndex((r) => r.kind === 'post' && r.item.id === posts[after - 1]!.id) + 1;
     rows.splice(at, 0, { kind: 'strip', index });
+  });
+  const listRef = useRef<FlatList<Row>>(null);
+  useEffect(() => {
+    if (scrollTopKey !== undefined) listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [scrollTopKey]);
+  // Precisam ser os mesmos objetos a vida toda (o FlatList não aceita trocar).
+  const seenRef = useRef(onSeen);
+  useEffect(() => {
+    seenRef.current = onSeen;
+  });
+  const [viewability] = useState(() => ({ itemVisiblePercentThreshold: 50, minimumViewTime: 800 }));
+  const [onViewable] = useState(() => ({ changed }: { changed: ListViewToken[] }) => {
+    const ids = changed.filter((v) => v.isViewable && (v.item as Row).kind === 'post').map((v) => (v.item as { item: FeedItem }).item.id);
+    if (ids.length) seenRef.current?.(ids);
   });
   const qc = useQueryClient();
   const toggleLike = useToggleLike();
@@ -133,7 +153,10 @@ export function PostList({
       <PullToRefresh onRefresh={onRefresh}>
         <FlatList
           {...listPerf}
+          ref={listRef}
           data={rows}
+          viewabilityConfig={viewability}
+          onViewableItemsChanged={onSeen ? onViewable : undefined}
           keyExtractor={(row) =>
             row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : row.kind === 'strip' ? `strip-${row.index}` : 'extra'
           }

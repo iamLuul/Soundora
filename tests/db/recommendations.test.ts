@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connect, createUser, type Db } from './helpers.ts';
 
 // "Agora" deste arquivo: 300 dias atrás, longe dos posts e reviews dos outros testes.
-const BASE = `now() - interval '300 days'`;
+// Instante fixo (como o app manda): a variação do Para você depende do instante de abertura.
+const BASE = `'${new Date(Date.now() - 300 * 86_400_000).toISOString()}'::timestamptz`;
 // O cadastro pede 3 gêneros; quem lê usa estes, sem nada a ver com os posts abaixo.
 const MINE = ['gospel', 'blues', 'mpb'];
 const OTHER = ['country', 'sertanejo', 'forro'];
@@ -242,5 +243,44 @@ describe('reviews para você', () => {
 
   it('só com login', async () => {
     await expect(db.anon(`select * from public.feed_reviews_for_you()`)).rejects.toThrow();
+  });
+});
+
+describe('Para você sempre renovado', () => {
+  it('posts já vistos vão para o fim; a mesma abertura pagina sem repetir nem pular', async () => {
+    const me = await createUser(db, 'rec_novo', { genres: MINE });
+    const a = await createUser(db, 'rec_novo_a', { genres: OTHER });
+    const ids: string[] = [];
+    for (let i = 0; i < 12; i++) ids.push(await post(a, { hoursAgo: 1 + i }));
+    const first = await forYou(me);
+    const seen = first.filter((id) => ids.includes(id)).slice(0, 4);
+
+    const rows = await db.as<{ id: string }>(me, `select id from public.feed_for_you(50, 0, ${BASE}, $1::uuid[])`, [seen]);
+    const after = rows.map((r) => r.id);
+    // Tudo o que não vi vem antes de qualquer post que já vi.
+    const firstSeen = Math.min(...seen.map((id) => after.indexOf(id)));
+    for (const id of ids.filter((x) => !seen.includes(x))) expect(after.indexOf(id)).toBeLessThan(firstSeen);
+
+    // Páginas da mesma abertura: juntas, iguais à lista inteira.
+    const page = async (offset: number) =>
+      (await db.as<{ id: string }>(me, `select id from public.feed_for_you(5, $1, ${BASE}, $2::uuid[])`, [offset, seen])).map((r) => r.id);
+    const paged = [...(await page(0)), ...(await page(5)), ...(await page(10))];
+    expect(paged).toEqual(after.slice(0, paged.length));
+  });
+
+  it('outra abertura do feed mistura a ordem dos posts parecidos', async () => {
+    const me = await createUser(db, 'rec_mistura', { genres: MINE });
+    const a = await createUser(db, 'rec_mistura_a', { genres: OTHER });
+    const ids: string[] = [];
+    // Posts iguais (mesma hora, sem relação com o gosto): só a variação decide a ordem.
+    for (let i = 0; i < 10; i++) ids.push(await post(a, { hoursAgo: 3 }));
+    const order = async (minutes: number) =>
+      (await db.as<{ id: string }>(me, `select id from public.feed_for_you(50, 0, ${BASE} + make_interval(mins => $1))`, [minutes]))
+        .map((r) => r.id)
+        .filter((id) => ids.includes(id));
+    const one = await order(0);
+    expect(await order(0)).toEqual(one); // mesma abertura: mesma ordem
+    const others = await Promise.all([1, 2, 3].map((m) => order(m)));
+    expect(others.some((o) => o.join() !== one.join())).toBe(true);
   });
 });
