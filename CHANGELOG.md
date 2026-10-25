@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.40 · Para você sempre renovado: conteúdo novo ao voltar para o Início
 
+- `0.40.1.10.26` · 25/10/2026 · Versão automática pela marca no commit, tags no GitHub e "(beta)" no app (139c371)
 - `0.40.0.10.26` · 24/10/2026 · Para você sempre renovado: conteúdo novo ao voltar para o Início (b45c2d8)
 
 ## 0.39 · Para você: gosto por artistas, palavras, pesquisas e nicho de quem sigo; faixas de reviews populares
