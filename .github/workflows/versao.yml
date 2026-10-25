@@ -44,4 +44,9 @@ jobs:
             [ -z "$tag" ] && continue
             git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" "$sha" -m "$tag"
           done < "$RUNNER_TEMP/tags.txt"
+          # Tags das versões antigas (reconstruídas do histórico): cria as que faltarem.
+          while read -r tag sha; do
+            [ -z "$tag" ] && continue
+            git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" "$sha" -m "$tag"
+          done < scripts/versao-historico.txt
           git push origin --tags
