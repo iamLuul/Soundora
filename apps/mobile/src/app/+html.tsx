@@ -26,8 +26,14 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <ScrollViewStyleReset />
-        {/* overscroll-behavior: puxar a lista para baixo não recarrega a página (o app atualiza os dados). */}
-        <style dangerouslySetInnerHTML={{ __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}' }} />
+        {/* overscroll-behavior: puxar a lista para baixo não recarrega a página (o app atualiza os dados).
+            Campos de texto sem o contorno azul do navegador ao clicar (o cursor piscando já mostra
+            onde se escreve); botões e links continuam com o contorno ao navegar pelo teclado. */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}input:focus,textarea:focus,[contenteditable]:focus{outline:none;}',
+          }}
+        />
         {/* Esqueleto de abertura: o de celular ou o de desktop, pela largura (antes do JavaScript). */}
         <style dangerouslySetInnerHTML={{ __html: BOOT_SKELETON_CSS }} />
         {headNodes}
