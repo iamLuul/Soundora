@@ -609,7 +609,9 @@
     "title": "Contas para seguir",
     "genres": "Também curte {{genres}}",
     "liked": "Você curte os posts",
-    "friends": "Seguida por quem você segue"
+    "friends": "Seguida por quem você segue",
+    "previous": "Contas anteriores",
+    "next": "Mais contas"
   },
   "admin": {
     "title": "Painel admin",

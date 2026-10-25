@@ -609,7 +609,9 @@
     "title": "Accounts to follow",
     "genres": "Also into {{genres}}",
     "liked": "You like their posts",
-    "friends": "Followed by people you follow"
+    "friends": "Followed by people you follow",
+    "previous": "Previous accounts",
+    "next": "More accounts"
   },
   "admin": {
     "title": "Admin panel",
