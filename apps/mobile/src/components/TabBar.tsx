@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { useEffect, type ComponentProps } from 'react';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +21,7 @@ const TABS: Record<string, { icon: IconName; label: string }> = {
 };
 
 /** Barra inferior do Figma: fundo #5A5577 com cantos arredondados e o botão "+" roxo saltado. */
-export function TabBar({ state, navigation }: TabBarProps) {
+export function TabBar({ state, emitter, navigateToTab }: TabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   // Desktop: a barra lateral faz o papel das abas.
@@ -35,11 +35,11 @@ export function TabBar({ state, navigation }: TabBarProps) {
         if (!tab) return null;
         const focused = state.index === index;
         const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (event.defaultPrevented) return;
-          if (!focused) navigation.navigate(route.name, route.params);
+          if (!focused) navigateToTab(route.key);
           // O "+" virou X: fechar o postar (a tela cuida da animação; isto é só o plano B).
-          else if (route.name === 'compose') navigation.goBack();
+          else if (route.name === 'compose' && router.canGoBack()) router.back();
         };
         const label = t(tab.label);
 

@@ -124,7 +124,7 @@ describe('apoio (Patreon)', () => {
 
   test('na web aparece com o link do banco e abre o Patreon', async () => {
     jest.replaceProperty(Platform, 'OS', 'web');
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     await wrap(<SupportCard />);
     await waitFor(() => expect(screen.getByTestId('panel-support')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('panel-support-link'));

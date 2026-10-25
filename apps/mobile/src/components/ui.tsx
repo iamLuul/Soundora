@@ -13,6 +13,7 @@ import {
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
+  type TextInputInstance,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { avatarUrl } from "../lib/avatar";
@@ -170,7 +171,7 @@ export function TextField({
   /** Elemento dentro do campo, à direita e centralizado na vertical (ex.: o olho da senha). */
   accessory?: ReactNode;
   /** Referência do TextInput, para passar o foco de um campo ao outro. */
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
 }) {
   return (
     <View style={{ gap: space.xs }}>

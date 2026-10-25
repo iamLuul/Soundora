@@ -153,7 +153,7 @@ export function PostList({
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={loadingMore ? <Spinner style={{ margin: space.lg }} /> : null}
+          ListFooterComponent={loadingMore ? <Spinner style={{ margin: space.lg }} /> : undefined}
         />
       </PullToRefresh>
       <PostActions

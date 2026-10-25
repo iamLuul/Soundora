@@ -472,7 +472,7 @@ function BadgesTab() {
           <Spinner style={{ margin: space.lg }} />
         ) : badges.isError ? (
           <ErrorState message={formatError(t, badges.error)} onRetry={() => badges.refetch()} />
-        ) : null
+        ) : undefined
       }
     />
   );

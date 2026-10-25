@@ -5,7 +5,19 @@ import * as ImagePicker from 'expo-image-picker';
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+  type HostInstance,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ErrorText, keyboardBehavior } from '../../components/ui';
@@ -91,7 +103,7 @@ function NewVibeForm() {
   const editing = editingId !== null;
   const editingItem = items.find((i) => i.id === editingId) ?? null;
   const hasText = items.some((i) => i.t.trim());
-  const canvasRef = useRef<View>(null);
+  const canvasRef = useRef<HostInstance>(null);
   const [style, setStyle] = useState<VibeStyle>('violet');
   const [link, setLink] = useState('');
   const [music, setMusic] = useState<(VibeMusic & { id: string }) | null>(null);

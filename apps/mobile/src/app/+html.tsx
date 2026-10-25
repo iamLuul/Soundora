@@ -1,14 +1,18 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 import { BOOT_SKELETON_CSS } from '../lib/layout';
 
 /**
  * HTML de cada página na web (só no build estático). Idioma e título para leitores de tela e
  * para a aba do navegador; o idioma acompanha o do app depois que ele abre (lib/i18n).
+ *
+ * SDK 58: o expo-router entrega pelo useServerDocumentContext os atributos e as tags que ele
+ * precisa no <html>, <head> e <body> (scripts do app incluídos). Sem os bodyNodes o app não abre.
  */
 export default function Root({ children }: PropsWithChildren) {
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -26,8 +30,12 @@ export default function Root({ children }: PropsWithChildren) {
         <style dangerouslySetInnerHTML={{ __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}' }} />
         {/* Esqueleto de abertura: o de celular ou o de desktop, pela largura (antes do JavaScript). */}
         <style dangerouslySetInnerHTML={{ __html: BOOT_SKELETON_CSS }} />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }

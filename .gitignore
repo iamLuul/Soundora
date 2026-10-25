@@ -25,3 +25,6 @@ apps/mobile/ios/
 *.ipa
 
 coverage/
+
+# Consultas salvas pelo Supabase Studio (locais, podem ter dados)
+supabase/snippets/

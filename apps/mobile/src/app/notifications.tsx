@@ -86,7 +86,7 @@ export default function NotificationsScreen() {
           }
           onEndReached={() => query.hasNextPage && !query.isFetchingNextPage && query.fetchNextPage()}
           onEndReachedThreshold={0.4}
-          ListFooterComponent={query.isFetchingNextPage ? <Spinner style={{ margin: space.lg }} /> : null}
+          ListFooterComponent={query.isFetchingNextPage ? <Spinner style={{ margin: space.lg }} /> : undefined}
           contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
         />
       </PullToRefresh>

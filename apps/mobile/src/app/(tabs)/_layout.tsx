@@ -29,8 +29,10 @@ export default function TabsLayout() {
           {children}
         </SwipeTabs>
       )}
+      // Desktop: as abas fora da tela ficam congeladas (React Activity), como o freezeOnBlur antigo.
+      activityEnabled={desktop}
       screenListeners={({ route }) => ({ transitionStart: () => onTabTransition(route.name) })}
-      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: colors.background }, freezeOnBlur: desktop, ...carouselOptions(route.name, !desktop) })}
+      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: colors.background }, ...carouselOptions(route.name, !desktop) })}
     >
       <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
       <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />

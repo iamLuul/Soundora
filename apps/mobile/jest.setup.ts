@@ -1,3 +1,22 @@
+// RN 0.88: o AssetRegistry do react-native mudou de lugar e o jest-expo 58 só imita o caminho antigo
+// (react-native/asset-registry). Sem isto, fontes e imagens (expo-asset) quebram nos testes.
+jest.mock('react-native/src/private/assets/AssetRegistry', () => {
+  const meta = {
+    fileSystemLocation: '/x',
+    httpServerLocation: '/assets/x',
+    scales: [1],
+    fileHashes: ['md5'],
+    name: 'name',
+    exists: true,
+    type: 'type',
+    hash: 'md5',
+    uri: 'uri',
+    width: 1,
+    height: 1,
+  };
+  return { AssetRegistry: { registerAsset: jest.fn(() => 1), getAssetByID: jest.fn(() => meta) } };
+});
+
 // Variáveis falsas para que módulos que criam o cliente Supabase possam ser importados nos testes.
 process.env.EXPO_PUBLIC_SUPABASE_URL ??= 'http://localhost:54321';
 process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??= 'test-key';
@@ -36,10 +55,24 @@ jest.mock('expo-audio', () => ({
 }));
 
 // Reanimated/Worklets dependem do módulo nativo: no Jest, as versões de mentira das bibliotecas.
+// Reanimated 4.7 no Jest (iOS/Android): a inicialização chama setCSSEventHandler, que a versão JS
+// (a usada no Jest) não tem e dá erro. Pula essa inicialização; o resto do mock funciona igual.
+jest.mock('react-native-reanimated/src/initializers', () => ({ initializeReanimatedModule: () => undefined }));
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
 // Gesture Handler: o módulo nativo de mentira da própria biblioteca (gestos testáveis com jest-utils).
 require('react-native-gesture-handler/jestSetup');
+
+// Gesture Handler 3: GestureDetector exige o GestureHandlerRootView acima dele (o app tem na raiz,
+// em _layout.tsx, e o MediaViewer no Modal). Nos testes as telas são montadas soltas, sem a raiz.
+jest.mock('react-native-gesture-handler/lib/module/v3/detectors/useEnsureGestureHandlerRootView', () => ({ useEnsureGestureHandlerRootView: () => undefined }));
+
+// expo-notifications 58: o módulo nativo de mentira do jest-expo não devolve a inscrição (com
+// remove) e o setNotificationHandler quebra na segunda vez que é chamado.
+jest.mock('expo-notifications/build/NotificationsHandlerModule', () => ({
+  __esModule: true,
+  default: { addListener: () => ({ remove: () => undefined }), handleNotificationAsync: async () => undefined },
+}));
 
 // AdMob usa módulo nativo: no Jest, um SDK de mentira. O anúncio que o useNativeAd devolve é
 // controlado pelos testes em globalThis.__mockNativeAd ({ status, nativeAd }); sem nada, sem estoque.

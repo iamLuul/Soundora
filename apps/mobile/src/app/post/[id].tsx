@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../../components/figma';
 import { PostActions, type PostAction } from '../../components/PostActions';
@@ -24,7 +24,6 @@ import { confirmAction, notify } from '../../lib/dialogs';
 import { showToast } from '../../components/Toast';
 import { ErrorState } from '../../components/ErrorState';
 
-
 /** Post aberto em tela cheia, com os comentários embaixo e a caixa de responder fixa (como no X). */
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,7 +41,7 @@ export default function PostScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Respondendo a um comentário: o principal (onde a resposta fica) e o @ de quem é respondido.
   const [replyTo, setReplyTo] = useState<{ rootId: string; username: string } | null>(null);
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   // Conversas grandes que a pessoa abriu ("Ver mais").
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const rows = useMemo(() => buildCommentRows(comments.data ?? [], expanded), [comments.data, expanded]);
@@ -63,7 +62,8 @@ export default function PostScreen() {
   const toggleCommentLike = async (c: CommentRow) => {
     const key = keys.comments(id);
     const before = qc.getQueryData<CommentRow[]>(key);
-    const patch = (r: CommentRow) => (r.id === c.id ? { ...r, liked_by_me: !c.liked_by_me, like_count: Math.max(0, r.like_count + (c.liked_by_me ? -1 : 1)) } : r);
+    const patch = (r: CommentRow) =>
+      r.id === c.id ? { ...r, liked_by_me: !c.liked_by_me, like_count: Math.max(0, r.like_count + (c.liked_by_me ? -1 : 1)) } : r;
     qc.setQueryData<CommentRow[]>(key, (rows) => rows?.map(patch));
     try {
       await setCommentLiked(c.id, !c.liked_by_me);
@@ -189,7 +189,8 @@ export default function PostScreen() {
                 testID="cancel-reply"
                 accessibilityRole="button"
                 accessibilityLabel={t('common.cancel')}
-                hitSlop={10} style={webTouch(10)}
+                hitSlop={10}
+                style={webTouch(10)}
                 onPress={() => {
                   setReplyTo(null);
                   setBody((b) => b.replace(new RegExp(`^@${replyTo.username} `), ''));

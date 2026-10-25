@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import { colors, fonts, space, text } from '../../theme';
 import { Button } from '../ui';
 
@@ -31,7 +31,7 @@ export function CodeStep({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const [code, setCode] = useState('');
   const [focused, setFocused] = useState(true);
   const [wait, setWait] = useState(RESEND_SECONDS);

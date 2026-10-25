@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, Pressable, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 // ScrollView do gesture-handler: rolar o carrossel não troca de aba.
 import { ScrollView } from 'react-native-gesture-handler';
@@ -30,7 +30,7 @@ export function SuggestedAccounts({
   const follow = useFollow();
   const requestedIds = useRequestedIds();
   const genres = useGenres();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const scroll = useScrollArrows(scrollRef);
   const list = suggested.data ?? [];
   if (!list.length) return null;
@@ -108,7 +108,7 @@ const WEB = Platform.OS === 'web';
 const FADE = 48;
 
 /** Posição do carrossel: dá para ir para a esquerda/direita? E rolar uma "página" com as setas. */
-function useScrollArrows(ref: RefObject<ScrollView | null>) {
+function useScrollArrows(ref: RefObject<ScrollViewInstance | null>) {
   const [x, setX] = useState(0);
   const [viewport, setViewport] = useState(0);
   const [content, setContent] = useState(0);

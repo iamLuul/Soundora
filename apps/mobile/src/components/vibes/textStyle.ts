@@ -59,7 +59,12 @@ export function fontSizeFor(kind: VibeKind): number {
 export function itemStyle(item: Pick<VibeTextItem, 'f' | 'c' | 'b'>, kind: VibeKind): { text: TextStyle; box: BoxStyle } {
   const color = TEXT_COLOR[item.c];
   const size = fontSizeFor(kind);
-  const text: TextStyle = { ...FONT_STYLE[item.f], fontSize: size, lineHeight: Math.round(size * 1.3), textAlign: 'center' };
+  const text: { -readonly [K in keyof TextStyle]: TextStyle[K] } = {
+    ...FONT_STYLE[item.f],
+    fontSize: size,
+    lineHeight: Math.round(size * 1.3),
+    textAlign: 'center',
+  };
   const box: BoxStyle = {};
   if (item.b === 'solid') {
     text.color = readableOn(color);

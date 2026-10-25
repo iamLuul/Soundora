@@ -101,7 +101,7 @@ export default function MusicScreen() {
                 </Text>
               )
             }
-            ListFooterComponent={opening ? <Spinner style={{ marginTop: space.md }} /> : null}
+            ListFooterComponent={opening ? <Spinner style={{ marginTop: space.md }} /> : undefined}
           />
         </PullToRefresh>
       )}

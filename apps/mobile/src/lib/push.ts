@@ -48,6 +48,7 @@ export async function enablePush(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Soundhora',
+      // eslint-disable-next-line import/namespace -- o enum existe (tsc confere); o plugin do eslint não enxerga o export * do SDK 58
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }

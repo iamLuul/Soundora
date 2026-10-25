@@ -76,7 +76,7 @@ export default function LikedSongsScreen() {
               <Text style={[text.body, styles.empty]}>{t(isMe ? 'liked.emptyMine' : 'liked.empty')}</Text>
             )
           }
-          ListFooterComponent={liked.isFetchingNextPage || opening ? <Spinner style={{ marginTop: space.md }} /> : null}
+          ListFooterComponent={liked.isFetchingNextPage || opening ? <Spinner style={{ marginTop: space.md }} /> : undefined}
         />
       </PullToRefresh>
       {chooser}

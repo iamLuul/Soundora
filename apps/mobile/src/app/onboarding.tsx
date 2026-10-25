@@ -3,7 +3,7 @@ import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import { PasswordField } from '../components/auth/PasswordField';
 import { BackHeader } from '../components/figma';
 import { GenrePicker } from '../components/GenrePicker';
@@ -43,9 +43,9 @@ export default function Onboarding() {
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
-  const monthRef = useRef<TextInput>(null);
-  const yearRef = useRef<TextInput>(null);
-  const dayRef = useRef<TextInput>(null);
+  const monthRef = useRef<TextInputInstance>(null);
+  const yearRef = useRef<TextInputInstance>(null);
+  const dayRef = useRef<TextInputInstance>(null);
   const [genres, setGenres] = useState<string[]>([]);
   const [platform, setPlatform] = useState<StreamingChoice | null>(null);
   const [accepted, setAccepted] = useState(false);
