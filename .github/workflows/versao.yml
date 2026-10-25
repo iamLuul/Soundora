@@ -29,26 +29,41 @@ jobs:
           node-version-file: .nvmrc
       - name: Calcula a versão dos commits novos
         run: node scripts/versao-auto.mjs "${{ github.event.before }}" "${{ github.sha }}" "$RUNNER_TEMP/tags.txt"
-      - name: Grava a versão, o CHANGELOG e as tags
+      - name: Grava a versão e o CHANGELOG
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet; then
-            version=$(node -p "require('./apps/mobile/version.json').version")
-            git commit -am "Versão $version [versao-auto]"
-            # Se chegou commit novo enquanto isto rodava, junta antes de enviar.
-            git pull --rebase origin main
-            git push origin HEAD:main
+          if git diff --quiet; then
+            echo "Versão sem mudança."
+            exit 0
           fi
+          version=$(node -p "require('./apps/mobile/version.json').version")
+          git commit -am "Versão $version [versao-auto]"
+          # Se chegou commit novo enquanto isto rodava, junta antes de enviar.
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Tags das versões novas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
           while read -r tag sha; do
-            [ -z "$tag" ] && continue
-            git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" "$sha" -m "$tag"
+            if [ -n "$tag" ] && ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              git tag -a "$tag" "$sha" -m "$tag"
+              git push origin "refs/tags/$tag"
+            fi
           done < "$RUNNER_TEMP/tags.txt"
-          # Tags das versões antigas (reconstruídas do histórico): cria as que faltarem.
+      - name: Tags das versões antigas (as que faltarem)
+        # Tag em commit antigo que mexeu em .github/workflows o GitHub recusa para o robô (falta a
+        # permissão "workflows"): essas vão do computador de quem tem acesso (README › Versões).
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
           while read -r tag sha; do
-            [ -z "$tag" ] && continue
-            git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" "$sha" -m "$tag"
+            if [ -n "$tag" ] && ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              git tag -a "$tag" "$sha" -m "$tag"
+              if ! out=$(git push origin "refs/tags/$tag" 2>&1); then
+                echo "::warning::$tag não enviada: $(echo "$out" | tail -3 | tr '\n' ' ')"
+              fi
+            fi
           done < scripts/versao-historico.txt
-          # Tag em commit antigo que mexeu em .github/workflows o GitHub recusa para o robô (falta a
-          # permissão "workflows"): essas precisam ser enviadas por quem tem acesso (ver README).
-          git push origin --tags || echo "::warning::Algumas tags não foram enviadas (commits que mexem em .github/workflows). Envie do seu computador: README › Versões.
