@@ -49,4 +49,6 @@ jobs:
             [ -z "$tag" ] && continue
             git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" "$sha" -m "$tag"
           done < scripts/versao-historico.txt
-          git push origin --tags
+          # Tag em commit antigo que mexeu em .github/workflows o GitHub recusa para o robô (falta a
+          # permissão "workflows"): essas precisam ser enviadas por quem tem acesso (ver README).
+          git push origin --tags || echo "::warning::Algumas tags não foram enviadas (commits que mexem em .github/workflows). Envie do seu computador: README › Versões.

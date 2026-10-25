@@ -99,6 +99,14 @@ Subir um número zera os que vêm depois dele. Mudanças só de ferramentas (CI,
 
 Exemplo: `git commit -m "Mensagens diretas [media]"`. O MÊS.ANO é o da data do commit.
 
+As tags das versões antigas estão em `scripts/versao-historico.txt`. O robô do GitHub não consegue criar as tags em commits que mexeram em `.github/workflows` (as 6 primeiras); para enviá-las do seu computador (PowerShell, na pasta do projeto):
+
+```powershell
+git pull
+Get-Content scripts\versao-historico.txt | ForEach-Object { $t, $s = $_ -split ' '; git tag -a $t $s -m $t 2>$null }
+git push origin --tags
+```
+
 Para casos fora do comum dá para mudar à mão (marque o commit com `[nada]`, senão sobe de novo); o texto entre aspas entra no CHANGELOG.md:
 
 ```bash
