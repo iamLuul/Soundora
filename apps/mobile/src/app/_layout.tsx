@@ -11,7 +11,6 @@ import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { installHoverMarks } from '../lib/layout';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { useLiveNotifications } from '../lib/live';
@@ -130,8 +129,6 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
 }
 
 export default function RootLayout() {
-  // Web: botões de fundo cheio escurecem com o mouse por cima (os outros ganham o destaque do CSS).
-  useEffect(() => installHoverMarks(), []);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* Web: título da aba do navegador (as telas sem título deixavam a página sem <title>). */}
