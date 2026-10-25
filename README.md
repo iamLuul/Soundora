@@ -74,6 +74,28 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm run web:prod` | Gera o build de produção da web e serve em `localhost:8088`. Use para avaliar a velocidade: `npm run app` roda o modo de desenvolvimento (React com checagens extras, bundle sem minificar), que é bem mais lento que o app publicado |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
+## Versões
+
+O Soundhora usa 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (ex.: `0.1.0.10.2026`).
+
+| Número | Quando sobe | Exemplo |
+| --- | --- | --- |
+| GRANDE | mudança gigante: sistema novo, sair do beta para a versão final. **Fica 0 durante o beta.** | `0.7.3` → `1.0.0` |
+| MÉDIA | funcionalidade nova | `0.1.4` → `0.2.0` |
+| PEQUENA | ajuste pequeno: fonte, botão, ícone | `0.1.0` → `0.1.1` |
+| MÊS.ANO | mês e ano da mudança (automático) | `10.2026` |
+
+Subir um número zera os que vêm depois dele. A versão fica em `apps/mobile/version.json` e muda com:
+
+```bash
+npm run versao                 # mostra a atual
+npm run versao -- pequena      # ajuste pequeno
+npm run versao -- media        # funcionalidade nova
+npm run versao -- grande --confirmar   # só ao sair do beta
+```
+
+O app mostra os 5 números (Configurações e Configurações › Sobre). As lojas só aceitam 3, então o `app.config.js` manda `GRANDE.MÉDIA.PEQUENA` como versão e calcula o número do build (`GRANDE×1.000.000 + MÉDIA×1.000 + PEQUENA`), que sobe sozinho a cada versão. Para mandar outro build da mesma versão às lojas, suba a PEQUENA.
+
 ## Decisões importantes
 
 - **Sem reprodução de áudio.** Toda faixa abre no app ou site de origem. Isso evita licenças de música.

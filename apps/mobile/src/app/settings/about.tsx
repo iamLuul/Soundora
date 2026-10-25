@@ -1,8 +1,8 @@
-import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { SupportRow, useSupportUrl } from '../../components/SupportLink';
+import { APP_VERSION } from '../../lib/version';
 
 /** Configurações › Sobre: apoio (só na Web), textos legais e versão. */
 export default function AboutSettingsScreen() {
@@ -24,7 +24,7 @@ export default function AboutSettingsScreen() {
         <SettingsRow testID="settings-ads" icon="megaphone-outline" label={t('legal.ads')} onPress={() => router.push('/legal/ads')} last />
       </SettingsSection>
       <SettingsSection>
-        <SettingsRow icon="code-slash-outline" label={t('settings.version')} value={`Soundhora ${Constants.expoConfig?.version ?? ''}`} last />
+        <SettingsRow icon="code-slash-outline" label={t('settings.version')} value={`Soundhora ${APP_VERSION}`} last />
       </SettingsSection>
     </SettingsScreen>
   );
