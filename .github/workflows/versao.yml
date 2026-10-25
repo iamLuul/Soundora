@@ -1,0 +1,47 @@
+name: Versão
+
+# Sobe a versão do app pela marca nos commits ([media], [pequena], [grande], [nada]), atualiza o
+# CHANGELOG.md e cria uma tag por versão. Ver scripts/versao-auto.mjs.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# Um de cada vez, sem cancelar (cada push precisa ser contado).
+concurrency:
+  group: versao
+  cancel-in-progress: false
+
+jobs:
+  versao:
+    name: Versão e CHANGELOG
+    # O commit do próprio robô não conta de novo.
+    if: ${{ !contains(github.event.head_commit.message, '[versao-auto]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - name: Calcula a versão dos commits novos
+        run: node scripts/versao-auto.mjs "${{ github.event.before }}" "${{ github.sha }}" "$RUNNER_TEMP/tags.txt"
+      - name: Grava a versão, o CHANGELOG e as tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            version=$(node -p "require('./apps/mobile/version.json').version")
+            git commit -am "Versão $version [versao-auto]"
+            # Se chegou commit novo enquanto isto rodava, junta antes de enviar.
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+          while read -r tag sha; do
+            [ -z "$tag" ] && continue
+            git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" "$sha" -m "$tag"
+          done < "$RUNNER_TEMP/tags.txt"
+          git push origin --tags

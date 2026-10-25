@@ -85,7 +85,21 @@ O Soundhora usa 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (ex.: `0.40.0.10.
 | PEQUENA | ajuste pequeno ou correção: fonte, botão, ícone, bug | `0.40.0` → `0.40.1` |
 | MÊS.ANO | mês e ano da mudança, ano com 2 dígitos (automático) | `10.26` |
 
-Subir um número zera os que vêm depois dele. Mudanças só de ferramentas (CI, testes, scripts de dados, configuração local) não mudam a versão. A versão fica em `apps/mobile/version.json` e muda com o comando abaixo; o texto entre aspas entra no CHANGELOG.md:
+Subir um número zera os que vêm depois dele. Mudanças só de ferramentas (CI, testes, scripts de dados, configuração local) não mudam a versão.
+
+**A versão sobe sozinha pela marca no commit.** Ao enviar para a `main`, o GitHub (`.github/workflows/versao.yml`) lê cada commit novo, sobe a versão, escreve no CHANGELOG.md, cria uma tag `vGRANDE.MÉDIA.PEQUENA.MÊS.ANO` no commit e envia um commit "Versão … [versao-auto]". Depois de enviar, rode `git pull` para trazer esse commit.
+
+| Marca na mensagem do commit | Efeito |
+| --- | --- |
+| `[media]` (ou `[média]`) | funcionalidade nova |
+| `[pequena]` | ajuste pequeno ou correção |
+| `[grande]` | mudança gigante (só ao sair do beta) |
+| `[nada]` | não muda a versão |
+| sem marca | `[pequena]` se mexeu no app ou no servidor (`apps/mobile`, `packages/core`, `supabase`); senão `[nada]` |
+
+Exemplo: `git commit -m "Mensagens diretas [media]"`. O MÊS.ANO é o da data do commit.
+
+Para casos fora do comum dá para mudar à mão (marque o commit com `[nada]`, senão sobe de novo); o texto entre aspas entra no CHANGELOG.md:
 
 ```bash
 npm run versao                                        # mostra a atual
@@ -94,7 +108,7 @@ npm run versao -- media "Mensagens diretas"           # funcionalidade nova
 npm run versao -- grande --confirmar "Versão final"   # só ao sair do beta
 ```
 
-O app mostra os 5 números (Configurações e Configurações › Sobre). As lojas só aceitam 3, então o `app.config.js` manda `GRANDE.MÉDIA.PEQUENA` como versão e calcula o número do build (`GRANDE×1.000.000 + MÉDIA×1.000 + PEQUENA`), que sobe sozinho a cada versão. Para mandar outro build da mesma versão às lojas, suba a PEQUENA.
+O app mostra os 5 números, com "(beta)" enquanto a GRANDE for 0 (Configurações e Configurações › Sobre). As lojas só aceitam 3, então o `app.config.js` manda `GRANDE.MÉDIA.PEQUENA` como versão e calcula o número do build (`GRANDE×1.000.000 + MÉDIA×1.000 + PEQUENA`), que sobe sozinho a cada versão. Para mandar outro build da mesma versão às lojas, suba a PEQUENA.
 
 ## Decisões importantes
 

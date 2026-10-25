@@ -6,7 +6,7 @@ import { useIsAdmin } from '../../lib/admin';
 import { useAuth } from '../../lib/auth';
 import { confirmAction } from '../../lib/dialogs';
 import { text } from '../../theme';
-import { APP_VERSION } from '../../lib/version';
+import { APP_VERSION_LABEL } from '../../lib/version';
 
 /** Configurações (menu ⋮ do perfil): uma entrada por categoria, cada uma com a sua tela. */
 export default function SettingsScreenIndex() {
@@ -103,7 +103,7 @@ export default function SettingsScreenIndex() {
         />
       </SettingsSection>
 
-      <Text style={[text.small, { textAlign: 'center' }]}>Soundhora {APP_VERSION}</Text>
+      <Text style={[text.small, { textAlign: 'center' }]}>Soundhora {APP_VERSION_LABEL}</Text>
     </SettingsScreen>
   );
 }

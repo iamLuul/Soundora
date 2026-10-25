@@ -6,3 +6,9 @@ import Constants from 'expo-constants';
  */
 export const APP_VERSION: string =
   (Constants.expoConfig?.extra as { displayVersion?: string } | undefined)?.displayVersion ?? Constants.expoConfig?.version ?? '';
+
+/** GRANDE = 0: o app ainda está em beta. */
+export const IS_BETA = APP_VERSION.startsWith('0.');
+
+/** Como aparece nas Configurações: "0.40.1.10.26 (beta)". */
+export const APP_VERSION_LABEL = IS_BETA ? `${APP_VERSION} (beta)` : APP_VERSION;
