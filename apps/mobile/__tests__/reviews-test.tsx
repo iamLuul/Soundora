@@ -46,6 +46,10 @@ const mockCreate = jest.fn(async (_input: unknown) => 'new-id');
 const mockDelete = jest.fn(async (_id: string) => undefined);
 const mockLike = jest.fn(async (_id: string, _liked: boolean) => undefined);
 const mockPick = jest.fn(async (id: string) => ({ id: `card-${id}`, title: 'Discovery', artist: 'Daft Punk', image_url: null, release_year: 2001 }));
+const mockSearchAlbums = jest.fn(async (q: string) =>
+  q.includes('disc') ? [{ id: '302127', title: 'Discovery', artist: 'Daft Punk', image_url: null, record_type: 'album' }] : [],
+);
+const mockPreviewLink = jest.fn(async (_url: string) => ({ id: 'lp-ram', kind: 'album', title: 'Random Access Memories', artist: 'Daft Punk', image_url: null }));
 let mockReviews: AlbumReview[] = [];
 let mockFailNext = false;
 jest.mock('../src/lib/api', () => ({
@@ -60,7 +64,8 @@ jest.mock('../src/lib/api', () => ({
     }
     return mockReviews;
   },
-  searchAlbums: async (q: string) => (q.includes('disc') ? [{ id: '302127', title: 'Discovery', artist: 'Daft Punk', image_url: null, record_type: 'album' }] : []),
+  searchAlbums: (q: string) => mockSearchAlbums(q),
+  previewLink: (url: string) => mockPreviewLink(url),
   pickAlbum: (id: string) => mockPick(id),
   getStreamingPlatform: async () => 'spotify',
   fetchAlbumSummary: async (id: string) =>
@@ -137,11 +142,32 @@ test('escrever: sem álbum não publica; escolhe o álbum, dá nota, escreve e p
   expect(mockCreate).toHaveBeenCalledWith({ albumId: 'card-302127', rating: 0.1, body: 'Um disco que mudou a música eletrônica para sempre.' });
 });
 
-test('link que não é de álbum é recusado', async () => {
+test('o mesmo campo aceita link: colar o link de um álbum mostra o álbum, sem buscar pelo nome', async () => {
+  const onPublished = jest.fn();
+  await wrap(<ReviewComposer onPublished={onPublished} />);
+  expect(screen.getByText(/ou cole o link do álbum/)).toBeTruthy();
+  await fireEvent.changeText(screen.getByTestId('album-search'), 'https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa');
+  await fireEvent.press(await screen.findByTestId('album-link-hit'));
+  await waitFor(() => expect(screen.getByTestId('review-album')).toBeTruthy());
+  expect(mockPreviewLink).toHaveBeenCalledWith('https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa');
+  expect(mockSearchAlbums).not.toHaveBeenCalled();
+  expect(screen.getByText('Random Access Memories')).toBeTruthy();
+});
+
+test('link que não é de álbum é recusado (sem chamar o servidor)', async () => {
   await wrap(<ReviewComposer onPublished={jest.fn()} />);
-  await fireEvent.changeText(screen.getByTestId('album-link'), 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC');
-  await fireEvent.press(screen.getByTestId('album-link-go'));
+  await fireEvent.changeText(screen.getByTestId('album-search'), 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC');
   expect(await screen.findByText(/não é de um álbum/)).toBeTruthy();
+  expect(mockPreviewLink).not.toHaveBeenCalled();
+  expect(screen.queryByTestId('album-link-hit')).toBeNull();
+});
+
+test('link curto que o servidor diz não ser álbum também é recusado', async () => {
+  mockPreviewLink.mockResolvedValueOnce({ id: 'lp9', kind: 'track', title: 'Faixa', artist: 'X', image_url: null });
+  await wrap(<ReviewComposer onPublished={jest.fn()} />);
+  await fireEvent.changeText(screen.getByTestId('album-search'), 'https://spotify.link/abc123');
+  expect(await screen.findByText(/não é de um álbum/)).toBeTruthy();
+  expect(screen.queryByTestId('album-link-hit')).toBeNull();
 });
 
 test('lista: curtir muda na hora e chama o banco', async () => {

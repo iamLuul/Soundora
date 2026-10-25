@@ -719,8 +719,7 @@
     "composeTab": "Review",
     "postTab": "Post",
     "pickAlbum": "Escolha o álbum",
-    "searchAlbum": "Busque o álbum pelo nome ou artista",
-    "orPaste": "ou cole o link do álbum",
+    "searchAlbum": "Nome do álbum, artista ou link",
     "noAlbums": "Nenhum álbum encontrado para “{{query}}”.",
     "changeAlbum": "Trocar álbum",
     "yourRating": "Sua nota",
@@ -740,7 +739,9 @@
     "recordType_ep": "EP",
     "recordType_single": "Single",
     "recordType_compile": "Coletânea",
-    "useLink": "Usar link"
+    "useLink": "Usar link",
+    "searchOrPaste": "Busque pelo nome do álbum ou do artista, ou cole o link do álbum (Spotify, Apple Music, Deezer, YouTube Music…).",
+    "fromLink": "Do link"
   },
   "album": {
     "title": "Álbum",
@@ -812,7 +813,6 @@
   },
   "a11y": {
     "musicLink": "Link da música",
-    "albumLink": "Link do álbum",
     "songLink": "Link da música favorita",
     "genreSearch": "Buscar gênero",
     "comment": "Escrever comentário",
