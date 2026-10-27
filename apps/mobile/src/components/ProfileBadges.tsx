@@ -6,7 +6,7 @@ import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View
 import { SvgXml } from 'react-native-svg';
 import { badgeIcon } from '../assets/badgeIcons';
 import { fetchProfileBadges, fetchSupportUrl, type ProfileBadge } from '../lib/api';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, glass, radius, space } from '../theme';
 import { SheetBackdrop } from './ui';
 
 export const badgeKeys = {
@@ -98,7 +98,7 @@ export function BadgeOverlay({ badge, onClose }: { badge: ProfileBadge | null; o
 
 const styles = StyleSheet.create({
   // Mesmo cartão das músicas favoritas (logo abaixo).
-  card: { marginHorizontal: 20, borderRadius: 10, backgroundColor: colors.card, padding: space.md, gap: space.sm },
+  card: { marginHorizontal: 20, borderRadius: 18, ...glass.card, padding: space.md, gap: space.sm },
   title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   row: { gap: space.md, alignItems: 'center' },
   backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', padding: space.xl },
@@ -107,10 +107,8 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     alignItems: 'center',
     gap: space.sm,
-    backgroundColor: colors.background,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    ...glass.sheet,
+    borderRadius: radius.xl,
     paddingHorizontal: space.xl,
     paddingTop: space.xxl,
     paddingBottom: space.xl,
@@ -118,7 +116,7 @@ const styles = StyleSheet.create({
   close: { position: 'absolute', top: space.md, right: space.md },
   name: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, textAlign: 'center', marginTop: space.sm },
   date: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
-  limited: { borderRadius: radius.pill, borderWidth: 1, borderColor: colors.muted, paddingHorizontal: space.md, paddingVertical: 2 },
+  limited: { borderRadius: radius.pill, ...glass.chip, paddingHorizontal: space.md, paddingVertical: 2 },
   limitedText: { fontFamily: fonts.semibold, fontSize: 11, color: colors.muted },
   description: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.text, textAlign: 'center', marginTop: space.xs },
   support: { marginTop: space.md, backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: space.xl, paddingVertical: 10 },

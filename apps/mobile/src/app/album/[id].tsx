@@ -71,7 +71,7 @@ export default function AlbumScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   top: { justifyContent: 'center', paddingHorizontal: space.lg, paddingBottom: space.sm },
   topTitle: { position: 'absolute', alignSelf: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.text, maxWidth: '65%' },
   header: { flexDirection: 'row', gap: space.lg, paddingVertical: space.lg, borderBottomWidth: 1, borderBottomColor: colors.tabBar },

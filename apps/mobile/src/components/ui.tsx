@@ -17,7 +17,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { avatarUrl } from "../lib/avatar";
-import { colors, fonts, radius, space, text } from "../theme";
+import { colors, fonts, glass, gradients, radius, space, text } from "../theme";
+import { Reactive } from "./Reactive";
 import { Spinner } from "./Spinner";
 
 /**
@@ -117,16 +118,18 @@ export function Button({
 }) {
   const inactive = disabled || loading;
   return (
-    <Pressable
+    <Reactive
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       onPress={onPress}
       disabled={inactive}
-      style={({ pressed }) => [
+      hoverScale={inactive ? 1 : 1.02}
+      style={({ pressed, hovered }) => [
         styles.button,
         size === "sm" && styles.buttonSm,
         styles[variant],
+        hovered && !inactive && hoverStyles[variant],
         inactive && styles.disabled,
         pressed && styles.pressed,
         style,
@@ -151,9 +154,20 @@ export function Button({
           </Text>
         </View>
       )}
-    </Pressable>
+    </Reactive>
   );
 }
+
+/** Web: o botão clareia um pouco com o mouse em cima. */
+const hoverStyles: Record<ButtonVariant, ViewStyle> = Platform.select({
+  web: {
+    primary: { filter: "brightness(1.1)" } as ViewStyle,
+    secondary: { filter: "brightness(0.94)" } as ViewStyle,
+    ghost: { backgroundColor: glass.hover },
+    danger: { filter: "brightness(1.08)" } as ViewStyle,
+  },
+  default: { primary: {}, secondary: {}, ghost: {}, danger: {} },
+})!;
 
 export function TextField({
   label,
@@ -173,6 +187,8 @@ export function TextField({
   /** Referência do TextInput, para passar o foco de um campo ao outro. */
   inputRef?: Ref<TextInputInstance>;
 }) {
+  // Campo em foco: a borda fica roxa e ganha um brilho (como o resto do vidro, reage ao toque).
+  const [focused, setFocused] = useState(false);
   return (
     <View style={{ gap: space.xs }}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -182,8 +198,17 @@ export function TextField({
           placeholderTextColor={colors.placeholder}
           accessibilityLabel={label}
           {...props}
+          onFocus={(e) => {
+            setFocused(true);
+            props.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            props.onBlur?.(e);
+          }}
           style={[
             styles.input,
+            focused && styles.inputFocused,
             !!accessory && { paddingRight: 48 },
             !!error && { borderColor: colors.danger },
             !!success && { borderColor: colors.success },
@@ -223,14 +248,16 @@ export function Chip({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <Reactive
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
+      pressScale={0.94}
+      hoverScale={1.04}
       style={[styles.chip, selected && styles.chipSelected]}
     >
       <Text style={[text.small, { color: colors.text }]}>{label}</Text>
-    </Pressable>
+    </Reactive>
   );
 }
 
@@ -319,11 +346,11 @@ export function ErrorText({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   content: { padding: space.lg, gap: space.lg },
   button: {
     minHeight: 48,
-    borderRadius: 10,
+    borderRadius: radius.md,
     paddingHorizontal: space.lg,
     alignItems: "center",
     justifyContent: "center",
@@ -341,16 +368,17 @@ const styles = StyleSheet.create({
     marginLeft: 14,
   },
   buttonRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  primary: { backgroundColor: colors.primary },
-  secondary: { backgroundColor: colors.text },
-  ghost: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: colors.border,
+  // Degradê roxo com um brilho embaixo (o botão "flutua" sobre o vidro).
+  primary: {
+    backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+    boxShadow: "0 6px 18px rgba(104, 94, 255, 0.32)",
   },
+  secondary: { backgroundColor: colors.text },
+  ghost: { ...glass.chip },
   danger: { backgroundColor: colors.danger },
-  disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.8 },
+  disabled: { opacity: 0.5, boxShadow: "none" },
+  pressed: { opacity: 0.92 },
   buttonText: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
   // Figma: campo 48 px, borda branca de 1 px, raio 10, sem fundo.
   fieldAccessory: { position: "absolute", top: 0, bottom: 0, right: 0, justifyContent: "center", paddingRight: space.md },
@@ -358,28 +386,33 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderWidth: 1,
     borderColor: colors.field,
-    borderRadius: 10,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     color: colors.text,
     fontFamily: fonts.regular,
     fontSize: 14,
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     outlineWidth: 0, // Web: sem o contorno branco do navegador; a borda colorida mostra o estado
+  },
+  inputFocused: {
+    borderColor: colors.primary,
+    backgroundColor: "rgba(104, 94, 255, 0.08)",
+    boxShadow: "0 0 0 3px rgba(104, 94, 255, 0.22)",
   },
   chip: {
     paddingVertical: space.sm,
     paddingHorizontal: space.md,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
+    ...glass.chip,
   },
   chipSelected: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundImage: gradients.primary,
+    borderColor: "rgba(255, 255, 255, 0.18)",
   },
   segmented: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    ...glass.card,
     borderRadius: radius.pill,
     padding: 4,
     gap: 4,
@@ -390,7 +423,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
   },
-  segmentSelected: { backgroundColor: colors.primary },
+  segmentSelected: {
+    backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+  },
   segmentText: {
     fontFamily: fonts.semibold,
     fontSize: 13,

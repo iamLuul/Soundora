@@ -10,7 +10,8 @@ import { useAuth } from '../../lib/auth';
 import { confirmAction } from '../../lib/dialogs';
 import { iconScale } from '../../lib/display';
 import { useUnreadNotifications } from '../../lib/queries';
-import { colors, fonts, space } from '../../theme';
+import { colors, fonts, glass, gradients, space } from '../../theme';
+import { Reactive } from '../Reactive';
 import { Logo } from '../figma';
 import { Avatar } from '../ui';
 
@@ -39,7 +40,13 @@ export function Sidebar() {
     { key: 'home', href: '/', label: t('desktop.home'), icon: 'home', active: (p) => p === '/' },
     { key: 'discover', href: '/discover', label: t('tabs.discover'), icon: 'search', active: (p) => p.startsWith('/discover') || p.startsWith('/genre') },
     { key: 'notifications', href: '/notifications', label: t('notifications.title'), icon: 'bell', active: (p) => p.startsWith('/notifications') },
-    { key: 'communities', href: '/communities', label: t('communities.title'), icon: 'community', active: (p) => p.startsWith('/communities') || p.startsWith('/c/') },
+    {
+      key: 'communities',
+      href: '/communities',
+      label: t('communities.title'),
+      icon: 'community',
+      active: (p) => p.startsWith('/communities') || p.startsWith('/c/'),
+    },
     { key: 'messages', href: '/messages', label: t('messages.title'), icon: 'message', active: (p) => p.startsWith('/messages') },
     { key: 'music', href: '/music', label: t('tabs.music'), icon: 'music', active: (p) => p.startsWith('/music') || p.startsWith('/album') },
     {
@@ -63,7 +70,7 @@ export function Sidebar() {
           const active = item.active(path);
           const color = active ? colors.text : colors.muted;
           return (
-            <Pressable
+            <Reactive
               key={item.key}
               testID={`side-${item.key}`}
               accessibilityRole="link"
@@ -71,7 +78,8 @@ export function Sidebar() {
               accessibilityState={{ selected: active }}
               aria-current={active ? 'page' : undefined}
               onPress={() => router.navigate(item.href)}
-              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [styles.item, (hovered || pressed) && styles.itemHover]}
+              pressScale={0.97}
+              style={({ pressed, hovered }) => [styles.item, active && styles.itemActive, (hovered || pressed) && !active && styles.itemHover]}
             >
               <View style={styles.icon}>
                 <StrokeIcon name={item.icon} color={color} />
@@ -82,19 +90,21 @@ export function Sidebar() {
                 ) : null}
               </View>
               <Text style={[styles.label, { color }, active && styles.labelActive]}>{item.label}</Text>
-            </Pressable>
+            </Reactive>
           );
         })}
       </View>
 
-      <Pressable
+      <Reactive
         testID="side-post"
         accessibilityRole="button"
         onPress={() => router.navigate('/compose')}
-        style={({ pressed }) => [styles.post, pressed && { opacity: 0.85 }]}
+        pressScale={0.96}
+        hoverScale={1.03}
+        style={({ hovered }) => [styles.post, hovered && styles.postHover]}
       >
         <Text style={styles.postText}>{t('tabs.compose')}</Text>
-      </Pressable>
+      </Reactive>
 
       <View style={{ flex: 1 }} />
       {profile ? <AccountChip name={profile.display_name} username={profile.username} avatar={profile.avatar_url} /> : null}
@@ -169,7 +179,9 @@ const styles = StyleSheet.create({
   logo: { alignSelf: 'flex-start', marginLeft: 12, marginBottom: space.lg },
   nav: { gap: 6 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 48, borderRadius: 24, paddingHorizontal: space.sm },
-  itemHover: { backgroundColor: 'rgba(179, 169, 235, 0.1)' },
+  itemHover: { backgroundColor: glass.hover },
+  // Item da tela atual: uma cápsula de vidro.
+  itemActive: { ...glass.chip },
   icon: { width: 28, alignItems: 'center' },
   label: { fontFamily: fonts.semibold, fontSize: 16 },
   labelActive: { fontFamily: fonts.bold },
@@ -188,7 +200,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { fontFamily: fonts.bold, fontSize: 9, color: colors.text },
-  post: { marginTop: space.xxl, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  post: {
+    marginTop: space.xxl,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+    boxShadow: '0 8px 22px rgba(104, 94, 255, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postHover: { boxShadow: '0 10px 28px rgba(104, 94, 255, 0.5)' },
   postText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
   account: {
     flexDirection: 'row',
@@ -196,13 +218,13 @@ const styles = StyleSheet.create({
     gap: space.sm,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.card,
+    ...glass.card,
     paddingLeft: 5,
     paddingRight: space.lg,
   },
   accountName: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   accountHandle: { fontFamily: fonts.regular, fontSize: 10, color: colors.handle },
-  menu: { backgroundColor: colors.card, borderRadius: 14, paddingVertical: space.xs, marginBottom: space.sm, borderWidth: 1, borderColor: colors.border },
+  menu: { ...glass.sheet, borderRadius: 18, paddingVertical: space.xs, marginBottom: space.sm },
   menuItem: { paddingHorizontal: space.lg, paddingVertical: space.md },
   menuText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
 });

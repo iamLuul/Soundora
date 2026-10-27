@@ -16,7 +16,7 @@ import { relativeTime } from '../../lib/i18n';
 import { listPerf } from '../../lib/list';
 import { useDmInbox, useDmUnread } from '../../lib/queries';
 import { webTouch } from '../../lib/touch';
-import { colors, fonts, space, text } from '../../theme';
+import { colors, fonts, glass, space, text } from '../../theme';
 
 type Tab = 'chats' | 'requests';
 
@@ -115,7 +115,11 @@ function ThreadRow({ item }: { item: DmThread }) {
       accessibilityRole="button"
       accessibilityLabel={`${item.display_name}, ${preview}${item.unread ? `, ${t('messages.unread')}` : ''}`}
       onPress={() => router.push(`/messages/${item.conversation_id}`)}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.card }]}
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+        styles.row,
+        hovered && { backgroundColor: glass.hover },
+        pressed && { backgroundColor: glass.pressed },
+      ]}
     >
       <RingAvatar uri={item.avatar_url} name={item.display_name} size={52} ring={false} />
       <View style={{ flex: 1, gap: 2 }}>
@@ -135,7 +139,7 @@ function ThreadRow({ item }: { item: DmThread }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: { paddingHorizontal: space.lg, gap: space.md, marginBottom: space.sm },
   title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
   note: { ...text.small, paddingHorizontal: space.lg, paddingVertical: space.md },

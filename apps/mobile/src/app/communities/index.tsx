@@ -13,7 +13,7 @@ import { searchCommunities } from '../../lib/api';
 import { useDebouncedValue } from '../../lib/hooks';
 import { useMyCommunities, useRecommendedCommunities } from '../../lib/queries';
 import { webTouch } from '../../lib/touch';
-import { colors, fonts, space, text } from '../../theme';
+import { colors, fonts, glass, space, text } from '../../theme';
 
 /** Explorar comunidades: buscar, as minhas, as recomendadas e criar uma nova. */
 export default function CommunitiesScreen() {
@@ -110,7 +110,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: { paddingHorizontal: space.lg, gap: space.md },
   title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
   section: { fontFamily: fonts.bold, fontSize: 15, color: colors.text, paddingHorizontal: space.lg, marginBottom: space.xs },
@@ -121,10 +121,8 @@ const styles = StyleSheet.create({
     gap: space.md,
     margin: space.lg,
     padding: space.lg,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderRadius: 18,
+    ...glass.card,
   },
   createTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
 });

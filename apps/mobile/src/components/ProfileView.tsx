@@ -15,7 +15,8 @@ import { openConversationWith } from './messages/open';
 import { pickAndUploadProfileImage } from '../lib/pick-image';
 import { keys, useProfilePosts, useVibesOf } from '../lib/queries';
 import type { ProfileSummary } from '../lib/types';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, gradients, radius, space } from '../theme';
+import { Reactive } from './Reactive';
 import { TopTabs } from './figma';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
 import { FavoriteSongs, ProfileGenres, profileKeys } from './ProfileExtras';
@@ -219,6 +220,8 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         ) : (
           <BannerPlaceholder />
         )}
+        {/* O pé do banner esmaece no fundo (a foto e os números "flutuam" sobre ele). */}
+        <View pointerEvents="none" style={styles.bannerFade} />
         {uploading === 'banner' ? <Spinner color={colors.text} style={StyleSheet.absoluteFill} /> : null}
       </Pressable>
 
@@ -298,7 +301,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
           {p.is_me ? (
             <Pill testID="edit-profile" label={t('profile.edit')} onPress={() => router.push('/settings/profile')} />
           ) : (
-            <View style={{ flexDirection: 'row', gap: space.sm }}>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
               <Pill
                 testID="follow-button"
                 accessibilityHint={p.i_follow ? t('profile.unfollow') : p.requested ? t('profile.cancelRequest') : undefined}
@@ -306,7 +309,12 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
                 variant={p.i_follow || p.requested ? 'outline' : 'primary'}
                 onPress={toggleFollow}
               />
-              <Pill testID="message-button" label={t('messages.messageButton')} variant="outline" onPress={() => void openConversationWith(p).catch((err) => notify(formatError(t, err)))} />
+              <Pill
+                testID="message-button"
+                label={t('messages.messageButton')}
+                variant="outline"
+                onPress={() => void openConversationWith(p).catch((err) => notify(formatError(t, err)))}
+              />
             </View>
           )}
         </View>
@@ -343,11 +351,13 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
 /** Cartão de número do perfil. Com onPress, abre a lista (seguidores, seguindo, curtidas). */
 function StatCard({ label, value, onPress, testID }: { label: string; value: string; onPress?: () => void; testID?: string }) {
   return (
-    <Pressable
+    <Reactive
       testID={testID}
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => [styles.statCard, pressed && { opacity: 0.75 }]}
+      pressScale={0.95}
+      hoverScale={onPress ? 1.03 : 1}
+      style={({ hovered }) => [styles.statCard, hovered && !!onPress && styles.statHover]}
       accessible
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={`${label}: ${value}`}
@@ -356,7 +366,7 @@ function StatCard({ label, value, onPress, testID }: { label: string; value: str
         {label}
       </Text>
       <Text style={styles.statValue}>{value}</Text>
-    </Pressable>
+    </Reactive>
   );
 }
 
@@ -374,25 +384,23 @@ function Pill({
   accessibilityHint?: string;
 }) {
   return (
-    <Pressable
+    <Reactive
       testID={testID}
       accessibilityHint={accessibilityHint}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.pill, variant === 'outline' && styles.pillOutline, pressed && { opacity: 0.8 }]}
+      pressScale={0.93}
+      hoverScale={1.04}
+      style={[styles.pill, variant === 'outline' && styles.pillOutline]}
     >
       <Text style={styles.pillText}>{label}</Text>
-    </Pressable>
+    </Reactive>
   );
 }
 
 /** Sem banner: um tom só da paleta do Soundhora (roxo sobre o cinza-arroxeado). */
 function BannerPlaceholder() {
-  return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]}>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary, opacity: 0.35 }]} />
-    </View>
-  );
+  return <View style={[StyleSheet.absoluteFill, styles.placeholder]} />;
 }
 
 const L = PROFILE_LAYOUT;
@@ -404,14 +412,21 @@ const styles = StyleSheet.create({
   lockedBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.textMuted, textAlign: 'center' },
   // Sangra as margens da lista para o banner ir de ponta a ponta.
   header: { marginHorizontal: -space.lg, marginBottom: space.lg, gap: space.lg },
-  banner: { width: '100%', backgroundColor: colors.surface, overflow: 'hidden' },
+  // Banner com os cantos de baixo arredondados.
+  banner: { width: '100%', backgroundColor: colors.surface, overflow: 'hidden', borderBottomLeftRadius: radius.xl, borderBottomRightRadius: radius.xl },
+  bannerFade: { ...StyleSheet.absoluteFill, backgroundImage: 'linear-gradient(180deg, rgba(58, 55, 76, 0) 50%, rgba(58, 55, 76, 0.55) 100%)' },
+  // Sem banner: o degradê da marca (roxo para o cinza-arroxeado, com um toque de rosa).
+  placeholder: {
+    backgroundColor: colors.surface,
+    backgroundImage: 'linear-gradient(135deg, rgba(104, 94, 255, 0.85) 0%, rgba(90, 85, 119, 1) 60%, rgba(253, 81, 99, 0.45) 120%)',
+  },
   menuButton: {
     position: 'absolute',
     right: 23,
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.card,
+    ...glass.chip,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -429,6 +444,9 @@ const styles = StyleSheet.create({
     height: ringSize,
     borderRadius: ringSize / 2,
     backgroundColor: colors.background,
+    // Anel com um brilho roxo de cima (vidro sobre o fundo).
+    backgroundImage: 'linear-gradient(160deg, rgba(138, 128, 255, 0.55) 0%, rgba(58, 55, 76, 1) 60%)',
+    boxShadow: '0 8px 24px rgba(10, 6, 30, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -450,18 +468,21 @@ const styles = StyleSheet.create({
   pill: {
     marginTop: space.md,
     minHeight: 28,
-    paddingHorizontal: space.lg,
-    borderRadius: 10,
+    paddingHorizontal: 11,
+    borderRadius: radius.pill,
     backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+    boxShadow: '0 6px 16px rgba(104, 94, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillOutline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
+  pillOutline: { ...glass.chip, backgroundImage: 'none', boxShadow: 'none', borderColor: 'rgba(138, 128, 255, 0.7)' },
   pillText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
-  statCard: { minHeight: L.card, borderRadius: 10, backgroundColor: colors.card, paddingHorizontal: space.md, paddingVertical: 5, justifyContent: 'center' },
+  statCard: { minHeight: L.card, borderRadius: 18, ...glass.card, paddingHorizontal: space.md, paddingVertical: 5, justifyContent: 'center' },
+  statHover: { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
   statLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
   statValue: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
-  bioCard: { marginHorizontal: L.margin, borderRadius: 10, backgroundColor: colors.card, paddingHorizontal: space.sm + 4, paddingVertical: space.sm },
+  bioCard: { marginHorizontal: L.margin, borderRadius: 18, ...glass.card, paddingHorizontal: space.sm + 4, paddingVertical: space.sm },
   bio: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 15, color: colors.text },
-  tabs: { justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.handle, marginBottom: space.sm },
+  tabs: { justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(177, 172, 208, 0.3)', marginBottom: space.sm },
 });

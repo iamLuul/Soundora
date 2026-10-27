@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, glass, radius, space } from '../theme';
 import { SheetBackdrop } from './ui';
 
 export interface SheetOption {
@@ -31,7 +31,7 @@ export function OptionsSheet({ visible, title, options, onClose }: { visible: bo
                 onClose();
                 o.onPress();
               }}
-              style={({ pressed }) => [styles.option, pressed && { backgroundColor: colors.card }]}
+              style={({ pressed }) => [styles.option, pressed && { backgroundColor: glass.pressed }]}
             >
               <Ionicons name={o.icon} size={20} color={o.danger ? colors.danger : colors.text} />
               <Text style={[styles.optionText, o.danger && { color: colors.danger }]}>{o.label}</Text>
@@ -49,9 +49,9 @@ export function OptionsSheet({ visible, title, options, onClose }: { visible: bo
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
+    ...glass.sheet,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     padding: space.sm,
     paddingBottom: space.xxl,
     width: '100%',

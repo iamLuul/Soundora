@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PLATFORM_LABELS, STREAMING_CHOICES, type StreamingChoice } from '@soundhora/core';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, space } from '../theme';
 import { PlatformLogo } from './figma';
 
 /** Lista das plataformas de streaming para a pessoa escolher a sua (cadastro, Configurações, Trending). */
@@ -38,10 +38,8 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.surface,
-    backgroundColor: colors.card,
+    borderRadius: 18,
+    ...glass.card,
   },
   rowOn: { borderColor: colors.primary },
   label: { flex: 1, fontFamily: fonts.semibold, fontSize: 15, color: colors.text },

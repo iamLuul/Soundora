@@ -7,7 +7,7 @@ import { DiscoverSection } from '../../components/DiscoverSection';
 import { TopTabs } from '../../components/figma';
 import { SearchPanel } from '../../components/SearchPanel';
 import { TrendingSection } from '../../components/TrendingSection';
-import { colors, space } from '../../theme';
+import { space } from '../../theme';
 
 type Section = 'discover' | 'trending' | 'search';
 
@@ -38,14 +38,20 @@ export default function DiscoverScreen() {
         ]}
       />
       <View style={styles.body}>
-        {section === 'discover' ? <DiscoverSection /> : section === 'trending' ? <TrendingSection /> : <SearchPanel key={applied ?? ''} initialQuery={applied ?? ''} />}
+        {section === 'discover' ? (
+          <DiscoverSection />
+        ) : section === 'trending' ? (
+          <TrendingSection />
+        ) : (
+          <SearchPanel key={applied ?? ''} initialQuery={applied ?? ''} />
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: { marginHorizontal: space.lg },
   body: { flex: 1, paddingHorizontal: space.md, paddingTop: space.sm, maxWidth: 640, width: '100%', alignSelf: 'center' },
 });

@@ -7,7 +7,7 @@ import { joinCommunity, type CommunityCard } from '../../lib/api';
 import { notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { genreLabel, useGenres, useRecommendedCommunities } from '../../lib/queries';
-import { colors, fonts, space } from '../../theme';
+import { colors, fonts, glass, space } from '../../theme';
 import { Carousel } from '../Carousel';
 import { showToast } from '../Toast';
 import { CommunityAvatar } from './CommunityAvatar';
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
   more: { fontFamily: fonts.semibold, fontSize: 12, color: colors.muted },
   row: { gap: space.md, paddingHorizontal: space.lg },
-  card: { width: 156, backgroundColor: colors.card, borderRadius: 14, padding: space.md, gap: space.sm, alignItems: 'center' },
+  card: { width: 156, ...glass.card, borderRadius: 18, padding: space.md, gap: space.sm, alignItems: 'center' },
   who: { alignItems: 'center', gap: 3, alignSelf: 'stretch' },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text, textAlign: 'center', marginTop: space.xs },
   meta: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },

@@ -13,6 +13,7 @@ import { uniqueBy } from '../lib/hooks';
 import { VibesRowSkeleton } from './Skeleton';
 import { canCreateVibes } from '../lib/vibes-create';
 import { webTouch } from '../lib/touch';
+import { Reactive } from './Reactive';
 
 const SIZE = 62;
 const ITEM_W = SIZE + 4;
@@ -22,9 +23,18 @@ const QUEUE_MAX = 30;
 
 /** Avatar com o anel das Vibes: roxo = tem vibe que eu não vi; cinza = já vi tudo; sem anel = sem vibe. */
 function VibeRing({ uri, name, state }: { uri: string | null; name: string; state: 'unseen' | 'seen' | 'none' }) {
-  const ring = state === 'unseen' ? colors.primary : state === 'seen' ? colors.handle : 'transparent';
+  // Vibe não vista: anel em degradê (roxo para rosa), que chama mais atenção que o anel liso.
+  if (state === 'unseen') {
+    return (
+      <View style={[styles.ring, styles.ringUnseen]}>
+        <View style={styles.ringGap}>
+          <Avatar uri={uri} name={name} size={SIZE - 8} />
+        </View>
+      </View>
+    );
+  }
   return (
-    <View style={[styles.ring, { borderColor: ring }]}>
+    <View style={[styles.ring, { borderColor: state === 'seen' ? colors.handle : 'transparent' }]}>
       <Avatar uri={uri} name={name} size={SIZE - 8} />
     </View>
   );
@@ -78,14 +88,16 @@ export function FollowingRow() {
         renderItem={({ item: x }) =>
           x === 'me' ? (
             <View style={styles.item}>
-              <Pressable
+              <Reactive
                 testID="vibe-me"
                 accessibilityRole="button"
                 accessibilityLabel={mine ? t('vibes.seeMine') : t('vibes.new')}
                 onPress={() => (mine ? open(mine, [mine, ...others]) : router.push('/vibes/new'))}
+                pressScale={0.92}
+                hoverScale={1.05}
               >
                 <VibeRing uri={profile.avatar_url} name={profile.display_name} state={mine ? 'seen' : 'none'} />
-              </Pressable>
+              </Reactive>
               {canCreateVibes ? (
                 <Pressable
                   testID="vibe-new"
@@ -103,18 +115,20 @@ export function FollowingRow() {
               </Text>
             </View>
           ) : (
-            <Pressable
+            <Reactive
               testID={`vibe-${x.username}`}
               accessibilityRole="button"
               accessibilityLabel={t('vibes.of', { username: x.username })}
               onPress={() => open(x, others)}
+              pressScale={0.92}
+              hoverScale={1.05}
               style={styles.item}
             >
               <VibeRing uri={x.avatar_url} name={x.display_name} state={x.unseen ? 'unseen' : 'seen'} />
               <Text style={styles.name} numberOfLines={1}>
                 {x.username}
               </Text>
-            </Pressable>
+            </Reactive>
           )
         }
       />
@@ -131,6 +145,20 @@ const styles = StyleSheet.create({
   row: { paddingHorizontal: space.md },
   item: { alignItems: 'center', width: ITEM_W, gap: 4 },
   ring: { width: SIZE, height: SIZE, borderRadius: SIZE / 2, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  ringUnseen: {
+    borderWidth: 0,
+    backgroundColor: colors.primary,
+    backgroundImage: 'linear-gradient(135deg, #8A80FF 0%, #685EFF 45%, #FD5163 100%)',
+    boxShadow: '0 0 12px rgba(104, 94, 255, 0.45)',
+  },
+  ringGap: {
+    width: SIZE - 5,
+    height: SIZE - 5,
+    borderRadius: (SIZE - 5) / 2,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: { fontFamily: fonts.regular, fontSize: 11, color: colors.text, maxWidth: SIZE + 4 },
   plus: {
     position: 'absolute',

@@ -27,7 +27,7 @@ export default function CommunitySettingsScreen() {
   const [error, setError] = useState<string | null>(null);
   const c = community.data;
 
-  if (community.isLoading) return <Spinner style={{ flex: 1, backgroundColor: colors.background }} />;
+  if (community.isLoading) return <Spinner style={{ flex: 1 }} />;
   if (!c) return <ErrorScreen code={404} />;
   if (c.my_role !== 'owner' || c.my_status !== 'active') return <ErrorScreen code={403} />;
 
@@ -80,6 +80,6 @@ export default function CommunitySettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
 });

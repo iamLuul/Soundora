@@ -12,7 +12,7 @@ import { fetchMyAccount, setGender, type Gender } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
-import { colors, fonts, space } from '../../theme';
+import { colors, fonts, glass, space } from '../../theme';
 
 export const myAccountKey = ['my-account'] as const;
 const GENDERS: Gender[] = ['female', 'male', 'non_binary', 'other'];
@@ -139,7 +139,7 @@ export default function AccountSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  minor: { backgroundColor: colors.card, borderRadius: 10, padding: space.lg, gap: space.sm, borderLeftWidth: 3, borderLeftColor: colors.primary },
+  minor: { ...glass.card, borderRadius: 18, padding: space.lg, gap: space.sm, borderLeftWidth: 3, borderLeftColor: colors.primary },
   minorHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   minorTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
   minorBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: colors.text },

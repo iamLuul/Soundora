@@ -55,6 +55,6 @@ export default function NewCommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
 });

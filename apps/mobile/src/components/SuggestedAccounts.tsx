@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SuggestedAccount } from '../lib/api';
 import { genreLabel, useFollow, useFollowingIds, useGenres, useRequestedIds, useSuggestedAccounts } from '../lib/queries';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, space } from '../theme';
 import { Carousel } from './Carousel';
 import { RingAvatar } from './figma';
 import { Verified } from './Verified';
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text, paddingHorizontal: space.lg },
   row: { gap: space.md, paddingHorizontal: space.lg },
   wrapPanel: { gap: space.md },
-  cardPanel: { width: 132, borderWidth: 1, borderColor: colors.muted, backgroundColor: 'transparent' },
-  card: { width: 148, backgroundColor: colors.card, borderRadius: 14, padding: space.md, gap: space.sm, alignItems: 'center' },
+  cardPanel: { width: 132 },
+  card: { width: 148, ...glass.card, borderRadius: 18, padding: space.md, gap: space.sm, alignItems: 'center' },
   who: { alignItems: 'center', gap: 2, alignSelf: 'stretch' },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text, marginTop: space.xs },
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },

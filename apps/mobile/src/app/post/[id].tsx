@@ -16,7 +16,7 @@ import { useAuth } from '../../lib/auth';
 import { errorStatus, formatError } from '../../lib/errors';
 import { ErrorScreen } from '../../components/ErrorScreen';
 import { keys, useMyCommunities, usePost, useToggleLike } from '../../lib/queries';
-import { colors, fonts, space } from '../../theme';
+import { colors, fonts, glass, space } from '../../theme';
 import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { webTouch } from '../../lib/touch';
@@ -243,7 +243,9 @@ export default function PostScreen() {
           visible={menuOpen}
           username={post.data.author_username}
           isMine={post.data.author_id === session?.user.id}
-          canModerate={!!post.data.community && !!myCommunities.data?.some((c) => c.id === post.data!.community!.id && (c.role === 'owner' || c.role === 'moderator'))}
+          canModerate={
+            !!post.data.community && !!myCommunities.data?.some((c) => c.id === post.data!.community!.id && (c.role === 'owner' || c.role === 'moderator'))
+          }
           allowVibe={!post.data.community?.closed}
           onClose={() => setMenuOpen(false)}
           onAction={handleAction}
@@ -254,7 +256,7 @@ export default function PostScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: { justifyContent: 'center', paddingHorizontal: space.lg, paddingVertical: space.sm },
   title: { position: 'absolute', alignSelf: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   gone: { fontFamily: fonts.regular, fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: space.xl },
@@ -263,14 +265,21 @@ const styles = StyleSheet.create({
   replying: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: space.xs },
   replyingText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
   replyingCancel: { fontFamily: fonts.bold, fontSize: 13, color: colors.textMuted },
-  composer: { borderTopWidth: 1, borderTopColor: colors.tabBar, paddingHorizontal: space.lg, paddingTop: space.sm, backgroundColor: colors.background },
+  composer: {
+    ...glass.sheet,
+    borderWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.10)',
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+  },
   composerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   input: {
     flex: 1,
     minHeight: 40,
     maxHeight: 120,
     borderRadius: 20,
-    backgroundColor: colors.card,
+    ...glass.chip,
     paddingHorizontal: space.lg,
     paddingVertical: 10,
     color: colors.text,

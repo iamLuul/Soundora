@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CommunityCard } from '../../lib/api';
-import { colors, fonts, space } from '../../theme';
+import { colors, fonts, glass, space } from '../../theme';
 import { CommunityAvatar } from './CommunityAvatar';
 
 /** Uma comunidade numa lista (busca, suas comunidades, recomendadas). */
@@ -16,7 +16,11 @@ export function CommunityRow({ item, right }: { item: CommunityCard; right?: Rea
       accessibilityRole="link"
       accessibilityLabel={`${item.name}, ${meta}`}
       onPress={() => router.push(`/c/${item.slug}`)}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.card }]}
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+        styles.row,
+        hovered && { backgroundColor: glass.hover },
+        pressed && { backgroundColor: glass.pressed },
+      ]}
     >
       <CommunityAvatar name={item.name} color={item.color} size={48} closed={closed} />
       <View style={{ flex: 1, gap: 2 }}>

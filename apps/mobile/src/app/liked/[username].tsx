@@ -85,7 +85,7 @@ export default function LikedSongsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: { justifyContent: 'center', paddingHorizontal: space.lg, paddingBottom: space.sm },
   title: { position: 'absolute', alignSelf: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.text, maxWidth: '70%' },
   list: { paddingHorizontal: space.lg, paddingTop: space.md },

@@ -4,7 +4,7 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SvgXml } from 'react-native-svg';
 import { badgeIcon } from '../assets/badgeIcons';
 import { fetchSupportUrl } from '../lib/api';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, glass, radius, space } from '../theme';
 import { badgeKeys } from './ProfileBadges';
 import { SettingsRow } from './Settings';
 
@@ -53,7 +53,7 @@ export function SupportCard() {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space.md, gap: space.sm },
+  card: { ...glass.card, borderRadius: 18, padding: space.md, gap: space.sm },
   head: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
   body: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: colors.text },

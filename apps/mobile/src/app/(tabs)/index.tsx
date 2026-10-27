@@ -45,7 +45,7 @@ export default function FeedScreen() {
   const [adsTip, closeAdsTip] = useFirstTimeTip('ads-intro');
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, paddingTop: insets.top }}>
       <TopTabs
         tabs={[
           { value: 'feed', label: t('tabs.feed') },

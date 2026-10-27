@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { markTipSeen, tipSeen, type TipKey } from '../lib/tips';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, glass, radius, space } from '../theme';
 import { Button } from './ui';
 
 export interface CoachStep {
@@ -74,7 +74,16 @@ export function CoachMarks({ visible, steps, onClose, testID = 'coach' }: { visi
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end', padding: space.lg },
-  card: { backgroundColor: colors.background, borderRadius: radius.lg, padding: space.xl, gap: space.md, maxWidth: 480, width: '100%', alignSelf: 'center', marginBottom: space.xxl },
+  card: {
+    ...glass.sheet,
+    borderRadius: radius.xl,
+    padding: space.xl,
+    gap: space.md,
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: space.xxl,
+  },
   iconWrap: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
   body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.text },

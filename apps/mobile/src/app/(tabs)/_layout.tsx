@@ -4,7 +4,6 @@ import { carouselOptions, onTabTransition, SwipeTabs } from '../../components/Sw
 import { TabBar } from '../../components/TabBar';
 import { useIsDesktop } from '../../lib/layout';
 import { onTabFocus } from '../../lib/tab-focus';
-import { colors } from '../../theme';
 
 /** Abas do app, na ordem do Figma: Início, Buscar, + (postar), Músicas, Perfil. */
 export default function TabsLayout() {
@@ -34,7 +33,7 @@ export default function TabsLayout() {
       activityEnabled={desktop}
       // focus: o Início sabe quando a pessoa volta de outra aba (para trazer conteúdo novo).
       screenListeners={({ route }) => ({ transitionStart: () => onTabTransition(route.name), focus: () => onTabFocus(route.name) })}
-      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: colors.background }, ...carouselOptions(route.name, !desktop) })}
+      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: 'transparent' }, ...carouselOptions(route.name, !desktop) })}
     >
       <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
       <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />

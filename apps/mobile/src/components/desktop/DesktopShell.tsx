@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useWebLayout } from '../../lib/layout';
-import { colors } from '../../theme';
+import { Backdrop } from '../Backdrop';
 import { RightPanel } from './RightPanel';
 import { Sidebar } from './Sidebar';
 
@@ -19,16 +19,15 @@ export function DesktopShell({ enabled, children }: { enabled: boolean; children
   const layout = useWebLayout();
   const desktop = enabled && layout !== 'mobile';
   return (
-    <View style={[styles.root, desktop && styles.rootDesktop]}>
+    <Backdrop style={desktop ? styles.rootDesktop : undefined}>
       {desktop ? <Sidebar /> : null}
       <View style={desktop ? styles.center : styles.full}>{children}</View>
       {desktop && layout === 'wide' ? <RightPanel /> : null}
-    </View>
+    </Backdrop>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
   rootDesktop: { flexDirection: 'row', justifyContent: 'center' },
   full: { flex: 1 },
   center: {
@@ -37,7 +36,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: colors.tabBar,
+    borderColor: 'rgba(179, 169, 235, 0.16)',
     // As abas deslizam (carrossel): sem isto, a aba vizinha apareceria por cima das colunas.
     overflow: 'hidden',
   },

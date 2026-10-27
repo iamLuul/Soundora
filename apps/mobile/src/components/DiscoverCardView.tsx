@@ -109,7 +109,14 @@ export function DiscoverCardView({
                 {t('discover.previewBy', { platform: PLATFORM_LABELS[credit] })}
               </Text>
             ) : null}
-            <Pressable testID="discover-platform" accessibilityRole="link" accessibilityLabel={t('feed.listenOn', { platform: label })} onPress={open} hitSlop={8} style={webTouch(8)}>
+            <Pressable
+              testID="discover-platform"
+              accessibilityRole="link"
+              accessibilityLabel={t('feed.listenOn', { platform: label })}
+              onPress={open}
+              hitSlop={8}
+              style={webTouch(8)}
+            >
               <PlatformLogo platform={target} size={24} />
             </Pressable>
           </View>
@@ -123,8 +130,12 @@ const styles = StyleSheet.create({
   // Figma: 308 x 435, fundo #5A5577, raio 10, sombra 25 px.
   card: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 24,
     backgroundColor: colors.tabBar,
+    // Opaco (as cartas de trás não aparecem), com degradê e a borda de vidro.
+    backgroundImage: 'linear-gradient(160deg, #66608A 0%, #4A4566 100%)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     padding: 20,
     gap: space.md,
     shadowColor: '#000000',
@@ -134,7 +145,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   coverWrap: { flex: 1, minHeight: 140 },
-  cover: { width: '100%', height: '100%', borderRadius: 4 },
+  cover: { width: '100%', height: '100%', borderRadius: 14 },
   coverFallback: { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   body: { gap: 1 },
   title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
@@ -149,6 +160,14 @@ const styles = StyleSheet.create({
   right: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   genre: { fontFamily: fonts.semibold, fontSize: 10, color: colors.muted, textTransform: 'uppercase' },
   credit: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMutedOnSurface },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: space.sm, paddingVertical: 2, borderRadius: 999 },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
   badgeText: { fontFamily: fonts.semibold, fontSize: 11, color: colors.text },
 });

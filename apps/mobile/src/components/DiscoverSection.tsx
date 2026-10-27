@@ -8,7 +8,7 @@ import { fetchDiscoverCards, fetchRecommendations, refreshDiscoverAudio, swipeDi
 import { formatError } from '../lib/errors';
 import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
 import type { DiscoverCard, LikedSong } from '../lib/types';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, glass, space, text } from '../theme';
 import { DiscoverDeck } from './DiscoverDeck';
 import { DiscoverLiked } from './DiscoverLiked';
 import { SearchField } from './figma';
@@ -355,7 +355,7 @@ export function DiscoverSection() {
 }
 
 const styles = StyleSheet.create({
-  choose: { backgroundColor: colors.card, borderRadius: 10, padding: space.md, gap: space.xs },
+  choose: { ...glass.card, borderRadius: 18, padding: space.md, gap: space.xs },
   chooseText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.text },
   chooseLink: { fontFamily: fonts.semibold, fontSize: 13, color: colors.primary },
   center: { alignItems: 'center', justifyContent: 'center', gap: space.md },
@@ -370,6 +370,6 @@ const styles = StyleSheet.create({
   },
   genreChosenText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
   matches: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  match: { borderRadius: 999, borderWidth: 1, borderColor: colors.handle, paddingHorizontal: space.md, paddingVertical: 6 },
+  match: { borderRadius: 999, ...glass.chip, paddingHorizontal: space.md, paddingVertical: 6 },
   matchText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text },
 });

@@ -129,7 +129,6 @@ export default function MusicScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
     paddingHorizontal: space.md,
   },
   title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },

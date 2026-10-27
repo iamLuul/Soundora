@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { chartTrackLink, fetchTopAlbums, fetchWorldChart, type ChartTrack } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { keys } from '../lib/queries';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, glass, radius, space, text } from '../theme';
 import { useStreamingOpener } from './StreamingOpener';
 import { TopAlbumList } from './TopAlbums';
 import { WorldChartList } from './WorldChart';
@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
   link: { color: colors.muted, fontFamily: fonts.semibold },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    ...glass.sheet,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     padding: space.lg,
     gap: space.md,
     maxWidth: 640,
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.text, textAlign: 'center' },
   weekText: { fontFamily: fonts.regular, fontSize: 10, color: colors.text },
-  toggle: { flexDirection: 'row', alignSelf: 'flex-start', borderRadius: 999, borderWidth: 1, borderColor: colors.handle, padding: 3, marginBottom: space.sm },
+  toggle: { flexDirection: 'row', alignSelf: 'flex-start', borderRadius: 999, ...glass.chip, padding: 3, marginBottom: space.sm },
   toggleItem: { paddingHorizontal: space.md, paddingVertical: 6, borderRadius: 999 },
   toggleActive: { backgroundColor: colors.primary },
   toggleText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted },

@@ -3,13 +3,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Platform as StreamingPlatform } from '@soundhora/core';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useId, useMemo, type ReactNode } from 'react';
+import { useCallback, useId, useMemo, useState, type ReactNode } from 'react';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { logoSvg, platformSvgs } from '../assets/brand';
 import { icons, type IconName } from '../assets/icons';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, space } from '../theme';
+import { Reactive } from './Reactive';
 import { useUnreadNotifications } from '../lib/queries';
 import { Avatar } from './ui';
 import { webTouch } from '../lib/touch';
@@ -82,7 +84,23 @@ export function PlatformLogo({ platform, size = 20 }: { platform: StreamingPlatf
   );
 }
 
-/** Cor de cada plataforma, usada no contorno e no fundo do cartão de música. */
+/**
+ * Degradê do cartão de música de cada plataforma (do tom da marca para um vizinho mais fundo,
+ * como no Figma "Home — NavBar Liquid Glass"). Texto branco com contraste 4.5:1 nas duas pontas.
+ */
+export const PLATFORM_GRADIENT: Record<StreamingPlatform, [string, string]> = {
+  spotify: ['#1B7F45', '#146B5C'],
+  apple_music: ['#D83A55', '#8E3BB8'],
+  deezer: ['#8A3BE0', '#5A3BD6'],
+  youtube: ['#D33A33', '#9A2B5A'],
+  youtube_music: ['#D33A33', '#9A2B5A'],
+  soundcloud: ['#C2531A', '#C23A4A'],
+  tidal: ['#4A4A5C', '#23232E'],
+  amazon_music: ['#1A7C89', '#3557C9'],
+  bandcamp: ['#3F7E8C', '#2F5480'],
+};
+
+/** Cor de cada plataforma (contornos e detalhes). */
 export const PLATFORM_ACCENT: Record<StreamingPlatform, string> = {
   spotify: '#B7FF95',
   apple_music: '#FD5163',
@@ -131,18 +149,27 @@ export function TopTabs<T extends string>({
         {tabs.map((tab) => {
           const active = tab.value === value;
           return (
-            <Pressable
+            <Reactive
               key={tab.value}
               testID={`tab-${tab.value}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => onChange?.(tab.value)}
-              hitSlop={8} style={webTouch(8)}
+              pressScale={0.94}
+              hitSlop={8}
+              style={({ hovered }) => [webTouch(8), styles.tab, hovered && !active && styles.tabHover]}
             >
-              <Text style={[styles.tabText, compact && styles.tabTextCompact, active && styles.tabActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              <Text
+                style={[styles.tabText, compact && styles.tabTextCompact, active && styles.tabActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
                 {tab.label}
               </Text>
-            </Pressable>
+              {/* A aba ativa ganha um traço com o degradê roxo embaixo, que aparece com uma mola. */}
+              {active ? <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.tabIndicator} /> : null}
+            </Reactive>
           );
         })}
       </View>
@@ -198,6 +225,18 @@ const styles = StyleSheet.create({
   tabTextCompact: { fontSize: 15 },
   tabText: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
   tabActive: { fontFamily: fonts.bold },
+  tab: { alignItems: 'center' },
+  tabHover: { opacity: 0.75 },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: -7,
+    width: 18,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    backgroundImage: 'linear-gradient(90deg, #8A80FF 0%, #685EFF 100%)',
+    boxShadow: '0 0 8px rgba(104, 94, 255, 0.7)',
+  },
   bell: { position: 'absolute', right: 0, top: 12 },
   messages: { position: 'absolute', left: 0, top: 11 },
   badge: {
@@ -249,7 +288,15 @@ export function RingAvatar({ uri, name, size = 38, ring = true }: { uri: string 
   return (
     <View
       testID={ring ? 'avatar-ring' : undefined}
-      style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: ring ? colors.primary : 'transparent', alignItems: 'center', justifyContent: 'center' }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 2,
+        borderColor: ring ? colors.primary : 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <Avatar uri={uri} name={name} size={size - 6} />
     </View>
@@ -258,8 +305,10 @@ export function RingAvatar({ uri, name, size = 38, ring = true }: { uri: string 
 
 /** Campo de busca do Figma (Search page): fundo #322F42, borda fina, lupa à direita. */
 export function SearchField(props: TextInputProps) {
+  // Em foco: borda roxa e um brilho em volta.
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={searchStyles.box}>
+    <View style={[searchStyles.box, focused && searchStyles.focused]}>
       <TextInput
         placeholderTextColor={colors.handle}
         autoCapitalize="none"
@@ -267,6 +316,14 @@ export function SearchField(props: TextInputProps) {
         returnKeyType="search"
         accessibilityLabel={props.placeholder}
         {...props}
+        onFocus={(e) => {
+          setFocused(true);
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          props.onBlur?.(e);
+        }}
         style={searchStyles.input}
       />
       <Icon name="searchField" size={18} color={colors.handle} />
@@ -278,13 +335,12 @@ const searchStyles = StyleSheet.create({
   box: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 38,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: colors.handle,
-    backgroundColor: colors.card,
-    paddingHorizontal: 11,
+    minHeight: 40,
+    borderRadius: 20,
+    ...glass.chip,
+    paddingHorizontal: 14,
     gap: space.sm,
   },
+  focused: { borderColor: colors.primary, backgroundColor: 'rgba(104, 94, 255, 0.08)', boxShadow: '0 0 0 3px rgba(104, 94, 255, 0.22)' },
   input: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: colors.text, paddingVertical: 8, outlineWidth: 0 },
 });

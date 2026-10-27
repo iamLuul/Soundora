@@ -6,7 +6,7 @@ import { Platform, StyleSheet, Switch, Text, View } from 'react-native';
 import { ChoiceRow, SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { Button } from '../../components/ui';
 import { display, ICON_SIZES, readDisplayPrefs, saveDisplayPrefs, TEXT_SIZES, type DisplayPrefs, type IconSize, type TextSize } from '../../lib/display';
-import { colors, fonts, space } from '../../theme';
+import { colors, fonts, glass, space } from '../../theme';
 
 const TEXT_OPTIONS = Object.keys(TEXT_SIZES) as TextSize[];
 const ICON_OPTIONS = Object.keys(ICON_SIZES) as IconSize[];
@@ -97,7 +97,7 @@ export default function AccessibilitySettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  preview: { backgroundColor: colors.card, borderRadius: 10, padding: space.lg, gap: space.sm },
+  preview: { ...glass.card, borderRadius: 18, padding: space.lg, gap: space.sm },
   previewLabel: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   previewRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, textAlign: 'center' },

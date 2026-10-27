@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space.xl,
     paddingVertical: space.xxl,
-    backgroundColor: colors.background,
     gap: space.sm,
   },
   badge: {

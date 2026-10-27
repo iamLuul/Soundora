@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
   },
   destinationOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   destinationText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text, flexShrink: 1 },
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   top: {
     flexDirection: "row",
     alignItems: "center",

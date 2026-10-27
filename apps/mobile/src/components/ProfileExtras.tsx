@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { fetchFavoriteSongs, fetchUserGenres, PROFILE_GENRES_MAX, trackLink } from '../lib/api';
 import { genreLabel, useGenres } from '../lib/queries';
 import { webTouch } from '../lib/touch';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, space } from '../theme';
 import { useStreamingOpener } from './StreamingOpener';
 
 const MARGIN = 20;
@@ -123,9 +123,9 @@ export function FavoriteSongs({ userId, isMe }: { userId: string; isMe: boolean 
 
 const styles = StyleSheet.create({
   genres: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm, marginHorizontal: MARGIN },
-  genre: { borderRadius: 10, borderWidth: 1, borderColor: colors.handle, paddingHorizontal: space.md, paddingVertical: 2, maxWidth: 140 },
+  genre: { borderRadius: 999, ...glass.chip, paddingHorizontal: space.md, paddingVertical: 2, maxWidth: 140 },
   genreText: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },
-  card: { marginHorizontal: MARGIN, borderRadius: 10, backgroundColor: colors.card, padding: space.md, gap: space.sm },
+  card: { marginHorizontal: MARGIN, borderRadius: 18, ...glass.card, padding: space.md, gap: space.sm },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   more: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { canCreateVibes } from '../lib/vibes-create';
-import { colors, fonts, radius, space, text } from '../theme';
+import { colors, fonts, glass, radius, space, text } from '../theme';
 import { SheetBackdrop } from './ui';
 
 export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' } | { type: 'vibe' } | { type: 'removeFromCommunity' };
@@ -53,9 +53,7 @@ export function PostActions({
           {step === 'menu' ? (
             <>
               {allowVibe && canCreateVibes ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
-              {canModerate && !isMine ? (
-                <Option label={t('communities.removePost')} danger onPress={() => pick({ type: 'removeFromCommunity' })} />
-              ) : null}
+              {canModerate && !isMine ? <Option label={t('communities.removePost')} danger onPress={() => pick({ type: 'removeFromCommunity' })} /> : null}
               {isMine ? (
                 <Option label={deleteLabel ?? t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
               ) : (
@@ -90,7 +88,7 @@ function Option({ label, onPress, danger }: { label: string; onPress: () => void
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: space.sm, paddingBottom: space.xxl },
+  sheet: { ...glass.sheet, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.sm, paddingBottom: space.xxl },
   option: { padding: space.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   optionText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },
 });

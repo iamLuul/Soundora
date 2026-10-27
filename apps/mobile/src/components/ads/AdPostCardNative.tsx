@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { NativeAdView, NativeAsset, NativeAssetType, NativeMediaView, useNativeAd } from 'react-native-google-mobile-ads';
 import { FEED_AD_REQUEST, nativeAdUnitId } from '../../lib/ads-sdk';
-import { colors, fonts, radius, space } from '../../theme';
+import { colors, fonts, glass, space } from '../../theme';
 import { SponsoredBadge } from './SponsoredBadge';
 
 /**
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   // Mesmo espaçamento e linha de baixo de um post, para o feed seguir no mesmo ritmo.
   wrap: { paddingVertical: space.lg, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
   // Fundo de cartão e borda: o anúncio não se confunde com um post.
-  card: { gap: space.md, padding: space.md, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  card: { gap: space.md, padding: space.md, borderRadius: 18, ...glass.card, borderWidth: 1, borderColor: colors.border },
   // Espaço à direita para o ícone AdChoices, que o SDK põe no canto de cima.
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingRight: 24 },
   icon: { width: 38, height: 38, borderRadius: 8 },

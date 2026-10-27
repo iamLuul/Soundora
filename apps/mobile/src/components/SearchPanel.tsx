@@ -10,7 +10,7 @@ import { uniqueBy, useDebouncedValue } from '../lib/hooks';
 import { useSearchPosts } from '../lib/queries';
 import { PostList } from './PostList';
 import type { PersonCard, TrackResult } from '../lib/types';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, glass, space, text } from '../theme';
 import { RingAvatar, SearchField } from './figma';
 import { TrendingRow } from './TrendingList';
 import { Button } from './ui';
@@ -295,6 +295,6 @@ const styles = StyleSheet.create({
   person: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.xs },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   blockedTag: { fontFamily: fonts.semibold, color: colors.danger },
-  genreIcon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.handle, alignItems: 'center', justifyContent: 'center' },
+  genreIcon: { width: 44, height: 44, borderRadius: 22, ...glass.chip, alignItems: 'center', justifyContent: 'center' },
   genreHash: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
 });

@@ -14,7 +14,7 @@ import { notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { useDebouncedValue } from '../../lib/hooks';
 import type { PersonCard } from '../../lib/types';
-import { colors, fonts, space, text } from '../../theme';
+import { colors, fonts, glass, space, text } from '../../theme';
 
 /** Nova mensagem: buscar a pessoa pelo nome ou @. */
 export default function ComposeMessageScreen() {
@@ -66,7 +66,11 @@ export default function ComposeMessageScreen() {
             accessibilityLabel={`${item.display_name}, @${item.username}`}
             onPress={() => void open(item)}
             disabled={!!opening}
-            style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.card }]}
+            style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+              styles.row,
+              hovered && { backgroundColor: glass.hover },
+              pressed && { backgroundColor: glass.pressed },
+            ]}
           >
             <RingAvatar uri={item.avatar_url} name={item.display_name} size={44} ring={false} />
             <View style={{ flex: 1 }}>
@@ -88,7 +92,7 @@ export default function ComposeMessageScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: { paddingHorizontal: space.lg, gap: space.md, marginBottom: space.sm },
   title: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
   hint: { color: colors.textMuted, textAlign: 'center', marginTop: space.xl, paddingHorizontal: space.xl },

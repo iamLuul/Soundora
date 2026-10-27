@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AlbumReview } from '../lib/api';
 import { formatRating } from '../lib/reviews';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, space } from '../theme';
 import { Carousel } from './Carousel';
 import { Icon } from './figma';
 
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   wrap: { marginHorizontal: -space.lg, paddingVertical: space.lg, gap: space.md, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
   title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text, paddingHorizontal: space.lg },
   row: { gap: space.md, paddingHorizontal: space.lg },
-  card: { width: 240, backgroundColor: colors.card, borderRadius: 14, padding: space.md, gap: space.sm },
+  card: { width: 240, ...glass.card, borderRadius: 18, padding: space.md, gap: space.sm },
   album: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   cover: { width: 56, height: 56, borderRadius: 4, backgroundColor: colors.surface },
   coverEmpty: { alignItems: 'center', justifyContent: 'center' },

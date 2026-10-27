@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack } from 'expo-router';
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, space } from '../theme';
 import { Screen } from './ui';
 
 /** Uma tela de Configurações (título no cabeçalho, coluna centralizada). */
@@ -68,7 +68,16 @@ export function SettingsRow({
   const rowStyle = [styles.row, !last && styles.divider];
   if (!onPress) return <View style={rowStyle}>{content}</View>;
   return (
-    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [...rowStyle, pressed && { opacity: 0.7 }]}>
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+        ...rowStyle,
+        hovered && { backgroundColor: glass.hover },
+        pressed && { backgroundColor: glass.pressed },
+      ]}
+    >
       {content}
     </Pressable>
   );
@@ -94,7 +103,12 @@ export function ChoiceRow({
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, !last && styles.divider, pressed && { opacity: 0.7 }]}
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+        styles.row,
+        !last && styles.divider,
+        hovered && { backgroundColor: glass.hover },
+        pressed && { backgroundColor: glass.pressed },
+      ]}
     >
       <Text style={[styles.label, { flex: 1, color: colors.text }]}>{label}</Text>
       <Ionicons name={selected ? 'radio-button-on' : 'radio-button-off'} size={20} color={selected ? colors.primary : colors.muted} />
@@ -104,7 +118,7 @@ export function ChoiceRow({
 
 const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: space.xs },
-  card: { backgroundColor: colors.card, borderRadius: 10, overflow: 'hidden' },
+  card: { ...glass.card, borderRadius: 18, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, minHeight: 56, paddingVertical: space.sm },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   label: { fontFamily: fonts.semibold, fontSize: 15 },

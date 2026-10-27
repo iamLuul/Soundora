@@ -7,7 +7,7 @@ import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { setStreamingPlatform } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { keys, useStreamingPlatform } from '../lib/queries';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, glass, radius, space, text } from '../theme';
 import { StreamingPicker } from './StreamingPicker';
 import { SheetBackdrop } from './ui';
 
@@ -97,6 +97,15 @@ export function useStreamingOpener(resolve: (target: OpenTarget, platform: Strea
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: space.lg, gap: space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  sheet: {
+    ...glass.sheet,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: space.lg,
+    gap: space.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.text, textAlign: 'center' },
 });

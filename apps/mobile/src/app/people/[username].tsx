@@ -117,7 +117,9 @@ function PersonItem({ person, username, list }: { person: PersonRow; username: s
           disabled={busy}
           style={[styles.follow, following && styles.followingBtn, busy && { opacity: 0.6 }]}
         >
-          <Text style={[styles.followText, following && { color: colors.text }]}>{status === 'following' ? t('profile.followingButton') : status === 'requested' ? t('profile.requested') : t('profile.follow')}</Text>
+          <Text style={[styles.followText, following && { color: colors.text }]}>
+            {status === 'following' ? t('profile.followingButton') : status === 'requested' ? t('profile.requested') : t('profile.follow')}
+          </Text>
         </Pressable>
       ) : null}
     </Pressable>
@@ -125,7 +127,7 @@ function PersonItem({ person, username, list }: { person: PersonRow; username: s
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: space.lg },
+  screen: { flex: 1, paddingHorizontal: space.lg },
   header: { justifyContent: 'center' },
   title: { position: 'absolute', alignSelf: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.text, maxWidth: '70%' },
   empty: { fontFamily: fonts.regular, fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: space.xl },

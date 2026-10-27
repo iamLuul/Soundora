@@ -23,7 +23,7 @@ import { errorStatus, formatError } from '../../lib/errors';
 import { uniqueBy } from '../../lib/hooks';
 import { keys, useDmConversation, useDmMessages, useVibeMedia } from '../../lib/queries';
 import { webTouch } from '../../lib/touch';
-import { colors, fonts, space, text } from '../../theme';
+import { colors, fonts, glass, gradients, space, text } from '../../theme';
 
 type Params = { id: string; to?: string; username?: string; name?: string; avatar?: string };
 
@@ -427,7 +427,7 @@ function VibeThumb({ item }: { item: DmMessage }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -448,8 +448,8 @@ const styles = StyleSheet.create({
   lineMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   lineTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },
   bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 },
-  bubbleMine: { backgroundColor: colors.primary, borderBottomRightRadius: 6 },
-  bubbleTheirs: { backgroundColor: colors.surface, borderBottomLeftRadius: 6 },
+  bubbleMine: { backgroundColor: colors.primary, backgroundImage: gradients.primary, borderBottomRightRadius: 6 },
+  bubbleTheirs: { ...glass.card, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderBottomLeftRadius: 6 },
   bubbleUnsent: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
   body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.text },
   unsent: { fontStyle: 'italic', color: colors.textMuted },
@@ -483,8 +483,7 @@ const styles = StyleSheet.create({
     minHeight: 42,
     maxHeight: 140,
     borderRadius: 21,
-    borderWidth: 1,
-    borderColor: colors.border,
+    ...glass.chip,
     paddingHorizontal: space.lg,
     paddingTop: 10,
     paddingBottom: 10,
@@ -492,7 +491,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
   },
-  send: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  send: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+    boxShadow: '0 4px 14px rgba(104, 94, 255, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   request: { gap: space.md, paddingHorizontal: space.lg, paddingTop: space.md, borderTopWidth: 1, borderTopColor: colors.border },
   requestActions: { flexDirection: 'row', gap: space.md },
   requestButton: { flex: 1, height: 44, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },

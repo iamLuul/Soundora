@@ -14,7 +14,7 @@ import { formatError } from '../lib/errors';
 import { relativeTime } from '../lib/i18n';
 import { enablePush, pushAvailability, pushEnabled } from '../lib/push';
 import { keys, useNotifications } from '../lib/queries';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, glass, space, text } from '../theme';
 import { uniqueBy } from '../lib/hooks';
 import { PeopleSkeleton } from '../components/Skeleton';
 import { listPerf } from '../lib/list';
@@ -215,7 +215,7 @@ function PushCard() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: space.lg },
+  screen: { flex: 1, paddingHorizontal: space.lg },
   header: { justifyContent: 'center' },
   title: { position: 'absolute', alignSelf: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   empty: { textAlign: 'center', marginTop: space.lg },
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   cover: { width: 44, height: 44, borderRadius: 5, backgroundColor: colors.card },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
   requestActions: { flexDirection: 'row', gap: space.xs },
-  pushCard: { backgroundColor: colors.card, borderRadius: 10, padding: space.lg, gap: space.sm, marginVertical: space.md },
+  pushCard: { ...glass.card, borderRadius: 18, padding: space.lg, gap: space.sm, marginVertical: space.md },
   pushTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
   pushBody: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
 });

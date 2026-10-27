@@ -35,7 +35,7 @@ import { formatError } from '../lib/errors';
 import { useDebouncedValue } from '../lib/hooks';
 import { exactTime } from '../lib/i18n';
 import { listPerf } from '../lib/list';
-import { colors, fonts, radius, space, text } from '../theme';
+import { colors, fonts, glass, radius, space, text } from '../theme';
 import { confirmAction, notify } from '../lib/dialogs';
 import { ErrorState } from '../components/ErrorState';
 import { SvgXml } from 'react-native-svg';
@@ -59,7 +59,7 @@ export default function AdminScreen() {
   const admin = useIsAdmin();
   const [tab, setTab] = useState<Tab>('reports');
 
-  if (admin.isLoading) return <Spinner style={{ flex: 1, backgroundColor: colors.background }} />;
+  if (admin.isLoading) return <Spinner style={{ flex: 1 }} />;
   if (!admin.data) {
     return (
       <View style={[styles.screen, styles.center]}>
@@ -619,11 +619,11 @@ function BadgeCard({ badge: b }: { badge: AdminBadge }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center', padding: space.xl },
   wrap: { flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: space.lg, gap: space.md },
   overview: { textAlign: 'center' },
-  card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space.md, gap: space.sm },
+  card: { ...glass.card, borderRadius: 18, padding: space.md, gap: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   tag: {
     fontFamily: fonts.bold,

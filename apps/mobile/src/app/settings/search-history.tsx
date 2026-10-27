@@ -11,7 +11,7 @@ import { confirmAction } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
 import { keys } from '../../lib/queries';
-import { colors, fonts, space, text } from '../../theme';
+import { colors, fonts, glass, space, text } from '../../theme';
 
 export const searchHistoryKey = ['search-history'] as const;
 
@@ -134,7 +134,7 @@ export default function SearchHistoryScreen() {
 const styles = StyleSheet.create({
   empty: { color: colors.textMuted, textAlign: 'center' },
   sectionTitle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: space.xs },
-  card: { backgroundColor: colors.card, borderRadius: 10, paddingHorizontal: space.md },
+  card: { ...glass.card, borderRadius: 18, paddingHorizontal: space.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: colors.tabBar },
   term: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
   when: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },

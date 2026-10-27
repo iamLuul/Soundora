@@ -3,9 +3,10 @@ import { PLATFORM_LABELS, type Platform } from '@soundhora/core';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, space } from '../theme';
-import { PLATFORM_ACCENT, PlatformLogo } from './figma';
+import { Platform as RNPlatform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { colors, fonts, radius, space } from '../theme';
+import { PLATFORM_GRADIENT, PlatformLogo } from './figma';
+import { Reactive } from './Reactive';
 
 export interface MusicCardData {
   url: string;
@@ -17,21 +18,28 @@ export interface MusicCardData {
 
 /**
  * Cartão de prévia de uma música, no layout do Figma ("Sharing"): capa com o play,
- * título, artista e o logo da plataforma, numa caixa com a cor da plataforma.
+ * título, artista e o logo da plataforma, num degradê com as cores da plataforma, com o brilho
+ * de vidro na borda. Reage ao toque (encolhe) e, na web, ao mouse (sobe um pouco).
  * O Soundhora não toca áudio: tocar abre a faixa no streaming de origem.
  */
 export function MusicCard({ data, onOpen }: { data: MusicCardData; onOpen?: (url: string) => void }) {
   const { t } = useTranslation();
   const platform = PLATFORM_LABELS[data.platform];
-  const accent = PLATFORM_ACCENT[data.platform];
+  const [from, to] = PLATFORM_GRADIENT[data.platform];
   const open = () => (onOpen ? onOpen(data.url) : Linking.openURL(data.url));
 
   return (
-    <Pressable
+    <Reactive
       accessibilityRole="link"
       accessibilityLabel={`${data.title}${data.artist ? `, ${data.artist}` : ''}. ${t('feed.listenOn', { platform })}`}
       onPress={open}
-      style={({ pressed }) => [styles.card, { borderColor: accent, backgroundColor: `${accent}1A` }, pressed && { opacity: 0.85 }]}
+      pressScale={0.98}
+      hoverScale={1.01}
+      style={({ hovered }) => [
+        styles.card,
+        { backgroundColor: from, backgroundImage: `linear-gradient(110deg, ${from} 0%, ${to} 100%)` },
+        hovered && styles.hovered,
+      ]}
     >
       <View>
         {data.imageUrl ? (
@@ -61,13 +69,22 @@ export function MusicCard({ data, onOpen }: { data: MusicCardData; onOpen?: (url
       <View style={styles.logo}>
         <PlatformLogo platform={data.platform} size={20} />
       </View>
-    </Pressable>
+    </Reactive>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: space.md, padding: 10, borderRadius: 10, borderWidth: 0.5 },
-  cover: { width: 62, height: 62, borderRadius: 5 },
+  card: {
+    flexDirection: 'row',
+    gap: space.md,
+    padding: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    boxShadow: '0 8px 22px rgba(10, 6, 30, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+  },
+  hovered: RNPlatform.select<ViewStyle>({ web: { boxShadow: '0 14px 30px rgba(10, 6, 30, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.3)' }, default: {} })!,
+  cover: { width: 62, height: 62, borderRadius: radius.sm },
   coverFallback: { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   playOverlay: {
     position: 'absolute',
@@ -85,7 +102,7 @@ const styles = StyleSheet.create({
   info: { flex: 1, justifyContent: 'center', gap: 2 },
   title: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   artist: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },
-  chip: { alignSelf: 'flex-start', marginTop: 6, backgroundColor: '#FFFFFF', borderRadius: 2, paddingHorizontal: 4, paddingVertical: 1 },
+  chip: { alignSelf: 'flex-start', marginTop: 6, backgroundColor: '#FFFFFF', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   chipText: { fontFamily: fonts.bold, fontSize: 9, color: '#464B54' },
   logo: { alignSelf: 'flex-start' },
 });

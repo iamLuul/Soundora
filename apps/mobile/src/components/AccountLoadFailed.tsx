@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { useAuth } from '../lib/auth';
-import { colors, space } from '../theme';
+import { space } from '../theme';
 import { ErrorState } from './ErrorState';
 import { Button } from './ui';
 
@@ -28,5 +28,5 @@ export function AccountLoadFailed() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', gap: space.md },
+  screen: { flex: 1, justifyContent: 'center', gap: space.md },
 });

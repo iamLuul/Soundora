@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { genreLabel, prettyGenre, useGenres, useGenreSearch, type GenreRow } from '../lib/queries';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, glass, gradients, space } from '../theme';
 
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -56,7 +56,9 @@ export function GenrePicker({
       return found.filter((g, i) => found.findIndex((x) => x.slug === g.slug) === i).slice(0, 12);
     }
     const quick = [...detected, ...suggestions].filter((s, i, arr) => arr.indexOf(s) === i && !value.includes(s));
-    return quick.map((slug) => all.find((g) => g.slug === slug) ?? known[slug] ?? { slug, name_pt: prettyGenre(slug), name_en: prettyGenre(slug) }).slice(0, quickLimit);
+    return quick
+      .map((slug) => all.find((g) => g.slug === slug) ?? known[slug] ?? { slug, name_pt: prettyGenre(slug), name_en: prettyGenre(slug) })
+      .slice(0, quickLimit);
   }, [all, query, value, detected, suggestions, remote.data, known, quickLimit]);
 
   const add = (g: GenreRow) => {
@@ -138,11 +140,28 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.semibold, fontSize: 13, color: colors.text },
   counter: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  selected: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: space.md, paddingVertical: 6 },
+  selected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+    borderRadius: 14,
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+  },
   selectedText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text },
-  option: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderColor: colors.handle, borderRadius: 14, paddingHorizontal: space.md, paddingVertical: 5 },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 3, ...glass.chip, borderRadius: 14, paddingHorizontal: space.md, paddingVertical: 5 },
   optionText: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
-  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: 1, borderColor: colors.handle, borderRadius: 10, paddingHorizontal: space.md },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    borderWidth: 1,
+    borderColor: colors.handle,
+    borderRadius: 10,
+    paddingHorizontal: space.md,
+  },
   input: { flex: 1, minHeight: 38, color: colors.text, fontFamily: fonts.regular, fontSize: 13, outlineWidth: 0 },
   hint: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
 });

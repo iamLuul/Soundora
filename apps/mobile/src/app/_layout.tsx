@@ -18,6 +18,7 @@ import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
 import { ErrorScreen } from '../components/ErrorScreen';
 import { AccountLoadFailed } from '../components/AccountLoadFailed';
+import { Backdrop } from '../components/Backdrop';
 import { DesktopShell } from '../components/desktop/DesktopShell';
 import { BootSkeleton } from '../components/desktop/DesktopSkeleton';
 import { ToastHost } from '../components/Toast';
@@ -68,13 +69,15 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
     // Web em tela grande: barra lateral e coluna da direita em volta da tela (só com o app liberado).
     <DesktopShell enabled={onboarded}>
     <Stack
+      // Cada tela sobre o fundo com brilho (o vidro dos cartões e barras mostra ele).
+      screenLayout={({ children, options }) => <Backdrop headed={options.headerShown !== false}>{children}</Backdrop>}
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
         headerTitleStyle: { fontFamily: fonts.regular, fontSize: 16 },
         headerShadowVisible: false, // Figma: sem linha embaixo do cabeçalho
         headerBackButtonDisplayMode: 'minimal', // só a seta, como no Figma
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: 'transparent' },
       }}
     >
       {/* Sem login: só a tela de entrada. */}

@@ -32,7 +32,7 @@ import { confirmAction, notify } from '../../../lib/dialogs';
 import { errorStatus, formatError } from '../../../lib/errors';
 import { uniqueBy } from '../../../lib/hooks';
 import { genreLabel, keys, useCommunity, useCommunityPosts, useGenres } from '../../../lib/queries';
-import { colors, fonts, space, text } from '../../../theme';
+import { colors, fonts, glass, space, text } from '../../../theme';
 
 type Tab = 'posts' | 'members' | 'requests' | 'banned';
 
@@ -441,7 +441,7 @@ function Members({ community: c, status, header, isMod }: { community: Community
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1 },
   top: { paddingHorizontal: space.lg, marginBottom: space.sm },
   hero: { paddingHorizontal: space.lg, gap: space.md, paddingBottom: space.lg },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   artists: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   artistsText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.textMuted, flexShrink: 1 },
   genres: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  genre: { borderRadius: 10, borderWidth: 1, borderColor: colors.handle, paddingHorizontal: space.sm, paddingVertical: 2 },
+  genre: { borderRadius: 999, ...glass.chip, paddingHorizontal: space.sm, paddingVertical: 2 },
   genreText: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
   actions: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   locked: { alignItems: 'center', gap: space.md, padding: space.xxl },
