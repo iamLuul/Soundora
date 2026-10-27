@@ -9,6 +9,7 @@ import { colors, fonts, space, text } from '../theme';
 import { PullToRefresh } from './PullToRefresh';
 import { TrackListSkeleton } from './Skeleton';
 import { ErrorState } from './ErrorState';
+import { useTabBarInset } from './TabBar';
 
 /** Uma linha do Top Reviews: posição, capa, álbum, artista e ano, e a média ao lado. */
 export function TopAlbumRow({ item, onPress }: { item: TopAlbum; onPress: (item: TopAlbum) => void }) {
@@ -67,6 +68,7 @@ export function TopAlbumList({
   onPress: (item: TopAlbum) => void;
   header: ReactElement;
 }) {
+  const tabInset = useTabBarInset();
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <FlatList
@@ -74,7 +76,7 @@ export function TopAlbumList({
         keyExtractor={(i) => i.album_id}
         ListHeaderComponent={header}
         renderItem={({ item }) => <TopAlbumRow item={item} onPress={onPress} />}
-        contentContainerStyle={{ paddingBottom: space.xxl }}
+        contentContainerStyle={{ paddingBottom: space.xxl + tabInset }}
         ListEmptyComponent={
           loading ? (
             <TrackListSkeleton count={8} rank />

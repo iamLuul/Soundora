@@ -16,6 +16,7 @@ import { listPerf } from '../../lib/list';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { Spinner } from '../../components/Spinner';
 import { ErrorState } from '../../components/ErrorState';
+import { useTabBarInset } from '../../components/TabBar';
 
 type Tab = 'reviews' | 'liked' | 'mine';
 
@@ -25,6 +26,7 @@ type Tab = 'reviews' | 'liked' | 'mine';
  * streaming que a pessoa escolheu.
  */
 export default function MusicScreen() {
+  const tabInset = useTabBarInset();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('reviews');
@@ -61,7 +63,7 @@ export default function MusicScreen() {
             {...listPerf}
             data={items}
             keyExtractor={(i) => i.link_preview_id}
-            contentContainerStyle={{ paddingBottom: space.xxl }}
+            contentContainerStyle={{ paddingBottom: space.xxl + tabInset }}
             ListHeaderComponent={
               <View style={{ gap: space.md, paddingVertical: space.md }}>
                 <Text style={styles.title}>{tab === 'liked' ? t('music.likedTitle') : t('music.mineTitle')}</Text>

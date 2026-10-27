@@ -9,6 +9,7 @@ import { TrackListSkeleton } from './Skeleton';
 import { PullToRefresh } from './PullToRefresh';
 import { Spinner } from './Spinner';
 import { ErrorState } from './ErrorState';
+import { useTabBarInset } from './TabBar';
 
 /** Cores do Figma (Trending Page): selo NEW amarelo, seta verde (subiu) e vermelha (caiu). */
 const MOVE = { up: '#4E9A51', down: '#C44545', new: '#FFD43B' };
@@ -108,6 +109,7 @@ export function WorldChartList({
   openingKey: string | null;
   header: ReactElement;
 }) {
+  const tabInset = useTabBarInset();
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <FlatList
@@ -115,7 +117,7 @@ export function WorldChartList({
         keyExtractor={(i) => i.key}
         ListHeaderComponent={header}
         renderItem={({ item }) => <ChartRow item={item} onPress={onPress} opening={openingKey === item.key} />}
-        contentContainerStyle={{ paddingBottom: space.xxl }}
+        contentContainerStyle={{ paddingBottom: space.xxl + tabInset }}
         ListEmptyComponent={
           loading ? (
             <TrackListSkeleton count={8} rank />

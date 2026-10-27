@@ -10,12 +10,14 @@ import { PostList } from '../PostList';
 import { Button } from '../ui';
 import { CommunityAvatar } from './CommunityAvatar';
 import { CommunityStrip } from './CommunityStrip';
+import { useTabBarInset } from '../TabBar';
 
 /**
  * Aba Comunidades do Início: os posts das comunidades de que a pessoa faz parte, todos
  * misturados ou de uma só (os chips de cima). Sem comunidade, convida para explorar.
  */
 export function CommunitiesFeed({ active }: { active: boolean }) {
+  const tabInset = useTabBarInset();
   const { t } = useTranslation();
   // Só busca quando a aba é aberta pela primeira vez.
   const [opened, setOpened] = useState(active);
@@ -76,7 +78,7 @@ export function CommunitiesFeed({ active }: { active: boolean }) {
 
   if (none) {
     return (
-      <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl + tabInset }}>
         <View style={styles.empty} testID="communities-empty">
           <Ionicons name="people-outline" size={44} color={colors.textMuted} />
           <Text style={styles.emptyTitle}>{t('communities.emptyTitle')}</Text>

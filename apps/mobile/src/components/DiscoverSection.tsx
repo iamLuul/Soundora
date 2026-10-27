@@ -22,6 +22,7 @@ import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
 import { CoachMarks, type CoachStep, useFirstTimeTip } from './CoachMarks';
 import { router, useIsFocused } from 'expo-router';
+import { useTabBarInset } from './TabBar';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -63,6 +64,7 @@ export function mergeDeck(forYou: DiscoverCard[], community: DiscoverCard[]): Di
 
 /** Figma: Search page › Discover — busca de gênero, pilha de cartões, controles e as curtidas. */
 export function DiscoverSection() {
+  const tabInset = useTabBarInset();
   const { t, i18n } = useTranslation();
   // Primeira vez no Descobrir: como curtir, pular e ouvir.
   const [tipOpen, closeTip] = useFirstTimeTip('discover');
@@ -251,7 +253,7 @@ export function DiscoverSection() {
   ];
 
   return (
-    <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl + tabInset }} keyboardShouldPersistTaps="handled">
       <CoachMarks testID="coach-discover" visible={tipOpen && focused} steps={discoverTips} onClose={closeTip} />
       {/* Figma: "Search genres" — a pilha passa a ser só desse gênero. */}
       {genre ? (

@@ -21,6 +21,7 @@ import { showToast } from './Toast';
 import { ErrorState } from './ErrorState';
 import { AdPostCard } from './ads/AdPostCard';
 import { withAds } from '../lib/ads';
+import { useTabBarInset } from './TabBar';
 
 /** Linha da lista: um post, o bloco extra no meio (ex.: contas sugeridas), uma faixa (ex.: reviews) ou um post anunciado. */
 type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' } | { kind: 'strip'; index: number } | { kind: 'ad'; slot: number };
@@ -74,6 +75,7 @@ export function PostList({
   /** Mudou: a lista volta para o topo (ex.: o feed foi renovado). */
   scrollTopKey?: string | number;
 }) {
+  const tabInset = useTabBarInset();
   const { t } = useTranslation();
   const { session } = useAuth();
   const me = session?.user.id;
@@ -171,7 +173,7 @@ export function PostList({
             row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : row.kind === 'strip' ? `strip-${row.index}` : 'extra'
           }
           ListHeaderComponent={header}
-          contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
+          contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl + tabInset }}
           renderItem={({ item: row }) => {
             if (row.kind === 'extra') return interstitial?.element ?? null;
             if (row.kind === 'strip') return strips?.elements[row.index] ?? null;

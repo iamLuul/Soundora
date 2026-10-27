@@ -30,6 +30,7 @@ import { Verified } from './Verified';
 import { notify } from '../lib/dialogs';
 import { showToast } from './Toast';
 import { ErrorState } from './ErrorState';
+import { useTabBarInset } from './TabBar';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
@@ -49,6 +50,7 @@ export function compactNumber(n: number, locale: string): string {
  * `underStatusBar`: o banner vai até o topo da tela (aba Perfil, sem cabeçalho).
  */
 export function ProfileView({ username, underStatusBar = false }: { username: string; underStatusBar?: boolean }) {
+  const tabInset = useTabBarInset();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { signOut } = useAuth();
@@ -99,7 +101,7 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
   // Conta privada que eu não sigo: o cabeçalho aparece, o conteúdo não.
   if (p.locked) {
     return (
-      <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: space.xxl + tabInset }}>
         <ProfileHeader profile={p} underStatusBar={underStatusBar} />
         <View testID="profile-locked" style={styles.locked}>
           <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />

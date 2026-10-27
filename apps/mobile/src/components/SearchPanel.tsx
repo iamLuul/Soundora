@@ -16,6 +16,7 @@ import { TrendingRow } from './TrendingList';
 import { Button } from './ui';
 import { PeopleSkeleton, TrackListSkeleton } from './Skeleton';
 import { Verified } from './Verified';
+import { useTabBarInset } from './TabBar';
 
 export const MIN_QUERY = 2;
 /** Busca no texto dos posts: com menos letras o índice do banco não ajuda. */
@@ -170,6 +171,7 @@ export function relevantGenres(list: GenreHit[]): GenreHit[] {
 }
 
 export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {}) {
+  const tabInset = useTabBarInset();
   const { t } = useTranslation();
   const [query, setQuery] = useState(initialQuery);
   const q = useDebouncedValue(query.trim());
@@ -248,7 +250,7 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
           followable
         />
       ) : (
-        <ScrollView contentContainerStyle={{ gap: space.lg, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ gap: space.lg, paddingBottom: space.xxl + tabInset }} keyboardShouldPersistTaps="handled">
           <SearchResults
             query={q}
             people={people.data ?? []}
