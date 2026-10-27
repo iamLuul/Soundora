@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.42 · Web sem mapa do app (_sitemap, sitemap.xml, robots.txt → 404), servidor próprio com limites e telas de erro 401/403/404/429/500/503/504
+
+- `0.42.0.10.26` · 27/10/2026 · Web sem mapa do app (_sitemap, sitemap.xml, robots.txt → 404), servidor próprio com limites e telas de erro 401/403/404/429/500/503/504 (9d4ed6f)
+
 ## 0.41 · Vibes no jeito do Story: câmera, editor com texto que arrasta/aumenta/gira, música em qualquer vibe e visualização em cartão
 
 - `0.41.1.10.26` · 27/10/2026 · Vibes sem música; tocar fora fecha o texto; fontes e cores coladas no teclado (09ea973)
