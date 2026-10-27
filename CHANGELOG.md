@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.45 · Comunidades: criar, entrar (aberta ou com pedido), moderação, aba Comunidades no Início, postar em comunidade, populares no Para você e recomendações
 
+- `0.45.2.10.26` · 27/10/2026 · Barra de abas em Liquid Glass: cápsula flutuante de vidro (nativo no iOS 26) e botão de postar separado (81e0dd6)
 - `0.45.1.10.26` · 27/10/2026 · @ exclusivo: usuário e comunidade nunca têm o mesmo @ (572709c)
 - `0.45.0.10.26` · 27/10/2026 · Comunidades: criar, entrar (aberta ou com pedido), moderação, aba Comunidades no Início, postar em comunidade, populares no Para você e recomendações (73ed29e)
 
