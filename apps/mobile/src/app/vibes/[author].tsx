@@ -5,9 +5,9 @@ import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +33,7 @@ import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 import { itemsOf } from '../../components/vibes/textStyle';
 import { AdVibe } from '../../components/ads/AdVibe';
 import { useAds, withAds } from '../../lib/ads';
+import { useIsDesktop } from '../../lib/layout';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -41,20 +42,42 @@ const TICK_MS = 50;
 
 type Params = { author: string; queue?: string; username?: string; avatar?: string };
 
+/** Troca de pessoa: o "cubo" girando para o lado (como nos Stories). */
+const CUBE_MS = 420;
+
+/** Onde fica o cartão da vibe: no celular, como ao criar; no computador, no meio da tela escurecida. */
+function useViewerCanvas() {
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const desktop = useIsDesktop();
+  return desktop ? vibeCanvas({ width: window.width, height: window.height - 24 }, { top: 20, bottom: 0 }) : vibeCanvas(window, insets);
+}
+
 /**
- * Ver vibes em tela cheia. Toque à direita avança, à esquerda volta, segurar pausa.
+ * Ver vibes. Toque à direita avança, à esquerda volta, segurar pausa.
  * A tela abre uma vez para a fila toda (a pessoa tocada e as seguintes): quando as vibes de
  * alguém acabam, as da próxima pessoa entram na hora, sem fechar e abrir de novo. Voltar na
  * primeira vibe de alguém leva à pessoa anterior. No fim da fila, fecha.
+ * Entre as vibes da mesma pessoa não há transição; ao trocar de pessoa, o cartão gira como a face
+ * de um cubo (para a esquerda ao avançar, para a direita ao voltar).
+ * No celular é tela cheia (arrastar para baixo fecha); no computador, uma camada por cima do site
+ * com o fundo escurecido, setas dos lados (e as do teclado) e Esc ou clique fora para fechar.
  * Com os anúncios ligados, uma vibe anunciada entra entre duas pessoas a cada N pessoas (nunca
  * no fim). A fila (com os anúncios) é montada ao abrir e não muda enquanto a tela está aberta.
  */
 export default function VibeViewerScreen() {
   const { author, queue, username, avatar } = useLocalSearchParams<Params>();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const ads = useAds();
+  const desktop = useIsDesktop();
+  const reduceMotion = useReducedMotion();
+  const canvas = useViewerCanvas();
   const [slots] = useState(() => withAds([...new Set([author, ...(queue ?? '').split(',')].filter(Boolean))], ads.vibesEvery));
   const [pos, setPos] = useState(0);
+  // Durante a troca de pessoa: quem está saindo (e para que lado o cubo gira).
+  const [leaving, setLeaving] = useState<{ pos: number; dir: 1 | -1 } | null>(null);
+  const progress = useSharedValue(1);
 
   const close = useCallback(() => {
     void qc.invalidateQueries({ queryKey: keys.vibesTray });
@@ -62,11 +85,29 @@ export default function VibeViewerScreen() {
     else router.replace('/');
   }, [qc]);
 
+  const endTurn = useCallback(() => setLeaving(null), []);
+  const goTo = useCallback(
+    (target: number) => {
+      if (target === pos) return;
+      setPos(target);
+      if (reduceMotion) return setLeaving(null);
+      setLeaving({ pos, dir: target > pos ? 1 : -1 });
+      progress.set(0);
+      progress.set(
+        withTiming(1, { duration: CUBE_MS, easing: Easing.inOut(Easing.cubic) }, (finished) => {
+          'worklet';
+          if (finished) scheduleOnRN(endTurn);
+        }),
+      );
+    },
+    [pos, reduceMotion, progress, endTurn],
+  );
+
   const next = useCallback(() => {
     if (pos >= slots.length - 1) close();
-    else setPos(pos + 1);
-  }, [pos, slots.length, close]);
-  const previous = useCallback(() => setPos((p) => Math.max(0, p - 1)), []);
+    else goTo(pos + 1);
+  }, [pos, slots.length, close, goTo]);
+  const previous = useCallback(() => goTo(Math.max(0, pos - 1)), [pos, goTo]);
 
   // Já busca as vibes (e a primeira mídia) da próxima pessoa, para a troca ser imediata.
   const upcoming = slots.slice(pos + 1).find((s) => s.kind === 'item')?.item;
@@ -74,10 +115,11 @@ export default function VibeViewerScreen() {
     if (upcoming) void prefetchAuthor(qc, upcoming);
   }, [qc, upcoming]);
 
-  // Arrastar para baixo fecha (como no Story); a tela acompanha o dedo.
+  // Arrastar para baixo fecha (como no Story); a tela acompanha o dedo. Só no celular.
   const drag = useSharedValue(0);
   const swipe = Gesture.Pan()
     .withTestId('vibe-swipe')
+    .enabled(!desktop)
     .activeOffsetY(18)
     .failOffsetX([-18, 18])
     .onUpdate((e) => {
@@ -94,28 +136,118 @@ export default function VibeViewerScreen() {
     borderRadius: drag.value > 0 ? 20 : 0,
   }));
 
-  const slot = slots[pos]!;
+  // Quem sai fica na tela (parado) enquanto o cubo gira; quem entra já é a vibe ativa.
+  const faces = leaving
+    ? [
+        { pos: leaving.pos, role: 'out' as const },
+        { pos, role: 'in' as const },
+      ]
+    : [{ pos, role: 'in' as const }];
+  const noop = () => undefined;
+  const content = faces.map(({ pos: at, role }) => {
+    const slot = slots[at]!;
+    const active = role === 'in';
+    const key = slot.kind === 'ad' ? `ad-${slot.slot}` : `p-${slot.item}`;
+    return (
+      <CubeFace key={key} role={role} dir={leaving?.dir ?? 1} progress={progress} canvas={canvas} turning={!!leaving}>
+        {slot.kind === 'ad' ? (
+          <AdVibe slot={slot.slot} hasPrevious={at > 0} onDone={active ? next : noop} onPrevious={active ? previous : noop} onClose={close} />
+        ) : (
+          <AuthorVibes
+            author={slot.item}
+            active={active}
+            desktop={desktop}
+            // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
+            fallbackUsername={at === 0 ? username : undefined}
+            fallbackAvatar={at === 0 ? avatar : undefined}
+            hasPrevious={at > 0}
+            onDone={active ? next : noop}
+            onPrevious={active ? previous : noop}
+            onClose={close}
+          />
+        )}
+      </CubeFace>
+    );
+  });
+
+  if (desktop) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
+        <Modal visible transparent animationType="fade" onRequestClose={close}>
+          <View style={styles.overlay} testID="vibe-overlay">
+            <Pressable
+              testID="vibe-backdrop"
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}
+              style={StyleSheet.absoluteFill}
+              onPress={close}
+            />
+            {content}
+            <Pressable
+              testID="vibe-overlay-close"
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}
+              onPress={close}
+              style={styles.overlayClose}
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={30} color={colors.text} />
+            </Pressable>
+          </View>
+        </Modal>
+      </>
+    );
+  }
+
   return (
     <GestureDetector gesture={swipe}>
       <Animated.View style={[styles.screen, dragStyle]}>
         <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
-        {slot.kind === 'ad' ? (
-          <AdVibe key={`ad-${slot.slot}`} slot={slot.slot} hasPrevious={pos > 0} onDone={next} onPrevious={previous} onClose={close} />
-        ) : (
-          <AuthorVibes
-            key={slot.item}
-            author={slot.item}
-            // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
-            fallbackUsername={pos === 0 ? username : undefined}
-            fallbackAvatar={pos === 0 ? avatar : undefined}
-            hasPrevious={pos > 0}
-            onDone={next}
-            onPrevious={previous}
-            onClose={close}
-          />
-        )}
+        {content}
       </Animated.View>
     </GestureDetector>
+  );
+}
+
+/**
+ * Uma face do cubo: a tela de uma pessoa. Gira em volta da borda do cartão (a que encosta na
+ * outra face): quem sai vai para trás de um lado, quem entra vem do outro.
+ */
+function CubeFace({
+  role,
+  dir,
+  progress,
+  canvas,
+  turning,
+  children,
+}: {
+  role: 'in' | 'out';
+  dir: 1 | -1;
+  progress: SharedValue<number>;
+  canvas: { left: number; width: number };
+  turning: boolean;
+  children: React.ReactNode;
+}) {
+  const w = canvas.width;
+  // Borda em que gira (na tela): ao avançar, quem sai gira na borda direita e quem entra, na esquerda.
+  const edge = (role === 'out') === dir > 0 ? canvas.left + w : canvas.left;
+  const style = useAnimatedStyle(() => {
+    if (!turning) return { transform: [] };
+    const p = progress.get();
+    const t = role === 'out' ? p : p - 1; // out: 0 → 1; in: -1 → 0
+    return {
+      transform: [{ perspective: 1200 }, { translateX: -dir * w * t }, { rotateY: `${-dir * 90 * t}deg` }],
+    };
+  });
+  return (
+    <Animated.View
+      style={[StyleSheet.absoluteFill, { transformOrigin: `${edge}px 50% 0px`, backfaceVisibility: 'hidden' }, style]}
+      pointerEvents={role === 'out' ? 'none' : 'box-none'}
+      testID={role === 'out' ? 'vibe-face-out' : 'vibe-face'}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
@@ -131,6 +263,8 @@ async function prefetchAuthor(qc: QueryClient, authorId: string) {
 /** As vibes de uma pessoa. Muda de pessoa trocando a key (o resto da tela continua aberto). */
 function AuthorVibes({
   author,
+  active,
+  desktop,
   fallbackUsername,
   fallbackAvatar,
   hasPrevious,
@@ -139,6 +273,9 @@ function AuthorVibes({
   onClose: close,
 }: {
   author: string;
+  /** false: está saindo (o cubo girando): parada e sem toque. */
+  active: boolean;
+  desktop: boolean;
   fallbackUsername?: string;
   fallbackAvatar?: string;
   hasPrevious: boolean;
@@ -149,8 +286,7 @@ function AuthorVibes({
   const { t } = useTranslation();
   // Primeira vez vendo vibes: tocar para passar, segurar para pausar (a vibe espera a dica fechar).
   const [tipOpen, closeTip] = useFirstTimeTip('vibe-view');
-  const insets = useSafeAreaInsets();
-  const canvas = vibeCanvas(useWindowDimensions(), insets);
+  const canvas = useViewerCanvas();
   const qc = useQueryClient();
   const { profile } = useAuth();
   const tray = useVibesTray();
@@ -182,7 +318,7 @@ function AuthorVibes({
   const mediaReady = !current?.media_path || !!media.data;
   // Vibe de música não toca prévia (as licenças das lojas não cobrem esse uso): é só o cartão.
   const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : STILL_MS;
-  const paused = holding || !!menu || !!viewersFor || !mediaReady || tipOpen;
+  const paused = !active || holding || !!menu || !!viewersFor || !mediaReady || tipOpen;
 
   const resetClock = () => {
     elapsedRef.current = 0;
@@ -228,10 +364,25 @@ function AuthorVibes({
   // Ninguém tem vibe ativa (venceu ou foi apagada): segue para a próxima pessoa.
   const empty = vibes.isSuccess && list.length === 0;
   useEffect(() => {
-    if (!empty) return;
+    if (!empty || !active) return;
     const id = setTimeout(onDone, 0);
     return () => clearTimeout(id);
-  }, [empty, onDone]);
+  }, [empty, active, onDone]);
+
+  // Computador: setas do teclado passam as vibes (Esc fecha, pela camada).
+  const arrowKeys = useRef({ next: goNext, prev: () => {} });
+  useEffect(() => {
+    arrowKeys.current = { next: goNext, prev: () => goPrev() };
+  });
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !active || typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') arrowKeys.current.next();
+      else if (e.key === 'ArrowLeft') arrowKeys.current.prev();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
 
   // Toque curto navega (onPress); segurar pausa (onLongPress cancela o onPress).
   const hold = {
@@ -285,7 +436,7 @@ function AuthorVibes({
     <>
       <CoachMarks
         testID="coach-vibe-view"
-        visible={tipOpen}
+        visible={tipOpen && active}
         onClose={closeTip}
         steps={[{ icon: 'hand-left-outline', title: t('tips.vibeViewTitle'), body: t('tips.vibeViewBody') }]}
       />
@@ -375,20 +526,47 @@ function AuthorVibes({
               >
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
               </Pressable>
-              <Pressable
-                testID="vibe-close"
-                accessibilityRole="button"
-                accessibilityLabel={t('common.close')}
-                onPress={close}
-                hitSlop={10}
-                style={webTouch(10)}
-              >
-                <Ionicons name="close" size={26} color={colors.text} />
-              </Pressable>
+              {/* No computador o X fica no canto da tela (fora do cartão). */}
+              {desktop ? null : (
+                <Pressable
+                  testID="vibe-close"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.close')}
+                  onPress={close}
+                  hitSlop={10}
+                  style={webTouch(10)}
+                >
+                  <Ionicons name="close" size={26} color={colors.text} />
+                </Pressable>
+              )}
             </View>
           </View>
         </View>
       )}
+      {current && desktop && active ? (
+        <>
+          {(index ?? 0) > 0 || hasPrevious ? (
+            <Pressable
+              testID="vibe-arrow-prev"
+              accessibilityRole="button"
+              accessibilityLabel={t('vibes.previous')}
+              onPress={goPrev}
+              style={[styles.arrow, { left: canvas.left - 60, top: canvas.top + canvas.height / 2 - 22 }]}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.background} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            testID="vibe-arrow-next"
+            accessibilityRole="button"
+            accessibilityLabel={t('vibes.next')}
+            onPress={goNext}
+            style={[styles.arrow, { left: canvas.left + canvas.width + 16, top: canvas.top + canvas.height / 2 - 22 }]}
+          >
+            <Ionicons name="chevron-forward" size={24} color={colors.background} />
+          </Pressable>
+        </>
+      ) : null}
       {current ? (
         <>
           {isMine ? (
@@ -454,6 +632,17 @@ function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
+  overlay: { flex: 1, backgroundColor: 'rgba(8, 7, 14, 0.9)' },
+  overlayClose: { position: 'absolute', top: space.lg, right: space.lg, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  arrow: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: { position: 'absolute', borderRadius: 20, overflow: 'hidden', backgroundColor: '#000' },
   zone: { position: 'absolute', top: 90, bottom: 0, width: '30%' },
   header: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.md, paddingTop: space.md, gap: space.sm },
