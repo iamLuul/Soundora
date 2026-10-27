@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.41 · Vibes no jeito do Story: câmera, editor com texto que arrasta/aumenta/gira, música em qualquer vibe e visualização em cartão
 
+- `0.41.1.10.26` · 27/10/2026 · Vibes sem música; tocar fora fecha o texto; fontes e cores coladas no teclado (09ea973)
 - `0.41.0.10.26` · 26/10/2026 · Vibes no jeito do Story: câmera, editor com texto que arrasta/aumenta/gira, música em qualquer vibe e visualização em cartão (9e5e209)
 
 ## 0.40 · Para você sempre renovado: conteúdo novo ao voltar para o Início
