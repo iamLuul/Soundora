@@ -54,7 +54,7 @@ beforeAll(async () => {
 afterAll(async () => db.close());
 
 describe('criar vibes', () => {
-  it('foto, vídeo, texto, música e post compartilhado', async () => {
+  it('foto, vídeo, texto e post compartilhado', async () => {
     const photo = await stored(ana, 'jpg');
     const video = await stored(ana, 'mp4');
     const preview = await createPreview(db, 'https://open.spotify.com/track/vibe0000000000000000001', 'Música da vibe');
@@ -63,13 +63,12 @@ describe('criar vibes', () => {
     await create(ana, { kind: 'photo', media: photo, text: 'legenda' });
     await create(ana, { kind: 'video', media: video, duration: 12_000 });
     await create(ana, { kind: 'text', text: 'bom dia', style: 'pink' });
-    await create(ana, { kind: 'music', preview });
     await create(ana, { kind: 'post', post: p!.id });
 
     const rows = await vibesOf(caio, ana);
-    expect(rows.map((r) => r.kind)).toEqual(['photo', 'video', 'text', 'music', 'post']);
-    expect(rows[3]!.preview_title).toBe('Música da vibe');
-    expect(rows[4]).toMatchObject({ post_author_username: 'vibe_bia', preview_title: 'Música da vibe' });
+    expect(rows.map((r) => r.kind)).toEqual(['photo', 'video', 'text', 'post']);
+    // O post compartilhado mostra o link que o autor do post colou.
+    expect(rows[3]).toMatchObject({ post_author_username: 'vibe_bia', preview_title: 'Música da vibe' });
     // Quem não é o autor não vê a contagem de visualizações.
     expect(rows.every((r) => r.view_count === null)).toBe(true);
   });
@@ -187,10 +186,6 @@ describe('posição do texto', () => {
     expect([row.text_x, row.text_y].map((n) => Math.round(n * 100) / 100)).toEqual([0.2, 0.15]);
     await expect(db.as(ana, `select public.vibe_create(p_kind => 'text', p_text => 'x', p_text_x => 1.5, p_text_y => 0.5)`)).rejects.toThrow(/check constraint/);
     await expect(db.as(ana, `select public.vibe_create(p_kind => 'text', p_text => 'x', p_text_x => 0.5)`)).rejects.toThrow(/vibes_text_position/);
-    const music = await createPreview(db, 'https://open.spotify.com/track/vibepos00000000000001');
-    const [{ id: m }] = await db.as<{ id: string }>(ana, `select public.vibe_create(p_kind => 'music', p_link_preview_id => $1, p_text_x => 0.3, p_text_y => 0.3) as id`, [music]);
-    const mrow = (await vibesOf(caio, ana)).find((v) => v.id === m) as unknown as { text_x: number | null };
-    expect(mrow.text_x).toBeNull();
   });
 });
 
@@ -234,31 +229,21 @@ describe('vários textos', () => {
   });
 });
 
-describe('prévia de 30 s', () => {
-  it('vem junto com a vibe de música e só aceita endereço das lojas', async () => {
-    const lp = await createPreview(db, 'https://open.spotify.com/track/audiopreview000000001');
-    await db.sql(`update public.link_previews set audio_url = 'https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a' where id = $1`, [lp]);
-    const [{ id }] = await db.as<{ id: string }>(bia, `select public.vibe_create(p_kind => 'music', p_link_preview_id => $1) as id`, [lp]);
-    const row = (await vibesOf(ana, bia)).find((v) => v.id === id) as unknown as { preview_audio_url: string };
-    expect(row.preview_audio_url).toBe('https://audio-ssl.itunes.apple.com/itunes-assets/a.m4a');
-    await expect(db.sql(`update public.link_previews set audio_url = 'https://evil.example/a.mp3' where id = $1`, [lp])).rejects.toThrow(/check constraint/);
-  });
-});
-
 describe('vibes no jeito dos Stories', () => {
   const item = (t: string, extra: Record<string, unknown> = {}) => ({ t, x: 0.5, y: 0.5, f: 'classic', c: 'white', b: 'none', ...extra });
   const make = (user: string, items: unknown) => db.as<{ id: string }>(user, `select public.vibe_create(p_kind => 'text', p_text_items => $1::jsonb) as id`, [JSON.stringify(items)]);
 
-  it('foto, vídeo e texto podem levar uma música; post compartilhado não', async () => {
+  it('nenhuma vibe leva música: nem o tipo música, nem música por cima de foto, vídeo, texto ou post', async () => {
     const preview = await createPreview(db, 'https://open.spotify.com/track/vibestory0000000000001', 'Trilha');
-    const photo = await create(ana, { kind: 'photo', media: await stored(ana, 'jpg'), preview });
-    const video = await create(ana, { kind: 'video', media: await stored(ana, 'mp4'), duration: 5000, preview });
-    const text = await create(ana, { kind: 'text', text: 'com música', preview });
-    const rows = await vibesOf(caio, ana);
-    for (const id of [photo, video, text]) expect(rows.find((r) => r.id === id)?.preview_title).toBe('Trilha');
-
     const [p] = await db.sql<{ id: string }>(`insert into public.posts (author_id, link_preview_id, body) values ($1, $2, 'x') returning id`, [bia, preview]);
-    await expect(create(ana, { kind: 'post', post: p!.id, preview })).rejects.toThrow(/check constraint/);
+    for (const args of [
+      { kind: 'music', preview },
+      { kind: 'photo', media: await stored(ana, 'jpg'), preview },
+      { kind: 'video', media: await stored(ana, 'mp4'), duration: 5000, preview },
+      { kind: 'text', text: 'com música', preview },
+      { kind: 'post', post: p!.id, preview },
+    ])
+      await expect(create(ana, args)).rejects.toThrow(/check constraint/);
   });
 
   it('texto com tamanho, giro e alinhamento (opcionais); fora dos limites é recusado', async () => {

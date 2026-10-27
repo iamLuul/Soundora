@@ -1,6 +1,5 @@
-import { PLATFORM_LABELS, type Platform } from '@soundhora/core';
+import type { Platform } from '@soundhora/core';
 import { Image } from 'expo-image';
-import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -35,7 +34,6 @@ export interface VibeContentProps {
   /** Os textos da vibe, cada um no seu lugar e com a sua fonte, cor e fundo. */
   textItems?: VibeTextItem[];
   style: VibeStyle;
-  music?: VibeMusic | null;
   post?: VibeSharedPost | null;
   paused?: boolean;
   /** Prévia na tela de criar: vídeo em loop, sem abrir links. */
@@ -44,7 +42,7 @@ export interface VibeContentProps {
 }
 
 /** O conteúdo de uma vibe em 9:16. Igual na criação e na visualização. */
-export function VibeContent({ kind, mediaUri, textItems = [], style, music, post, paused = false, preview = false, onVideoEnd }: VibeContentProps) {
+export function VibeContent({ kind, mediaUri, textItems = [], style, post, paused = false, preview = false, onVideoEnd }: VibeContentProps) {
   const { t } = useTranslation();
 
   if (kind === 'photo' || kind === 'video') {
@@ -70,12 +68,6 @@ export function VibeContent({ kind, mediaUri, textItems = [], style, music, post
   return (
     <View style={[styles.fill, styles.padded]}>
       <VibeBackground style={style} />
-
-      {kind === 'music' && music ? (
-        <>
-          <MusicBlock music={music} disabled={preview} />
-        </>
-      ) : null}
 
       {kind === 'post' && post ? (
         <>
@@ -105,33 +97,6 @@ export function VibeContent({ kind, mediaUri, textItems = [], style, music, post
   );
 }
 
-function MusicBlock({ music, disabled }: { music: VibeMusic; disabled: boolean }) {
-  const { t } = useTranslation();
-  const label = PLATFORM_LABELS[music.platform as Platform] ?? music.platform;
-  return (
-    <View testID="vibe-music-card" style={styles.musicBlock}>
-      {music.imageUrl ? (
-        <Image source={{ uri: music.imageUrl }} style={styles.bigCover} contentFit="cover" />
-      ) : (
-        <View style={[styles.bigCover, { backgroundColor: colors.card }]} />
-      )}
-      <Text style={styles.musicTitle} numberOfLines={2}>
-        {music.title}
-      </Text>
-      {music.artist ? <Text style={styles.musicArtist}>{music.artist}</Text> : null}
-      <Pressable
-        accessibilityRole="link"
-        disabled={disabled}
-        onPress={() => Linking.openURL(music.url)}
-        style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}
-      >
-        <PlatformLogo platform={music.platform as Platform} size={18} />
-        <Text style={styles.listenText}>{t('feed.listenOn', { platform: label })}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 function MiniMusic({ music }: { music: VibeMusic }) {
   return (
     <View style={styles.mini}>
@@ -155,21 +120,6 @@ const styles = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
   padded: { padding: space.xl, alignItems: 'center', justifyContent: 'center', gap: space.lg },
   center: { flex: 1 },
-  musicBlock: { alignItems: 'center', gap: space.sm, width: '100%' },
-  bigCover: { width: 220, height: 220, borderRadius: 12 },
-  musicTitle: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, textAlign: 'center', marginTop: space.sm },
-  musicArtist: { fontFamily: fonts.regular, fontSize: 14, color: colors.text, opacity: 0.85 },
-  listen: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    backgroundColor: colors.text,
-    borderRadius: 20,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    marginTop: space.sm,
-  },
-  listenText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.background },
   postCard: { width: '100%', backgroundColor: colors.background, borderRadius: 14, padding: space.lg, gap: space.md },
   postHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   postUser: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },

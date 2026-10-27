@@ -24,7 +24,7 @@ const RING = 84;
 
 /**
  * Primeira tela de criar uma vibe, como a câmera do Story: a câmera ocupa o cartão; em cima o X e
- * o flash; à esquerda, criar só com texto (Aa) ou com música; embaixo a galeria, o botão de
+ * o flash; à esquerda, criar só com texto (Aa); embaixo a galeria, o botão de
  * tirar foto (segurar grava vídeo, até 30 s) e o de virar a câmera.
  */
 export function VibeCamera({
@@ -33,7 +33,6 @@ export function VibeCamera({
   onMedia,
   onGallery,
   onText,
-  onMusic,
   onClose,
 }: {
   width: number;
@@ -41,7 +40,6 @@ export function VibeCamera({
   onMedia: (m: CapturedMedia) => void;
   onGallery: () => void;
   onText: () => void;
-  onMusic: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -168,11 +166,15 @@ export function VibeCamera({
 
       {!recording ? (
         <View style={styles.side} pointerEvents="box-none">
-          <Pressable testID="vibe-mode-text" accessibilityRole="button" accessibilityLabel={t('vibes.createText')} onPress={onText} hitSlop={8} style={styles.sideButton}>
+          <Pressable
+            testID="vibe-mode-text"
+            accessibilityRole="button"
+            accessibilityLabel={t('vibes.createText')}
+            onPress={onText}
+            hitSlop={8}
+            style={styles.sideButton}
+          >
             <Text style={styles.aa}>Aa</Text>
-          </Pressable>
-          <Pressable testID="vibe-mode-music" accessibilityRole="button" accessibilityLabel={t('vibes.createMusic')} onPress={onMusic} hitSlop={8} style={styles.sideButton}>
-            <Ionicons name="musical-notes-outline" size={30} color="#FFFFFF" />
           </Pressable>
         </View>
       ) : null}
@@ -237,7 +239,19 @@ export function VibeCamera({
   );
 }
 
-function IconButton({ testID, icon, size, label, onPress }: { testID: string; icon: React.ComponentProps<typeof Ionicons>['name']; size: number; label: string; onPress: () => void }) {
+function IconButton({
+  testID,
+  icon,
+  size,
+  label,
+  onPress,
+}: {
+  testID: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  size: number;
+  label: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={10} style={styles.iconButton}>
       <Ionicons name={icon} size={size} color="#FFFFFF" />
@@ -258,7 +272,16 @@ const styles = StyleSheet.create({
   sideButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   aa: { fontFamily: fonts.semibold, fontSize: 30, color: '#FFFFFF' },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: space.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  gallery: { width: 46, height: 46, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
+  gallery: {
+    width: 46,
+    height: 46,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
   shutter: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: RING - 18, height: RING - 18, borderRadius: (RING - 18) / 2, backgroundColor: 'rgba(255,255,255,0.85)' },
   shutterRecording: { width: 34, height: 34, borderRadius: 8, backgroundColor: colors.danger },

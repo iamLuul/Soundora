@@ -14,15 +14,6 @@ const mockReplace = jest.fn();
 const mockCreate = jest.fn(async () => 'v1');
 const mockPreviewLink = jest.fn();
 const mockConvert = jest.fn(async () => new Uint8Array([1]));
-const mockSearchSongs = jest.fn(async (_q: string) => [{ id: 'd1', title: 'Midnight City', artist: 'M83', album: null, image_url: null }]);
-const mockPickSong = jest.fn(async (_id: string) => ({
-  link_preview_id: 'lp1',
-  title: 'Midnight City',
-  artist: 'M83',
-  image_url: null,
-  url: 'https://www.deezer.com/track/1',
-  platform: 'deezer',
-}));
 const mockParams: Record<string, string> = {};
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('expo-router', () => ({
@@ -44,8 +35,6 @@ jest.mock('../src/lib/api', () => ({
   createVibe: (...a: unknown[]) => mockCreate(...(a as [])),
   previewLink: (...a: unknown[]) => mockPreviewLink(...a),
   uploadVibeMedia: async (type: string) => ({ path: type === 'photo' ? 'me/f.jpg' : 'me/v.mp4', durationMs: undefined }),
-  searchSongs: (q: string) => mockSearchSongs(q),
-  pickSong: (id: string) => mockPickSong(id),
   fetchVibesTray: async () => [
     { author_id: 'me', username: 'raul', display_name: 'Raul', avatar_url: null, vibe_count: 1, unseen: false, latest_at: '', is_me: true },
     { author_id: 'b', username: 'bia', display_name: 'Bia', avatar_url: null, vibe_count: 2, unseen: true, latest_at: '', is_me: false },
@@ -58,9 +47,28 @@ jest.mock('../src/lib/api', () => ({
 
 function textVibe(id: string, text: string, seen = false) {
   return {
-    id, kind: 'text', media_path: null, duration_ms: null, text, style: 'violet', created_at: new Date().toISOString(), seen, view_count: null,
-    preview_url: null, preview_platform: null, preview_title: null, preview_artist: null, preview_image_url: null, post_id: null, post_body: null,
-    post_author_username: null, post_author_avatar_url: null, text_x: null, text_y: null, preview_audio_url: null, text_items: null,
+    id,
+    kind: 'text',
+    media_path: null,
+    duration_ms: null,
+    text,
+    style: 'violet',
+    created_at: new Date().toISOString(),
+    seen,
+    view_count: null,
+    preview_url: null,
+    preview_platform: null,
+    preview_title: null,
+    preview_artist: null,
+    preview_image_url: null,
+    post_id: null,
+    post_body: null,
+    post_author_username: null,
+    post_author_avatar_url: null,
+    text_x: null,
+    text_y: null,
+    preview_audio_url: null,
+    text_items: null,
   };
 }
 const mockVibesOf: Record<string, ReturnType<typeof textVibe>[]> = {
@@ -85,18 +93,19 @@ describe('Nova vibe: câmera', () => {
     expect(screen.getByTestId('camera-view')).toBeTruthy();
     expect(screen.getByTestId('vibe-mode-library')).toBeTruthy();
     expect(screen.getByTestId('vibe-mode-text')).toBeTruthy();
-    expect(screen.getByTestId('vibe-mode-music')).toBeTruthy();
+    // Sem música nas vibes (direitos autorais).
+    expect(screen.queryByTestId('vibe-mode-music')).toBeNull();
     expect(screen.getByText('VIBE')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('vibe-shutter'));
     await waitFor(() => expect(screen.getByTestId('vibe-canvas')).toBeTruthy());
     expect(mockConvert).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'photo', mediaPath: 'me/f.jpg', durationMs: undefined, linkPreviewId: undefined, textItems: [] }));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'photo', mediaPath: 'me/f.jpg', durationMs: undefined, textItems: [] }));
     expect(mockConvert).toHaveBeenCalledWith('file:///camera/foto.jpg', 1080, 1920);
     expect(mockBack).toHaveBeenCalled();
   });
 
-  test('sem permissão da câmera: pede, e galeria, texto e música continuam', async () => {
+  test('sem permissão da câmera: pede, e galeria e texto continuam', async () => {
     (globalThis as { __mockCameraPermission?: object }).__mockCameraPermission = { granted: false, canAskAgain: false, status: 'denied' };
     try {
       await wrap(<NewVibeScreen />);
@@ -148,6 +157,15 @@ describe('Nova vibe: textos', () => {
         textItems: [{ t: 'bom dia', x: 0.5, y: 0.42, f: 'serif', c: 'yellow', b: 'solid', s: 1, a: 'left' }],
       }),
     );
+  });
+
+  test('tocar fora do texto fecha a edição e guarda o texto (como o Pronto)', async () => {
+    await wrap(<NewVibeScreen />);
+    await fireEvent.press(screen.getByTestId('vibe-mode-text'));
+    await fireEvent.changeText(screen.getByTestId('vibe-text'), 'fora');
+    await fireEvent.press(screen.getByTestId('vibe-text-backdrop'));
+    expect(screen.queryByTestId('vibe-text-composer')).toBeNull();
+    expect(screen.getByText('fora')).toBeTruthy();
   });
 
   test('tocar na vibe escreve outro texto (com o último jeito); tocar no texto edita; apagar tudo remove', async () => {
@@ -221,11 +239,17 @@ describe('Nova vibe: textos', () => {
   });
 
   test('compartilhar um post: abre já com o post (sem câmera) e publica como vibe de post', async () => {
-    Object.assign(mockParams, { postId: 'p1', postUser: 'bia', postBody: 'ouçam', postUrl: 'https://open.spotify.com/track/x', postPlatform: 'spotify', postTitle: 'Faixa' });
+    Object.assign(mockParams, {
+      postId: 'p1',
+      postUser: 'bia',
+      postBody: 'ouçam',
+      postUrl: 'https://open.spotify.com/track/x',
+      postPlatform: 'spotify',
+      postTitle: 'Faixa',
+    });
     await wrap(<NewVibeScreen />);
     expect(screen.getByText('@bia')).toBeTruthy();
     expect(screen.queryByTestId('camera-view')).toBeNull();
-    expect(screen.queryByTestId('vibe-add-music')).toBeNull();
     await fireEvent.press(screen.getByTestId('vibe-publish'));
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'post', postId: 'p1', style: 'violet', textItems: [] }));
   });
@@ -240,24 +264,28 @@ describe('Vibes: ver', () => {
   });
 
   test('vibe com vários textos mostra todos', async () => {
-    mockVibesOf.multi = [{ ...textVibe('m1', 'a\nb'), text_items: [{ t: 'a', x: 0.2, y: 0.2, f: 'serif', c: 'yellow', b: 'solid' }, { t: 'b', x: 0.8, y: 0.8, f: 'strong', c: 'white', b: 'soft' }] } as never];
+    mockVibesOf.multi = [
+      {
+        ...textVibe('m1', 'a\nb'),
+        text_items: [
+          { t: 'a', x: 0.2, y: 0.2, f: 'serif', c: 'yellow', b: 'solid' },
+          { t: 'b', x: 0.8, y: 0.8, f: 'strong', c: 'white', b: 'soft' },
+        ],
+      } as never,
+    ];
     Object.assign(mockParams, { author: 'multi' });
     await wrap(<VibeViewerScreen />);
     await waitFor(() => expect(screen.getByText('a')).toBeTruthy());
     expect(screen.getByText('b')).toBeTruthy();
   });
-
 });
 
 describe('Vibes: ver no jeito do Story', () => {
-  test('texto com música mostra o selo da música; arrastar para baixo fecha', async () => {
-    mockVibesOf.som = [
-      { ...textVibe('s1', 'com som'), preview_url: 'https://open.spotify.com/track/x', preview_platform: 'spotify', preview_title: 'Wait', preview_artist: 'M83' } as never,
-    ];
+  test('arrastar para baixo fecha (pouco volta, bastante fecha)', async () => {
+    mockVibesOf.som = [textVibe('s1', 'com som')];
     Object.assign(mockParams, { author: 'som' });
     await wrap(<VibeViewerScreen />);
     await waitFor(() => expect(screen.getByText('com som')).toBeTruthy());
-    expect(screen.getByText('M83 · Wait')).toBeTruthy();
     // Pouco: volta. Bastante: fecha.
     await act(async () => {
       fireGestureHandler(getByGestureTestId('vibe-swipe'), [
@@ -320,44 +348,5 @@ describe('Ver vibes em sequência', () => {
     await waitFor(() => expect(screen.getByText('oi do caio')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('vibe-next'));
     expect(mockBack).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('Nova vibe: música', () => {
-  test('música da câmera: busca pelo nome, escolhe e vira a vibe de música (cartão grande)', async () => {
-    await wrap(<NewVibeScreen />);
-    await fireEvent.press(screen.getByTestId('vibe-mode-music'));
-    await fireEvent.changeText(screen.getByTestId('vibe-music-search'), 'midnight');
-    await fireEvent.press(await screen.findByTestId('vibe-music-hit-d1'));
-    await waitFor(() => expect(screen.getByText('Midnight City')).toBeTruthy());
-    expect(mockPickSong).toHaveBeenCalledWith('d1');
-    expect(screen.getByTestId('vibe-music-card')).toBeTruthy();
-    expect(screen.queryByTestId('vibe-music-pill')).toBeNull();
-    await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ kind: 'music', linkPreviewId: 'lp1', style: 'violet', textItems: [] }));
-  });
-
-  test('foto com música: o selo em cima; colar o link também funciona; o X tira', async () => {
-    mockPreviewLink.mockResolvedValue({ id: 'lp2', url: 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC', platform: 'spotify', kind: 'track', title: 'Wait', artist: 'M83', image_url: null });
-    await wrap(<NewVibeScreen />);
-    await fireEvent.press(screen.getByTestId('vibe-shutter'));
-    await fireEvent.press(await screen.findByTestId('vibe-add-music'));
-    await fireEvent.changeText(screen.getByTestId('vibe-music-search'), 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC');
-    await fireEvent.press(await screen.findByTestId('vibe-music-link-hit'));
-    expect(await screen.findByTestId('vibe-music-pill')).toBeTruthy();
-    expect(screen.getByText('M83 · Wait')).toBeTruthy();
-    expect(mockSearchSongs).not.toHaveBeenCalled();
-    await fireEvent.press(screen.getByTestId('vibe-publish'));
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ kind: 'photo', linkPreviewId: 'lp2' })));
-    await fireEvent.press(screen.getByTestId('vibe-music-pill-remove'));
-    expect(screen.queryByTestId('vibe-music-pill')).toBeNull();
-  });
-
-  test('desistir da música na câmera volta para a câmera', async () => {
-    await wrap(<NewVibeScreen />);
-    await fireEvent.press(screen.getByTestId('vibe-mode-music'));
-    expect(screen.getByTestId('vibe-music-picker')).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('vibe-music-close'));
-    await waitFor(() => expect(screen.getByTestId('camera-view')).toBeTruthy());
   });
 });

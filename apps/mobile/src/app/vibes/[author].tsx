@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar } from '../../components/figma';
 import { OptionsSheet, type SheetOption } from '../../components/OptionsSheet';
 import { VibeContent } from '../../components/vibes/VibeContent';
-import { MusicPill } from '../../components/vibes/MusicPill';
 import { vibeCanvas } from '../../lib/vibe-canvas';
 import { deleteVibe, fetchVibesOf, fetchVibeViewers, markVibeSeen, report, vibeMediaUrl, type Vibe } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -98,24 +97,24 @@ export default function VibeViewerScreen() {
   const slot = slots[pos]!;
   return (
     <GestureDetector gesture={swipe}>
-    <Animated.View style={[styles.screen, dragStyle]}>
-      <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
-      {slot.kind === 'ad' ? (
-        <AdVibe key={`ad-${slot.slot}`} slot={slot.slot} hasPrevious={pos > 0} onDone={next} onPrevious={previous} onClose={close} />
-      ) : (
-        <AuthorVibes
-          key={slot.item}
-          author={slot.item}
-          // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
-          fallbackUsername={pos === 0 ? username : undefined}
-          fallbackAvatar={pos === 0 ? avatar : undefined}
-          hasPrevious={pos > 0}
-          onDone={next}
-          onPrevious={previous}
-          onClose={close}
-        />
-      )}
-    </Animated.View>
+      <Animated.View style={[styles.screen, dragStyle]}>
+        <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
+        {slot.kind === 'ad' ? (
+          <AdVibe key={`ad-${slot.slot}`} slot={slot.slot} hasPrevious={pos > 0} onDone={next} onPrevious={previous} onClose={close} />
+        ) : (
+          <AuthorVibes
+            key={slot.item}
+            author={slot.item}
+            // Nome e foto vindos da Home só valem para a primeira pessoa (as outras vêm da fila de vibes).
+            fallbackUsername={pos === 0 ? username : undefined}
+            fallbackAvatar={pos === 0 ? avatar : undefined}
+            hasPrevious={pos > 0}
+            onDone={next}
+            onPrevious={previous}
+            onClose={close}
+          />
+        )}
+      </Animated.View>
     </GestureDetector>
   );
 }
@@ -302,17 +301,6 @@ function AuthorVibes({
             style={current.style}
             paused={paused}
             onVideoEnd={goNext}
-            music={
-              current.kind === 'music' && current.preview_url
-                ? {
-                    url: current.preview_url,
-                    platform: current.preview_platform ?? '',
-                    title: current.preview_title ?? '',
-                    artist: current.preview_artist,
-                    imageUrl: current.preview_image_url,
-                  }
-                : null
-            }
             post={
               current.kind === 'post' && current.post_id
                 ? {
@@ -398,26 +386,11 @@ function AuthorVibes({
                 <Ionicons name="close" size={26} color={colors.text} />
               </Pressable>
             </View>
-            {/* Música por cima da foto, do vídeo ou do texto: o selo, tocar abre a música. */}
-            {current.preview_url && (current.kind === 'photo' || current.kind === 'video' || current.kind === 'text') ? (
-              <View style={{ marginTop: space.sm }}>
-                <MusicPill
-                  music={{
-                    url: current.preview_url,
-                    platform: current.preview_platform ?? '',
-                    title: current.preview_title ?? '',
-                    artist: current.preview_artist,
-                    imageUrl: current.preview_image_url,
-                  }}
-                />
-              </View>
-            ) : null}
           </View>
         </View>
       )}
       {current ? (
         <>
-
           {isMine ? (
             <Pressable
               testID="vibe-viewers"

@@ -1051,7 +1051,7 @@ export async function unregisterPushToken(token: string): Promise<void> {
 
 // ---------- Vibes (como os Stories: somem em 24 h) ----------
 
-export type VibeKind = 'photo' | 'video' | 'text' | 'music' | 'post';
+export type VibeKind = 'photo' | 'video' | 'text' | 'post';
 export const VIBE_STYLES = ['violet', 'blue', 'pink', 'green', 'orange', 'dark'] as const;
 export type VibeStyle = (typeof VIBE_STYLES)[number];
 
@@ -1205,8 +1205,6 @@ export interface NewVibe {
   mediaPath?: string;
   durationMs?: number;
   style?: VibeStyle;
-  /** Música: o cartão da vibe de música, ou a música por cima da foto, do vídeo ou do texto. */
-  linkPreviewId?: string;
   postId?: string;
   /** Os textos escritos na vibe (até 8, cada um com lugar, fonte, cor e fundo). */
   textItems?: VibeTextItem[];
@@ -1228,7 +1226,6 @@ export async function createVibe(v: NewVibe): Promise<string> {
     p_media_path: v.mediaPath ?? null,
     p_duration_ms: v.durationMs ?? null,
     p_style: v.style ?? 'violet',
-    p_link_preview_id: v.linkPreviewId ?? null,
     p_post_id: v.postId ?? null,
     p_text_items: items.length ? items : null,
   });

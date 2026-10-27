@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import {
@@ -17,7 +18,6 @@ import {
   type VibeTextItem,
 } from '../../lib/api';
 import { colors, fonts, space } from '../../theme';
-import { keyboardBehavior } from '../ui';
 import { FONT_STYLE, fontSizeFor, itemStyle, TEXT_COLOR } from './textStyle';
 
 type Look = Pick<VibeTextItem, 'f' | 'c' | 'b' | 's' | 'a'>;
@@ -30,8 +30,9 @@ const ALIGN_ICON: Record<VibeTextAlign, 'reorder-three-outline' | 'menu-outline'
 
 /**
  * Escrever um texto da vibe, como no Story: a tela escurece, o texto fica no meio com o teclado
- * aberto, "Pronto" em cima à direita, o tamanho numa barra à esquerda e, em cima do teclado, as
- * fontes (ou as cores) e a barra com Aa, cor, fundo do texto e alinhamento.
+ * aberto, "Pronto" em cima à direita, o tamanho numa barra à esquerda e, colados no teclado, as
+ * fontes (ou as cores) e a barra com Aa, cor, fundo do texto e alinhamento. Tocar fora do texto
+ * também termina (como o "Pronto").
  */
 export function TextComposer({
   initial,
@@ -51,6 +52,11 @@ export function TextComposer({
   const [panel, setPanel] = useState<'font' | 'color'>('font');
   const change = (patch: Partial<Look>) => setLook((l) => ({ ...l, ...patch }));
   const done = () => onDone({ ...initial, ...look, t: text });
+  // A altura do teclado vem direto do sistema (iOS e Android), para as fontes e a barra ficarem
+  // logo em cima dele, sem espaço sobrando.
+  const keyboard = useAnimatedKeyboard();
+  const bottomSafe = insets.bottom;
+  const lift = useAnimatedStyle(() => ({ paddingBottom: Math.max(keyboard.height.value, bottomSafe) + 4 }));
 
   const s = itemStyle(look, kind);
   const size = fontSizeFor(kind) * (look.s ?? 1);
@@ -59,14 +65,16 @@ export function TextComposer({
 
   return (
     <View style={styles.overlay} testID="vibe-text-composer">
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={keyboardBehavior}>
-        <View style={[styles.top, { paddingTop: insets.top + space.sm }]}>
+      {/* Fundo escuro: tocar em qualquer lugar fora do texto e das opções fecha, como o "Pronto". */}
+      <Pressable testID="vibe-text-backdrop" accessible={false} style={StyleSheet.absoluteFill} onPress={done} />
+      <View style={{ flex: 1 }} pointerEvents="box-none">
+        <View style={[styles.top, { paddingTop: insets.top + space.sm }]} pointerEvents="box-none">
           <Pressable testID="vibe-text-done" accessibilityRole="button" onPress={done} hitSlop={12} style={styles.doneButton}>
             <Text style={styles.done}>{t('vibes.done')}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.middle}>
+        <View style={styles.middle} pointerEvents="box-none">
           <SizeSlider value={look.s ?? 1} onChange={(v) => change({ s: v })} label={t('vibes.size')} />
           <View style={[styles.inputBox, s.box, look.a === 'left' ? styles.alignLeft : look.a === 'right' ? styles.alignRight : null]}>
             <TextInput
@@ -84,74 +92,83 @@ export function TextComposer({
           </View>
         </View>
 
-        {panel === 'font' ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="always"
-            contentContainerStyle={styles.chips}
-            accessibilityRole="radiogroup"
-            accessibilityLabel={t('vibes.font')}
-          >
-            {VIBE_FONTS.map((f) => (
-              <Pressable
-                key={f}
-                testID={`vibe-font-${f}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: look.f === f }}
-                accessibilityLabel={t(`vibes.fonts.${f}`)}
-                onPress={() => change({ f })}
-                style={[styles.chip, look.f === f && styles.chipOn]}
-              >
-                <Text style={[styles.chipText, FONT_STYLE[f], { textTransform: 'none', letterSpacing: 0 }, look.f === f && { color: '#000' }]}>{t(`vibes.fonts.${f}`)}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="always"
-            contentContainerStyle={styles.chips}
-            accessibilityRole="radiogroup"
-            accessibilityLabel={t('vibes.textColor')}
-          >
-            {VIBE_TEXT_COLORS.map((c) => (
-              <Pressable
-                key={c}
-                testID={`vibe-color-${c}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: look.c === c }}
-                accessibilityLabel={t(`vibes.colors.${c}`)}
-                onPress={() => change({ c })}
-                style={[styles.swatch, { backgroundColor: TEXT_COLOR[c] }, look.c === c && styles.swatchOn]}
-              />
-            ))}
-          </ScrollView>
-        )}
+        <Animated.View style={lift}>
+          {panel === 'font' ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              contentContainerStyle={styles.chips}
+              accessibilityRole="radiogroup"
+              accessibilityLabel={t('vibes.font')}
+            >
+              {VIBE_FONTS.map((f) => (
+                <Pressable
+                  key={f}
+                  testID={`vibe-font-${f}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: look.f === f }}
+                  accessibilityLabel={t(`vibes.fonts.${f}`)}
+                  onPress={() => change({ f })}
+                  style={[styles.chip, look.f === f && styles.chipOn]}
+                >
+                  <Text style={[styles.chipText, FONT_STYLE[f], { textTransform: 'none', letterSpacing: 0 }, look.f === f && { color: '#000' }]}>
+                    {t(`vibes.fonts.${f}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              contentContainerStyle={styles.chips}
+              accessibilityRole="radiogroup"
+              accessibilityLabel={t('vibes.textColor')}
+            >
+              {VIBE_TEXT_COLORS.map((c) => (
+                <Pressable
+                  key={c}
+                  testID={`vibe-color-${c}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: look.c === c }}
+                  accessibilityLabel={t(`vibes.colors.${c}`)}
+                  onPress={() => change({ c })}
+                  style={[styles.swatch, { backgroundColor: TEXT_COLOR[c] }, look.c === c && styles.swatchOn]}
+                />
+              ))}
+            </ScrollView>
+          )}
 
-        <View style={[styles.toolbar, { marginBottom: space.sm }]}>
-          <ToolButton testID="vibe-tool-font" label={t('vibes.font')} active={panel === 'font'} onPress={() => setPanel('font')}>
-            <Text style={styles.aa}>Aa</Text>
-          </ToolButton>
-          <ToolButton testID="vibe-tool-color" label={t('vibes.textColor')} active={panel === 'color'} onPress={() => setPanel('color')}>
-            <ColorWheel />
-          </ToolButton>
-          <ToolButton testID="vibe-text-bg" label={t('vibes.textBg')} value={t(`vibes.bg.${look.b}`)} onPress={() => change({ b: nextBg })}>
-            <View style={[styles.bgGlyph, look.b === 'solid' && styles.bgSolid, look.b === 'soft' && styles.bgSoft]}>
-              <Text style={[styles.bgGlyphText, look.b === 'solid' && { color: '#000' }]}>A</Text>
-            </View>
-          </ToolButton>
-          <ToolButton testID="vibe-text-align" label={t('vibes.align')} value={t(`vibes.aligns.${look.a ?? 'center'}`)} onPress={() => change({ a: nextAlign })}>
-            <Ionicons
-              name={ALIGN_ICON[look.a ?? 'center']}
-              size={26}
-              color={colors.text}
-              style={look.a === 'right' ? { transform: [{ scaleX: -1 }] } : undefined}
-            />
-          </ToolButton>
-        </View>
-      </KeyboardAvoidingView>
+          <View style={styles.toolbar}>
+            <ToolButton testID="vibe-tool-font" label={t('vibes.font')} active={panel === 'font'} onPress={() => setPanel('font')}>
+              <Text style={styles.aa}>Aa</Text>
+            </ToolButton>
+            <ToolButton testID="vibe-tool-color" label={t('vibes.textColor')} active={panel === 'color'} onPress={() => setPanel('color')}>
+              <ColorWheel />
+            </ToolButton>
+            <ToolButton testID="vibe-text-bg" label={t('vibes.textBg')} value={t(`vibes.bg.${look.b}`)} onPress={() => change({ b: nextBg })}>
+              <View style={[styles.bgGlyph, look.b === 'solid' && styles.bgSolid, look.b === 'soft' && styles.bgSoft]}>
+                <Text style={[styles.bgGlyphText, look.b === 'solid' && { color: '#000' }]}>A</Text>
+              </View>
+            </ToolButton>
+            <ToolButton
+              testID="vibe-text-align"
+              label={t('vibes.align')}
+              value={t(`vibes.aligns.${look.a ?? 'center'}`)}
+              onPress={() => change({ a: nextAlign })}
+            >
+              <Ionicons
+                name={ALIGN_ICON[look.a ?? 'center']}
+                size={26}
+                color={colors.text}
+                style={look.a === 'right' ? { transform: [{ scaleX: -1 }] } : undefined}
+              />
+            </ToolButton>
+          </View>
+        </Animated.View>
+      </View>
     </View>
   );
 }
@@ -252,7 +269,7 @@ const styles = StyleSheet.create({
   alignLeft: { alignSelf: 'flex-start' },
   alignRight: { alignSelf: 'flex-end' },
   input: { minWidth: 40, maxWidth: '100%', padding: 0, outlineWidth: 0 },
-  chips: { paddingHorizontal: space.md, gap: space.sm, alignItems: 'center', paddingVertical: space.sm },
+  chips: { paddingHorizontal: space.md, gap: space.sm, alignItems: 'center', paddingBottom: 6 },
   chip: {
     height: 36,
     borderRadius: 10,

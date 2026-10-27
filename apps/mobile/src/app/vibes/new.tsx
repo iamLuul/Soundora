@@ -10,8 +10,6 @@ import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 import { RingAvatar } from '../../components/figma';
 import { Spinner } from '../../components/Spinner';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
-import { MusicPicker, type PickedMusic } from '../../components/vibes/MusicPicker';
-import { MusicPill } from '../../components/vibes/MusicPill';
 import { TextComposer } from '../../components/vibes/TextComposer';
 import { defaultTextLook } from '../../components/vibes/textStyle';
 import { VibeCamera, type CapturedMedia } from '../../components/vibes/VibeCamera';
@@ -38,14 +36,13 @@ type Params = {
   postImage?: string;
 };
 
-/** O fundo da vibe: foto/vídeo, cor (texto ou música) ou post compartilhado. */
+/** O fundo da vibe: foto/vídeo, cor (texto) ou post compartilhado. */
 type Background = { type: 'media'; media: CapturedMedia } | { type: 'color' } | { type: 'post' };
 
 /**
  * Criar uma vibe, no jeito do Story:
- * 1. Câmera: tirar foto, segurar para gravar vídeo, abrir a galeria, ou criar só com texto (Aa)
- *    ou com música (fundo colorido).
- * 2. Edição: a vibe em tela cheia; à direita, texto (Aa), música e cor do fundo; textos que se
+ * 1. Câmera: tirar foto, segurar para gravar vídeo, abrir a galeria, ou criar só com texto (Aa).
+ * 2. Edição: a vibe em tela cheia; à direita, texto (Aa) e cor do fundo; textos que se
  *    arrastam, aumentam e giram com dois dedos e somem na lixeira; embaixo, publicar.
  * Compartilhar um post (?postId=) já abre na edição, com o post.
  */
@@ -72,43 +69,44 @@ function NewVibe() {
         avatarUrl: params.postAvatar || null,
         body: params.postBody || null,
         music: params.postUrl
-          ? { url: params.postUrl, platform: params.postPlatform ?? '', title: params.postTitle ?? '', artist: params.postArtist || null, imageUrl: params.postImage || null }
+          ? {
+              url: params.postUrl,
+              platform: params.postPlatform ?? '',
+              title: params.postTitle ?? '',
+              artist: params.postArtist || null,
+              imageUrl: params.postImage || null,
+            }
           : null,
       }
     : null;
 
   const [background, setBackground] = useState<Background | null>(sharedPost ? { type: 'post' } : null);
   const [style, setStyle] = useState<VibeStyle>('violet');
-  const [music, setMusic] = useState<PickedMusic | null>(null);
   const [items, setItems] = useState<EditorItem[]>([]);
   // Texto aberto para escrever: um que já existe (id) ou um novo ('new').
   const [composing, setComposing] = useState<string | null>(null);
   // Jeito do próximo texto: o último usado (como no Instagram).
   const [look, setLook] = useState<Pick<VibeTextItem, 'f' | 'c' | 'b' | 'a'> | null>(null);
-  const [musicOpen, setMusicOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [overTrash, setOverTrash] = useState(false);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nextId = useRef(0);
-  const picked = useRef(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const hasText = items.some((i) => i.t.trim());
-  const kind: VibeKind =
-    background?.type === 'media' ? background.media.type : background?.type === 'post' ? 'post' : music ? 'music' : 'text';
-  const canPublish = !!background && (background.type !== 'color' || hasText || !!music);
+  const kind: VibeKind = background?.type === 'media' ? background.media.type : background?.type === 'post' ? 'post' : 'text';
+  const canPublish = !!background && (background.type !== 'color' || hasText);
   // Lixeira: no meio, perto do fim do cartão (coordenadas da janela, para o arrastar comparar).
   const trash: TrashZone = { x: canvas.left + canvas.width / 2, y: canvas.top + canvas.height - 64, r: 46 };
 
   /** Volta para a câmera (pergunta antes se já tem algo feito). */
   const discard = async () => {
     if (sharedPost) return close();
-    if ((items.length || music) && !(await confirmAction(t('vibes.discardConfirm'), t('vibes.discard'), t('common.cancel')))) return;
+    if (items.length && !(await confirmAction(t('vibes.discardConfirm'), t('vibes.discard'), t('common.cancel')))) return;
     setBackground(null);
     setItems([]);
-    setMusic(null);
     setError(null);
   };
 
@@ -181,11 +179,9 @@ function NewVibe() {
           if (bytes.byteLength > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
         }
         const uploaded = await uploadVibeMedia(media.type, bytes);
-        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, linkPreviewId: music?.id, textItems });
+        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, textItems });
       } else if (background.type === 'post' && sharedPost) {
         await createVibe({ kind: 'post', postId: sharedPost.id, style, textItems });
-      } else if (music) {
-        await createVibe({ kind: 'music', linkPreviewId: music.id, style, textItems });
       } else {
         await createVibe({ kind: 'text', style, textItems });
       }
@@ -199,11 +195,7 @@ function NewVibe() {
   };
 
   const composingItem = composing === 'new' ? null : items.find((i) => i.id === composing);
-  const composerInitial: VibeTextItem | null = composing
-    ? (composingItem ?? { t: '', x: 0.5, y: 0.42, ...(look ?? defaultTextLook(kind)) })
-    : null;
-  // A música vira o cartão grande quando o fundo é cor; sobre foto, vídeo e texto, um selo em cima.
-  const pill = music && kind !== 'music' && background?.type !== 'post';
+  const composerInitial: VibeTextItem | null = composing ? (composingItem ?? { t: '', x: 0.5, y: 0.42, ...(look ?? defaultTextLook(kind)) }) : null;
 
   return (
     <View style={styles.screen}>
@@ -230,10 +222,6 @@ function NewVibe() {
               setBackground({ type: 'color' });
               openNewText();
             }}
-            onMusic={() => {
-              setBackground({ type: 'color' });
-              setMusicOpen(true);
-            }}
             onClose={close}
           />
           <Text style={styles.modeLabel}>{t('vibes.modeLabel')}</Text>
@@ -245,16 +233,15 @@ function NewVibe() {
             style={[styles.canvas, { top: canvas.top, left: canvas.left, width: canvas.width, height: canvas.height }]}
             onLayout={(e: LayoutChangeEvent) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
           >
-            <VibeContent
-              kind={kind}
-              mediaUri={background.type === 'media' ? background.media.uri : undefined}
-              style={style}
-              music={kind === 'music' ? music : null}
-              post={sharedPost}
-              preview
-            />
+            <VibeContent kind={kind} mediaUri={background.type === 'media' ? background.media.uri : undefined} style={style} post={sharedPost} preview />
             {/* Tocar num lugar vazio escreve um texto novo (como tocar na tela do Story). */}
-            <Pressable testID="vibe-canvas" accessibilityRole="button" accessibilityLabel={t('vibes.tapToWrite')} style={StyleSheet.absoluteFill} onPress={openNewText} />
+            <Pressable
+              testID="vibe-canvas"
+              accessibilityRole="button"
+              accessibilityLabel={t('vibes.tapToWrite')}
+              style={StyleSheet.absoluteFill}
+              onPress={openNewText}
+            />
             {kind === 'text' && !hasText && !composing ? (
               <View style={styles.emptyHint} pointerEvents="none">
                 <Text style={styles.emptyHintText}>{t('vibes.textHint')}</Text>
@@ -280,16 +267,11 @@ function NewVibe() {
               <>
                 <View style={styles.topRow} pointerEvents="box-none">
                   <RoundButton testID="vibe-discard" icon="close" label={sharedPost ? t('common.cancel') : t('vibes.discard')} onPress={discard} />
-                  <View style={{ flex: 1, alignItems: 'center' }} pointerEvents="box-none">
-                    {pill && music ? <MusicPill music={music} onPress={() => setMusicOpen(true)} onRemove={() => setMusic(null)} /> : null}
-                  </View>
+                  <View style={{ flex: 1 }} pointerEvents="none" />
                   <View style={styles.tools}>
                     <RoundButton testID="vibe-add-text" label={t('vibes.addText')} onPress={openNewText}>
                       <Text style={styles.aa}>Aa</Text>
                     </RoundButton>
-                    {background.type !== 'post' ? (
-                      <RoundButton testID="vibe-add-music" icon="musical-notes-outline" label={music ? t('vibes.changeMusic') : t('vibes.addMusic')} onPress={() => setMusicOpen(true)} />
-                    ) : null}
                     {background.type !== 'media' ? (
                       <RoundButton
                         testID="vibe-background"
@@ -346,19 +328,6 @@ function NewVibe() {
       )}
 
       {composerInitial ? <TextComposer initial={composerInitial} kind={kind} onDone={finishText} /> : null}
-      <MusicPicker
-        visible={musicOpen}
-        onPick={(m) => {
-          picked.current = true;
-          setMusic(m);
-        }}
-        onClose={() => {
-          setMusicOpen(false);
-          // Veio do "música" da câmera e não escolheu nada: volta para a câmera.
-          if (!picked.current && background?.type === 'color' && !music && !items.length) setBackground(null);
-          picked.current = false;
-        }}
-      />
     </View>
   );
 }
@@ -418,7 +387,16 @@ const styles = StyleSheet.create({
   },
   trashOver: { width: 72, height: 72, borderRadius: 36, marginTop: -8, backgroundColor: colors.danger, borderColor: colors.danger },
   bottom: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: space.md },
-  yours: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, height: 52, borderRadius: 26, paddingHorizontal: space.sm, backgroundColor: '#26242F' },
+  yours: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    height: 52,
+    borderRadius: 26,
+    paddingHorizontal: space.sm,
+    backgroundColor: '#26242F',
+  },
   yoursText: { fontFamily: fonts.semibold, fontSize: 14, color: '#FFFFFF' },
   send: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   error: { fontFamily: fonts.regular, fontSize: 12, color: colors.danger, textAlign: 'center', marginTop: space.sm },
