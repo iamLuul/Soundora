@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.46 · Visual em vidro (glassmorphism) no app inteiro, com mais reação ao toque e ao mouse
+
+- `0.46.0.10.26` · 27/10/2026 · Visual em vidro (glassmorphism) no app inteiro, com mais reação ao toque e ao mouse (edd4078)
+
 ## 0.45 · Comunidades: criar, entrar (aberta ou com pedido), moderação, aba Comunidades no Início, postar em comunidade, populares no Para você e recomendações
 
 - `0.45.3.10.26` · 27/10/2026 · Navbar só com ícones; vidro cresce ao tocar e acompanha o dedo ao arrastar (81714c4)
