@@ -5,11 +5,17 @@ import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar } from '../../components/figma';
 import { OptionsSheet, type SheetOption } from '../../components/OptionsSheet';
 import { VibeContent } from '../../components/vibes/VibeContent';
+import { MusicPill } from '../../components/vibes/MusicPill';
+import { vibeCanvas } from '../../lib/vibe-canvas';
 import { deleteVibe, fetchVibesOf, fetchVibeViewers, markVibeSeen, report, vibeMediaUrl, type Vibe } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
@@ -69,9 +75,30 @@ export default function VibeViewerScreen() {
     if (upcoming) void prefetchAuthor(qc, upcoming);
   }, [qc, upcoming]);
 
+  // Arrastar para baixo fecha (como no Story); a tela acompanha o dedo.
+  const drag = useSharedValue(0);
+  const swipe = Gesture.Pan()
+    .withTestId('vibe-swipe')
+    .activeOffsetY(18)
+    .failOffsetX([-18, 18])
+    .onUpdate((e) => {
+      'worklet';
+      drag.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      'worklet';
+      if (e.translationY > 120 || e.velocityY > 900) scheduleOnRN(close);
+      else drag.value = withTiming(0, { duration: 180 });
+    });
+  const dragStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: drag.value }, { scale: 1 - Math.min(drag.value / 2000, 0.12) }],
+    borderRadius: drag.value > 0 ? 20 : 0,
+  }));
+
   const slot = slots[pos]!;
   return (
-    <View style={styles.screen}>
+    <GestureDetector gesture={swipe}>
+    <Animated.View style={[styles.screen, dragStyle]}>
       <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />
       {slot.kind === 'ad' ? (
         <AdVibe key={`ad-${slot.slot}`} slot={slot.slot} hasPrevious={pos > 0} onDone={next} onPrevious={previous} onClose={close} />
@@ -88,7 +115,8 @@ export default function VibeViewerScreen() {
           onClose={close}
         />
       )}
-    </View>
+    </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -123,6 +151,7 @@ function AuthorVibes({
   // Primeira vez vendo vibes: tocar para passar, segurar para pausar (a vibe espera a dica fechar).
   const [tipOpen, closeTip] = useFirstTimeTip('vibe-view');
   const insets = useSafeAreaInsets();
+  const canvas = vibeCanvas(useWindowDimensions(), insets);
   const qc = useQueryClient();
   const { profile } = useAuth();
   const tray = useVibesTray();
@@ -264,7 +293,7 @@ function AuthorVibes({
       {!current ? (
         <Spinner color={colors.text} style={{ flex: 1 }} />
       ) : (
-        <>
+        <View style={[styles.card, { top: canvas.top, left: canvas.left, width: canvas.width, height: canvas.height }]}>
           <VibeContent
             key={current.id}
             kind={current.kind}
@@ -323,7 +352,17 @@ function AuthorVibes({
             {...hold}
           />
 
-          <View style={[styles.header, { paddingTop: insets.top + space.sm }]} pointerEvents="box-none">
+          {/* Segurando: a interface some e fica só a vibe (como no Story). */}
+          <View style={[styles.header, holding && { opacity: 0 }]} pointerEvents="box-none">
+            <Svg width="100%" height={110} style={styles.shade} pointerEvents="none">
+              <Defs>
+                <LinearGradient id="vibe-shade" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="#000000" stopOpacity={0.45} />
+                  <Stop offset="1" stopColor="#000000" stopOpacity={0} />
+                </LinearGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="110" fill="url(#vibe-shade)" />
+            </Svg>
             <View style={styles.bars}>
               {list.map((v, i) => (
                 <View key={v.id} style={styles.bar}>
@@ -359,21 +398,39 @@ function AuthorVibes({
                 <Ionicons name="close" size={26} color={colors.text} />
               </Pressable>
             </View>
+            {/* Música por cima da foto, do vídeo ou do texto: o selo, tocar abre a música. */}
+            {current.preview_url && (current.kind === 'photo' || current.kind === 'video' || current.kind === 'text') ? (
+              <View style={{ marginTop: space.sm }}>
+                <MusicPill
+                  music={{
+                    url: current.preview_url,
+                    platform: current.preview_platform ?? '',
+                    title: current.preview_title ?? '',
+                    artist: current.preview_artist,
+                    imageUrl: current.preview_image_url,
+                  }}
+                />
+              </View>
+            ) : null}
           </View>
+        </View>
+      )}
+      {current ? (
+        <>
 
           {isMine ? (
             <Pressable
               testID="vibe-viewers"
               accessibilityRole="button"
               onPress={() => setViewersFor(current.id)}
-              style={[styles.viewersButton, { bottom: insets.bottom + space.lg }]}
+              style={[styles.viewersButton, { top: canvas.top + canvas.height + space.md }]}
             >
               <Ionicons name="eye-outline" size={18} color={colors.text} />
               <Text style={styles.viewersText}>{t('vibes.views', { count: current.view_count ?? 0 })}</Text>
             </Pressable>
           ) : null}
         </>
-      )}
+      ) : null}
 
       <OptionsSheet visible={menu === 'options'} options={options} onClose={() => setMenu(null)} />
       <OptionsSheet visible={menu === 'report'} title={t('report.title')} options={reasons} onClose={() => setMenu(null)} />
@@ -424,8 +481,10 @@ function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  zone: { position: 'absolute', top: 90, bottom: 90, width: '30%' },
-  header: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.md, gap: space.sm },
+  card: { position: 'absolute', borderRadius: 20, overflow: 'hidden', backgroundColor: '#000' },
+  zone: { position: 'absolute', top: 90, bottom: 0, width: '30%' },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.md, paddingTop: space.md, gap: space.sm },
+  shade: { position: 'absolute', top: 0, left: 0, right: 0 },
   bars: { flexDirection: 'row', gap: 4 },
   bar: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)', overflow: 'hidden' },
   barFill: { height: 3, backgroundColor: colors.text },

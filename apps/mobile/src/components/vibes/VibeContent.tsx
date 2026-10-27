@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { VibeKind, VibeStyle, VibeTextItem } from '../../lib/api';
 import { colors, fonts, space } from '../../theme';
 import { PlatformLogo, RingAvatar } from '../figma';
-import { VIBE_BACKGROUND } from './colors';
+import { VibeBackground } from './VibeBackground';
 import { VibeTextOverlay } from './VibeText';
 import { VibeVideo } from './VibeVideo';
 import { Spinner } from '../Spinner';
@@ -41,12 +41,10 @@ export interface VibeContentProps {
   /** Prévia na tela de criar: vídeo em loop, sem abrir links. */
   preview?: boolean;
   onVideoEnd?: () => void;
-  /** Tela de criar: onde o card da música ficou (para tocar nele e trocar o link). */
-  onMusicLayout?: (rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 /** O conteúdo de uma vibe em 9:16. Igual na criação e na visualização. */
-export function VibeContent({ kind, mediaUri, textItems = [], style, music, post, paused = false, preview = false, onVideoEnd, onMusicLayout }: VibeContentProps) {
+export function VibeContent({ kind, mediaUri, textItems = [], style, music, post, paused = false, preview = false, onVideoEnd }: VibeContentProps) {
   const { t } = useTranslation();
 
   if (kind === 'photo' || kind === 'video') {
@@ -55,7 +53,12 @@ export function VibeContent({ kind, mediaUri, textItems = [], style, music, post
         {!mediaUri ? (
           <Spinner color={colors.text} style={styles.center} />
         ) : kind === 'photo' ? (
-          <Image source={{ uri: mediaUri }} style={StyleSheet.absoluteFill} contentFit="contain" accessibilityIgnoresInvertColors />
+          <>
+            {/* Como no Story: a foto inteira no meio e, atrás, ela mesma desfocada preenchendo a tela. */}
+            <Image source={{ uri: mediaUri }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={40} accessibilityIgnoresInvertColors />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} />
+            <Image source={{ uri: mediaUri }} style={StyleSheet.absoluteFill} contentFit="contain" accessibilityIgnoresInvertColors />
+          </>
         ) : (
           <VibeVideo uri={mediaUri} paused={paused} loop={preview} onEnd={onVideoEnd} />
         )}
@@ -65,11 +68,12 @@ export function VibeContent({ kind, mediaUri, textItems = [], style, music, post
   }
 
   return (
-    <View style={[styles.fill, styles.padded, { backgroundColor: VIBE_BACKGROUND[style] }]}>
+    <View style={[styles.fill, styles.padded]}>
+      <VibeBackground style={style} />
 
       {kind === 'music' && music ? (
         <>
-          <MusicBlock music={music} disabled={preview} onLayout={onMusicLayout} />
+          <MusicBlock music={music} disabled={preview} />
         </>
       ) : null}
 
@@ -101,11 +105,11 @@ export function VibeContent({ kind, mediaUri, textItems = [], style, music, post
   );
 }
 
-function MusicBlock({ music, disabled, onLayout }: { music: VibeMusic; disabled: boolean; onLayout?: VibeContentProps['onMusicLayout'] }) {
+function MusicBlock({ music, disabled }: { music: VibeMusic; disabled: boolean }) {
   const { t } = useTranslation();
   const label = PLATFORM_LABELS[music.platform as Platform] ?? music.platform;
   return (
-    <View testID="vibe-music-card" style={styles.musicBlock} onLayout={onLayout ? (e) => onLayout(e.nativeEvent.layout) : undefined}>
+    <View testID="vibe-music-card" style={styles.musicBlock}>
       {music.imageUrl ? (
         <Image source={{ uri: music.imageUrl }} style={styles.bigCover} contentFit="cover" />
       ) : (

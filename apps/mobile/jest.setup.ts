@@ -74,6 +74,30 @@ jest.mock('expo-notifications/build/NotificationsHandlerModule', () => ({
   default: { addListener: () => ({ remove: () => undefined }), handleNotificationAsync: async () => undefined },
 }));
 
+// expo-camera usa módulo nativo: no Jest, uma câmera de mentira (tirar foto devolve um arquivo
+// falso) e permissão já dada. Os testes trocam globalThis.__mockCameraPermission para negar.
+jest.mock('expo-camera', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const CameraView = React.forwardRef((props: Record<string, unknown>, ref: unknown) => {
+    React.useImperativeHandle(ref, () => ({
+      takePictureAsync: async () => ({ uri: 'file:///camera/foto.jpg', width: 1080, height: 1920 }),
+      recordAsync: async () => ({ uri: 'file:///camera/video.mp4' }),
+      stopRecording: () => undefined,
+    }));
+    React.useEffect(() => {
+      (props.onCameraReady as (() => void) | undefined)?.();
+    }, []);
+    return React.createElement(View, { testID: 'camera-view' });
+  });
+  const perm = () => (globalThis as { __mockCameraPermission?: object }).__mockCameraPermission ?? { granted: true, canAskAgain: true, status: 'granted' };
+  return {
+    CameraView,
+    useCameraPermissions: () => [perm(), async () => perm()],
+    useMicrophonePermissions: () => [{ granted: true, canAskAgain: true, status: 'granted' }, async () => ({ granted: true })],
+  };
+});
+
 // AdMob usa módulo nativo: no Jest, um SDK de mentira. O anúncio que o useNativeAd devolve é
 // controlado pelos testes em globalThis.__mockNativeAd ({ status, nativeAd }); sem nada, sem estoque.
 jest.mock('react-native-google-mobile-ads', () => {

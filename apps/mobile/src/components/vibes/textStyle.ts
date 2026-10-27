@@ -50,20 +50,25 @@ export function fontSizeFor(kind: VibeKind): number {
   return kind === 'text' ? 26 : 19;
 }
 
+/** Giro e tamanho do texto, para o transform (o tamanho base vem do itemStyle). */
+export function transformOf(item: Pick<VibeTextItem, 's' | 'r'>) {
+  return [{ rotate: `${item.r ?? 0}deg` }, { scale: item.s ?? 1 }];
+}
+
 /**
  * Como um texto é desenhado: o estilo do texto e o da caixa em volta.
  * - none: só a letra na cor escolhida, com uma sombra leve para ler sobre foto.
  * - solid: caixa na cor escolhida, letra preto ou branco (o que ler melhor).
  * - soft: caixa translúcida (escura; clara quando a letra é preta), letra na cor escolhida.
  */
-export function itemStyle(item: Pick<VibeTextItem, 'f' | 'c' | 'b'>, kind: VibeKind): { text: TextStyle; box: BoxStyle } {
+export function itemStyle(item: Pick<VibeTextItem, 'f' | 'c' | 'b' | 'a'>, kind: VibeKind): { text: TextStyle; box: BoxStyle } {
   const color = TEXT_COLOR[item.c];
   const size = fontSizeFor(kind);
   const text: { -readonly [K in keyof TextStyle]: TextStyle[K] } = {
     ...FONT_STYLE[item.f],
     fontSize: size,
     lineHeight: Math.round(size * 1.3),
-    textAlign: 'center',
+    textAlign: item.a ?? 'center',
   };
   const box: BoxStyle = {};
   if (item.b === 'solid') {

@@ -65,6 +65,15 @@
           "color": "#6C62FF"
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Soundhora usa a câmera só quando você cria uma vibe.",
+          "microphonePermission": "O Soundhora usa o microfone só para gravar o som dos vídeos das vibes.",
+          "recordAudioAndroid": true,
+          "barcodeScannerEnabled": false
+        }
+      ],
       "expo-video"
     ],
     "experiments": {

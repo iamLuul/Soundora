@@ -1,46 +1,30 @@
-import { extractFirstUrl, parseStreamingUrl } from '@soundhora/core';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
-import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-  type HostInstance,
-} from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { ErrorText, keyboardBehavior } from '../../components/ui';
+import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
+import { RingAvatar } from '../../components/figma';
+import { Spinner } from '../../components/Spinner';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
-import { VibeContent, type VibeMusic } from '../../components/vibes/VibeContent';
+import { MusicPicker, type PickedMusic } from '../../components/vibes/MusicPicker';
+import { MusicPill } from '../../components/vibes/MusicPill';
+import { TextComposer } from '../../components/vibes/TextComposer';
 import { defaultTextLook } from '../../components/vibes/textStyle';
-import { VibeEditTools, VibeIconButton, VibeTextEditor, type EditorItem, type ToolPanel } from '../../components/vibes/VibeText';
-import { createVibe, previewLink, uploadVibeMedia, VIBE_MAX_TEXTS, VIBE_VIDEO_MAX, type VibeKind, type VibeStyle, type VibeTextItem } from '../../lib/api';
+import { VibeCamera, type CapturedMedia } from '../../components/vibes/VibeCamera';
+import { VibeContent } from '../../components/vibes/VibeContent';
+import { DraggableText, type EditorItem, type TrashZone } from '../../components/vibes/VibeText';
+import { createVibe, uploadVibeMedia, VIBE_MAX_TEXTS, VIBE_STYLES, VIBE_VIDEO_MAX, type VibeKind, type VibeStyle, type VibeTextItem } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
+import { confirmAction } from '../../lib/dialogs';
 import { AppError, formatError } from '../../lib/errors';
 import { convertVibePhoto } from '../../lib/image-convert';
-import { colors, fonts, space } from '../../theme';
-import { webTouch } from '../../lib/touch';
+import { vibeCanvas } from '../../lib/vibe-canvas';
 import { canCreateVibes } from '../../lib/vibes-create';
-import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
-
-interface Media {
-  type: 'photo' | 'video';
-  uri: string;
-  width: number;
-  height: number;
-  durationMs: number | null;
-  fileSize: number | null;
-}
+import { colors, fonts, space } from '../../theme';
 
 type Params = {
   postId?: string;
@@ -54,24 +38,32 @@ type Params = {
   postImage?: string;
 };
 
+/** O fundo da vibe: foto/vídeo, cor (texto ou música) ou post compartilhado. */
+type Background = { type: 'media'; media: CapturedMedia } | { type: 'color' } | { type: 'post' };
+
 /**
- * Criar uma vibe: foto ou vídeo (galeria ou câmera), texto, card de música, ou um post
- * compartilhado (quando chega com ?postId=). Some em 24 horas.
+ * Criar uma vibe, no jeito do Story:
+ * 1. Câmera: tirar foto, segurar para gravar vídeo, abrir a galeria, ou criar só com texto (Aa)
+ *    ou com música (fundo colorido).
+ * 2. Edição: a vibe em tela cheia; à direita, texto (Aa), música e cor do fundo; textos que se
+ *    arrastam, aumentam e giram com dois dedos e somem na lixeira; embaixo, publicar.
+ * Compartilhar um post (?postId=) já abre na edição, com o post.
  */
 export default function NewVibeScreen() {
   // Na web só dá para ver vibes: quem abrir o endereço de criar volta para o início.
   if (!canCreateVibes) return <Redirect href="/" />;
-  return <NewVibeForm />;
+  return <NewVibe />;
 }
 
-function NewVibeForm() {
+function NewVibe() {
   const { t } = useTranslation();
-  // Primeira vez criando uma vibe: os tipos, escrever e arrastar, e as 24 horas.
   const [tipOpen, closeTip] = useFirstTimeTip('vibe-new');
   const params = useLocalSearchParams<Params>();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const window = useWindowDimensions();
   const qc = useQueryClient();
+  const { profile } = useAuth();
+  const canvas = vibeCanvas(window, insets);
 
   const sharedPost = params.postId
     ? {
@@ -80,130 +72,104 @@ function NewVibeForm() {
         avatarUrl: params.postAvatar || null,
         body: params.postBody || null,
         music: params.postUrl
-          ? {
-              url: params.postUrl,
-              platform: params.postPlatform ?? '',
-              title: params.postTitle ?? '',
-              artist: params.postArtist || null,
-              imageUrl: params.postImage || null,
-            }
+          ? { url: params.postUrl, platform: params.postPlatform ?? '', title: params.postTitle ?? '', artist: params.postArtist || null, imageUrl: params.postImage || null }
           : null,
       }
     : null;
 
-  const [kind, setKind] = useState<VibeKind>(sharedPost ? 'post' : 'text');
-  const [media, setMedia] = useState<Media | null>(null);
-  // Textos na tela (até 8): cada um com lugar, fonte, cor e fundo. editingId = o que está sendo digitado.
-  const [items, setItems] = useState<EditorItem[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  // Fonte, cor e fundo do próximo texto: o último que a pessoa escolheu (como no Instagram).
-  const [look, setLook] = useState<Pick<VibeTextItem, 'f' | 'c' | 'b'> | null>(null);
-  const [panel, setPanel] = useState<ToolPanel>(null);
-  const nextId = useRef(0);
-  const editing = editingId !== null;
-  const editingItem = items.find((i) => i.id === editingId) ?? null;
-  const hasText = items.some((i) => i.t.trim());
-  const canvasRef = useRef<HostInstance>(null);
+  const [background, setBackground] = useState<Background | null>(sharedPost ? { type: 'post' } : null);
   const [style, setStyle] = useState<VibeStyle>('violet');
-  const [link, setLink] = useState('');
-  const [music, setMusic] = useState<(VibeMusic & { id: string }) | null>(null);
-  // Link da música digitado/colado direto na vibe (como o texto); tocar no card abre de novo.
-  const [linkEditing, setLinkEditing] = useState(false);
-  const [musicRect, setMusicRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [busy, setBusy] = useState<null | 'preview' | 'publish'>(null);
+  const [music, setMusic] = useState<PickedMusic | null>(null);
+  const [items, setItems] = useState<EditorItem[]>([]);
+  // Texto aberto para escrever: um que já existe (id) ou um novo ('new').
+  const [composing, setComposing] = useState<string | null>(null);
+  // Jeito do próximo texto: o último usado (como no Instagram).
+  const [look, setLook] = useState<Pick<VibeTextItem, 'f' | 'c' | 'b' | 'a'> | null>(null);
+  const [musicOpen, setMusicOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [overTrash, setOverTrash] = useState(false);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nextId = useRef(0);
+  const picked = useRef(false);
 
-  // Prévia em 9:16, cabendo na tela com espaço para a barra de cima e a de baixo (Figma: Vibes).
-  const cardWidth = Math.min(width - 22, ((height - insets.top - insets.bottom - 190) * 9) / 16, 420);
-  const cardHeight = (cardWidth * 16) / 9;
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const hasText = items.some((i) => i.t.trim());
+  const kind: VibeKind =
+    background?.type === 'media' ? background.media.type : background?.type === 'post' ? 'post' : music ? 'music' : 'text';
+  const canPublish = !!background && (background.type !== 'color' || hasText || !!music);
+  // Lixeira: no meio, perto do fim do cartão (coordenadas da janela, para o arrastar comparar).
+  const trash: TrashZone = { x: canvas.left + canvas.width / 2, y: canvas.top + canvas.height - 64, r: 46 };
 
-  const pick = async (source: 'library' | 'camera') => {
+  /** Volta para a câmera (pergunta antes se já tem algo feito). */
+  const discard = async () => {
+    if (sharedPost) return close();
+    if ((items.length || music) && !(await confirmAction(t('vibes.discardConfirm'), t('vibes.discard'), t('common.cancel')))) return;
+    setBackground(null);
+    setItems([]);
+    setMusic(null);
+    setError(null);
+  };
+
+  const pickFromGallery = async () => {
     setError(null);
     try {
-      const options: ImagePicker.ImagePickerOptions = {
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         videoMaxDuration: VIBE_VIDEO_MAX.seconds,
         quality: 1,
         // iOS: exporta o vídeo em H.264 de tamanho médio (arquivo menor).
         videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
-      };
-      if (source === 'camera') {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) return setError(t('vibes.cameraDenied'));
-      }
-      const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+      });
       const asset = result.canceled ? null : result.assets?.[0];
       if (!asset) return;
-      const isVideo = asset.type === 'video';
-      setMedia({
-        type: isVideo ? 'video' : 'photo',
-        uri: asset.uri,
-        width: asset.width ?? 0,
-        height: asset.height ?? 0,
-        durationMs: asset.duration ?? null,
-        fileSize: asset.fileSize ?? null,
+      setBackground({
+        type: 'media',
+        media: {
+          type: asset.type === 'video' ? 'video' : 'photo',
+          uri: asset.uri,
+          width: asset.width ?? 0,
+          height: asset.height ?? 0,
+          durationMs: asset.duration ?? null,
+          fileSize: asset.fileSize ?? null,
+        },
       });
-      setKind(isVideo ? 'video' : 'photo');
     } catch (err) {
       setError(formatError(t, err));
     }
   };
 
-  /** Gera o card. Uma música por vibe: um link novo troca a anterior. */
-  const loadMusic = async (value = link) => {
+  const openNewText = () => {
+    if (items.length >= VIBE_MAX_TEXTS) return setError(t('vibes.maxTexts', { max: VIBE_MAX_TEXTS }));
     setError(null);
-    const url = extractFirstUrl(value);
-    if (!url || !parseStreamingUrl(url)) return setError(t('errors.unsupported'));
-    if (music && url === music.url) return setLinkEditing(false);
-    setBusy('preview');
-    try {
-      const p = await previewLink(url);
-      setMusic({ id: p.id, url: p.url, platform: p.platform, title: p.title, artist: p.artist, imageUrl: p.image_url });
-      setLinkEditing(false);
-      Keyboard.dismiss();
-    } catch (err) {
-      setError(formatError(t, err));
-    } finally {
-      setBusy(null);
+    setComposing('new');
+  };
+
+  const finishText = (item: VibeTextItem) => {
+    const id = composing;
+    setComposing(null);
+    Keyboard.dismiss();
+    setLook({ f: item.f, c: item.c, b: item.b, a: item.a });
+    if (!item.t.trim()) {
+      if (id && id !== 'new') setItems((prev) => prev.filter((i) => i.id !== id));
+      return;
     }
+    if (id === 'new') setItems((prev) => [...prev, { ...item, id: `t${++nextId.current}` }]);
+    else setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...item } : i)));
   };
 
-  // Colou/digitou um link de música válido: gera o card sozinho.
-  const lastTried = useRef<string | null>(null);
-  useEffect(() => {
-    if (!linkEditing) return;
-    const url = extractFirstUrl(link);
-    if (!url || url === lastTried.current || !parseStreamingUrl(url) || url === music?.url) return;
-    const timer = setTimeout(() => {
-      lastTried.current = url;
-      void loadMusic(url);
-    }, 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMusic muda a cada render; o que importa é o link
-  }, [link, linkEditing, music?.url]);
-
-  const openLinkEditor = () => {
-    setEditingId(null);
-    setError(null);
-    setLink(music?.url ?? '');
-    lastTried.current = music?.url ?? null;
-    setLinkEditing(true);
-  };
-
-  const pasteLink = async () => {
-    const value = await Clipboard.getStringAsync().catch(() => '');
-    if (value) setLink(value);
-  };
-
-  const canPublish =
-    (kind === 'text' && hasText) || ((kind === 'photo' || kind === 'video') && !!media) || (kind === 'music' && !!music) || (kind === 'post' && !!sharedPost);
+  const changeItem = (id: string, patch: Partial<VibeTextItem>) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
 
   const publish = async () => {
+    if (!background || !canPublish) return;
     setError(null);
-    setBusy('publish');
+    setBusy(true);
     const textItems: VibeTextItem[] = items.filter((i) => i.t.trim()).map(({ id: _id, ...rest }) => rest);
     try {
-      if ((kind === 'photo' || kind === 'video') && media) {
+      if (background.type === 'media') {
+        const media = background.media;
         let bytes: Uint8Array;
         if (media.type === 'photo') {
           bytes = await convertVibePhoto(media.uri, media.width, media.height);
@@ -215,313 +181,245 @@ function NewVibeForm() {
           if (bytes.byteLength > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
         }
         const uploaded = await uploadVibeMedia(media.type, bytes);
-        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, textItems });
-      } else if (kind === 'music' && music) {
-        await createVibe({ kind: 'music', linkPreviewId: music.id, style, textItems });
-      } else if (kind === 'post' && sharedPost) {
+        await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, linkPreviewId: music?.id, textItems });
+      } else if (background.type === 'post' && sharedPost) {
         await createVibe({ kind: 'post', postId: sharedPost.id, style, textItems });
+      } else if (music) {
+        await createVibe({ kind: 'music', linkPreviewId: music.id, style, textItems });
       } else {
         await createVibe({ kind: 'text', style, textItems });
       }
       await qc.invalidateQueries({ queryKey: ['vibes'] });
-      if (router.canGoBack()) router.back();
-      else router.replace('/');
+      close();
     } catch (err) {
       setError(formatError(t, err));
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
-  const switchTo = (next: VibeKind) => {
-    setError(null);
-    setKind(next);
-    // Música: já abre o campo do link na própria vibe.
-    setLinkEditing(next === 'music' && !music);
-    if (next !== 'photo' && next !== 'video') setMedia(null);
-  };
-
-  const showStyles = kind === 'text' || kind === 'music' || kind === 'post';
-  // Dá para escrever na tela quando já existe o fundo da vibe (texto, mídia, música ou post).
-  const canWrite = kind === 'text' || kind === 'post' || (kind === 'music' && !!music) || ((kind === 'photo' || kind === 'video') && !!media);
-
-  /** Termina de digitar: o texto que ficou vazio some. */
-  function finishEditing() {
-    setEditingId(null);
-    setItems((prev) => prev.filter((i) => i.t.trim()));
-    Keyboard.dismiss();
-  }
-
-  /** Novo texto onde a pessoa tocou (com a última fonte, cor e fundo usados). */
-  function addTextAt(x: number, y: number) {
-    if (items.length >= VIBE_MAX_TEXTS) return setError(t('vibes.maxTexts', { max: VIBE_MAX_TEXTS }));
-    const id = `t${++nextId.current}`;
-    setItems((prev) => [...prev, { id, t: '', x, y, ...(look ?? defaultTextLook(kind)) }]);
-    setEditingId(id);
-  }
-
-  const changeItem = (id: string, patch: Partial<VibeTextItem>) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-  // Com um texto sendo editado, fonte/cor/fundo mudam só ele; sem texto, mudam o do próximo.
-  const currentLook = editingItem ?? look ?? defaultTextLook(kind);
-  const changeLook = (patch: Partial<Pick<VibeTextItem, 'f' | 'c' | 'b'>>) => {
-    if (editingItem) changeItem(editingItem.id, patch);
-    setLook({ f: currentLook.f, c: currentLook.c, b: currentLook.b, ...patch });
-  };
-  const deleteEditing = () => {
-    if (!editingId) return;
-    setItems((prev) => prev.filter((i) => i.id !== editingId));
-    setEditingId(null);
-    Keyboard.dismiss();
-  };
+  const composingItem = composing === 'new' ? null : items.find((i) => i.id === composing);
+  const composerInitial: VibeTextItem | null = composing
+    ? (composingItem ?? { t: '', x: 0.5, y: 0.42, ...(look ?? defaultTextLook(kind)) })
+    : null;
+  // A música vira o cartão grande quando o fundo é cor; sobre foto, vídeo e texto, um selo em cima.
+  const pill = music && kind !== 'music' && background?.type !== 'post';
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={keyboardBehavior}>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       <CoachMarks
         testID="coach-vibe-new"
         visible={tipOpen}
         onClose={closeTip}
         steps={[
-          { icon: 'images-outline', title: t('tips.vibeNewTypeTitle'), body: t('tips.vibeNewTypeBody') },
+          { icon: 'camera-outline', title: t('tips.vibeNewTypeTitle'), body: t('tips.vibeNewTypeBody') },
           { icon: 'text-outline', title: t('tips.vibeNewTextTitle'), body: t('tips.vibeNewTextBody') },
           { icon: 'time-outline', title: t('tips.vibeNewTimeTitle'), body: t('tips.vibeNewTimeBody') },
         ]}
       />
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + space.sm, paddingBottom: insets.bottom + space.lg }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.top}>
-          <Pressable
-            testID="vibe-close"
-            accessibilityRole="button"
-            accessibilityLabel={t('common.cancel')}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-            hitSlop={12}
-            style={webTouch(12)}
-          >
-            <Ionicons name="close" size={26} color={colors.text} />
-          </Pressable>
-          <Text style={styles.title}>{t('vibes.new')}</Text>
-          <View style={{ width: 26 }} />
-        </View>
 
-        <View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
-          {kind === 'music' && !music ? (
-            <Pressable
-              testID="vibe-music-empty"
-              accessibilityRole="button"
-              onPress={openLinkEditor}
-              style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}
-            >
-              <Ionicons name="musical-notes" size={48} color={colors.text} />
-              {!linkEditing ? <Text style={styles.placeholderText}>{t('vibes.musicHint')}</Text> : null}
-            </Pressable>
-          ) : (kind === 'photo' || kind === 'video') && !media ? (
-            <View style={[styles.placeholder, { backgroundColor: '#000' }]}>
-              <Ionicons name="images" size={48} color={colors.text} />
-            </View>
-          ) : (
-            <>
-              {kind === 'text' && !hasText && !editing ? (
-                <View style={[styles.placeholder, { backgroundColor: VIBE_BACKGROUND[style] }]}>
-                  <Ionicons name="text" size={40} color={colors.text} />
-                  <Text style={styles.placeholderText}>{t('vibes.textHint')}</Text>
-                </View>
-              ) : (
-                <VibeContent kind={kind} mediaUri={media?.uri} style={style} music={music} post={sharedPost} preview onMusicLayout={setMusicRect} />
-              )}
-              {/* Tocar num lugar vazio da vibe cria um texto novo ali; tocar num texto edita só ele. */}
-              <Pressable
-                testID="vibe-canvas"
-                accessibilityRole="button"
-                accessibilityLabel={t('vibes.tapToWrite')}
-                style={StyleSheet.absoluteFill}
-                ref={canvasRef}
-                onPress={(e) => {
-                  if (editing) return finishEditing();
-                  if (linkEditing) return music ? setLinkEditing(false) : undefined;
-                  const { locationX, locationY, pageX, pageY } = e.nativeEvent;
-                  const apply = (x: number, y: number) => {
-                    // Tocou no card da música: edita o link (uma música por vibe).
-                    if (
-                      kind === 'music' &&
-                      musicRect &&
-                      x >= musicRect.x &&
-                      x <= musicRect.x + musicRect.width &&
-                      y >= musicRect.y &&
-                      y <= musicRect.y + musicRect.height
-                    ) {
-                      return openLinkEditor();
-                    }
-                    addTextAt(Math.min(1, Math.max(0, x / cardWidth)), Math.min(1, Math.max(0, y / cardHeight)));
-                  };
-                  // Celular: posição do toque dentro da vibe. Web: nem sempre vem; calcula pela página.
-                  if (Number.isFinite(locationX) && Number.isFinite(locationY) && (locationX || locationY)) apply(locationX, locationY);
-                  else canvasRef.current?.measureInWindow((left, top) => apply(pageX - left, pageY - top));
-                }}
-              />
-              <VibeTextEditor
-                kind={kind}
-                items={items}
-                editingId={editingId}
-                placeholder={kind === 'text' ? t('vibes.textPlaceholder') : t('vibes.captionPlaceholder')}
-                onChangeText={(id, value) => changeItem(id, { t: value })}
-                onChangePos={(id, pos) => changeItem(id, pos)}
-                onStartEdit={setEditingId}
-              />
-              {canWrite || editing ? (
-                <VibeEditTools
-                  look={currentLook}
-                  editing={editing}
-                  panel={panel}
-                  onPanel={setPanel}
-                  onChange={changeLook}
-                  onDelete={deleteEditing}
-                  onDone={finishEditing}
-                  background={showStyles ? { value: style, onChange: setStyle } : undefined}
-                />
-              ) : null}
-            </>
-          )}
-          {kind === 'music' && linkEditing ? (
-            <View style={styles.linkEditor}>
-              <Text style={styles.linkTitle}>{music ? t('vibes.changeMusic') : t('vibes.pasteMusic')}</Text>
-              <TextInput
-                testID="vibe-link"
-                accessibilityLabel={t('a11y.musicLink')}
-                value={link}
-                onChangeText={setLink}
-                placeholder={t('compose.linkPlaceholder')}
-                placeholderTextColor={colors.placeholder}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoFocus
-                inputMode="url"
-                onSubmitEditing={() => loadMusic()}
-                style={styles.linkInput}
-              />
-              {busy === 'preview' ? <Text style={styles.linkStatus}>{t('compose.loadingMusic')}</Text> : null}
-              <View style={styles.linkButtons}>
-                {Platform.OS !== 'web' ? (
-                  <Pressable testID="vibe-link-paste" accessibilityRole="button" onPress={pasteLink} style={styles.linkButton}>
-                    <Text style={styles.linkButtonText}>{t('compose.paste')}</Text>
-                  </Pressable>
-                ) : null}
-                {music ? (
-                  <Pressable testID="vibe-link-cancel" accessibilityRole="button" onPress={() => setLinkEditing(false)} style={styles.linkButton}>
-                    <Text style={styles.linkButtonText}>{t('common.cancel')}</Text>
-                  </Pressable>
-                ) : null}
+      {!background ? (
+        <View style={{ paddingTop: canvas.top, alignItems: 'center' }}>
+          <VibeCamera
+            width={canvas.width}
+            height={canvas.height}
+            onMedia={(media) => setBackground({ type: 'media', media })}
+            onGallery={pickFromGallery}
+            onText={() => {
+              setBackground({ type: 'color' });
+              openNewText();
+            }}
+            onMusic={() => {
+              setBackground({ type: 'color' });
+              setMusicOpen(true);
+            }}
+            onClose={close}
+          />
+          <Text style={styles.modeLabel}>{t('vibes.modeLabel')}</Text>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+        </View>
+      ) : (
+        <>
+          <View
+            style={[styles.canvas, { top: canvas.top, left: canvas.left, width: canvas.width, height: canvas.height }]}
+            onLayout={(e: LayoutChangeEvent) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+          >
+            <VibeContent
+              kind={kind}
+              mediaUri={background.type === 'media' ? background.media.uri : undefined}
+              style={style}
+              music={kind === 'music' ? music : null}
+              post={sharedPost}
+              preview
+            />
+            {/* Tocar num lugar vazio escreve um texto novo (como tocar na tela do Story). */}
+            <Pressable testID="vibe-canvas" accessibilityRole="button" accessibilityLabel={t('vibes.tapToWrite')} style={StyleSheet.absoluteFill} onPress={openNewText} />
+            {kind === 'text' && !hasText && !composing ? (
+              <View style={styles.emptyHint} pointerEvents="none">
+                <Text style={styles.emptyHintText}>{t('vibes.textHint')}</Text>
               </View>
-            </View>
-          ) : null}
-        </View>
-
-        {canWrite && !editing ? <Text style={styles.hint}>{hasText ? t('vibes.dragHint') : t('vibes.tapToWrite')}</Text> : null}
-
-        <ErrorText>{error}</ErrorText>
-        {/* Figma: avisos das 24 h acima da barra; embaixo, texto, imagem e música à esquerda e Publicar à direita. */}
-        <Text style={styles.expires}>{t('vibes.expiresHint')}</Text>
-        <View style={[styles.bottom, { width: cardWidth }]}>
-          {!sharedPost ? (
-            <View style={styles.modes}>
-              <VibeIconButton testID="vibe-mode-text" icon="disc41" label={t('vibes.text')} active={kind === 'text'} onPress={() => switchTo('text')}>
-                <Text style={styles.aaBottom}>Aa</Text>
-              </VibeIconButton>
-              <VibeIconButton
-                testID="vibe-mode-library"
-                icon="image"
-                label={t('vibes.library')}
-                active={kind === 'photo' || kind === 'video'}
-                onPress={() => pick('library')}
+            ) : null}
+            {items.map((item, i) => (
+              <DraggableText
+                key={item.id}
+                index={i}
+                item={item}
+                kind={kind}
+                box={box}
+                trash={trash}
+                onEdit={() => setComposing(item.id)}
+                onChange={(patch) => changeItem(item.id, patch)}
+                onDelete={() => removeItem(item.id)}
+                onDragging={setDragging}
+                onOverTrash={setOverTrash}
               />
-              <VibeIconButton testID="vibe-mode-music" icon="music" label={t('vibes.music')} active={kind === 'music'} onPress={() => switchTo('music')} />
-              {Platform.OS !== 'web' ? (
-                <Pressable
-                  testID="vibe-mode-camera"
-                  accessibilityRole="button"
-                  accessibilityLabel={t('vibes.camera')}
-                  onPress={() => pick('camera')}
-                  hitSlop={6}
-                  style={styles.camera}
-                >
-                  <Ionicons name="camera-outline" size={20} color={colors.text} />
-                </Pressable>
-              ) : null}
-            </View>
-          ) : (
-            <View />
-          )}
-          <Pressable
-            testID="vibe-publish"
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canPublish || !!busy, busy: busy === 'publish' }}
-            disabled={!canPublish || !!busy}
-            onPress={publish}
-            style={[styles.publish, (!canPublish || !!busy) && { opacity: 0.5 }]}
-          >
-            <Text style={styles.publishText}>{busy === 'publish' ? t('common.loading') : t('vibes.publish')}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            ))}
+
+            {!dragging ? (
+              <>
+                <View style={styles.topRow} pointerEvents="box-none">
+                  <RoundButton testID="vibe-discard" icon="close" label={sharedPost ? t('common.cancel') : t('vibes.discard')} onPress={discard} />
+                  <View style={{ flex: 1, alignItems: 'center' }} pointerEvents="box-none">
+                    {pill && music ? <MusicPill music={music} onPress={() => setMusicOpen(true)} onRemove={() => setMusic(null)} /> : null}
+                  </View>
+                  <View style={styles.tools}>
+                    <RoundButton testID="vibe-add-text" label={t('vibes.addText')} onPress={openNewText}>
+                      <Text style={styles.aa}>Aa</Text>
+                    </RoundButton>
+                    {background.type !== 'post' ? (
+                      <RoundButton testID="vibe-add-music" icon="musical-notes-outline" label={music ? t('vibes.changeMusic') : t('vibes.addMusic')} onPress={() => setMusicOpen(true)} />
+                    ) : null}
+                    {background.type !== 'media' ? (
+                      <RoundButton
+                        testID="vibe-background"
+                        label={t('vibes.background')}
+                        value={t(`vibes.style.${style}`)}
+                        onPress={() => setStyle(VIBE_STYLES[(VIBE_STYLES.indexOf(style) + 1) % VIBE_STYLES.length]!)}
+                      >
+                        <View style={[styles.styleDot, { backgroundColor: VIBE_BACKGROUND[style] }]} />
+                      </RoundButton>
+                    ) : null}
+                  </View>
+                </View>
+              </>
+            ) : (
+              <View style={[styles.trash, { top: canvas.height - 64 - 28 }, overTrash && styles.trashOver]} testID="vibe-trash" pointerEvents="none">
+                <Ionicons name="trash-outline" size={overTrash ? 30 : 24} color="#FFFFFF" />
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.bottom, { top: canvas.top + canvas.height + space.sm, paddingHorizontal: space.md }]}>
+            {error ? (
+              <Text style={[styles.error, { flex: 1, textAlign: 'left' }]} numberOfLines={2}>
+                {error}
+              </Text>
+            ) : (
+              <Pressable
+                testID="vibe-publish-pill"
+                accessibilityRole="button"
+                accessibilityLabel={t('vibes.publishYours')}
+                accessibilityHint={t('vibes.expiresHint')}
+                accessibilityState={{ disabled: !canPublish || busy }}
+                disabled={!canPublish || busy}
+                onPress={publish}
+                style={[styles.yours, (!canPublish || busy) && { opacity: 0.5 }]}
+              >
+                <RingAvatar uri={profile?.avatar_url ?? null} name={profile?.display_name ?? ''} size={30} />
+                <Text style={styles.yoursText}>{t('vibes.yourVibes')}</Text>
+              </Pressable>
+            )}
+            <Pressable
+              testID="vibe-publish"
+              accessibilityRole="button"
+              accessibilityLabel={t('vibes.publish')}
+              accessibilityState={{ disabled: !canPublish || busy, busy }}
+              disabled={!canPublish || busy}
+              onPress={publish}
+              style={[styles.send, (!canPublish || busy) && { opacity: 0.5 }]}
+            >
+              {busy ? <Spinner size={22} color="#FFFFFF" /> : <Ionicons name="arrow-forward" size={26} color="#FFFFFF" />}
+            </Pressable>
+          </View>
+        </>
+      )}
+
+      {composerInitial ? <TextComposer initial={composerInitial} kind={kind} onDone={finishText} /> : null}
+      <MusicPicker
+        visible={musicOpen}
+        onPick={(m) => {
+          picked.current = true;
+          setMusic(m);
+        }}
+        onClose={() => {
+          setMusicOpen(false);
+          // Veio do "música" da câmera e não escolheu nada: volta para a câmera.
+          if (!picked.current && background?.type === 'color' && !music && !items.length) setBackground(null);
+          picked.current = false;
+        }}
+      />
+    </View>
+  );
+}
+
+function RoundButton({
+  testID,
+  icon,
+  label,
+  value,
+  onPress,
+  children,
+}: {
+  testID: string;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value?: string;
+  onPress: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityValue={value ? { text: value } : undefined}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [styles.round, pressed && { opacity: 0.75 }]}
+    >
+      {icon ? <Ionicons name={icon} size={26} color="#FFFFFF" /> : children}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: { alignItems: 'center', gap: space.md, paddingHorizontal: space.lg },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },
-  title: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  // Figma: cartão de 10 px de raio com borda fina.
-  card: { borderRadius: 10, overflow: 'hidden', backgroundColor: colors.card, borderWidth: 1, borderColor: '#5A5577' },
-  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl },
-  placeholderText: { fontFamily: fonts.semibold, fontSize: 16, color: colors.text, textAlign: 'center', opacity: 0.9 },
-  linkEditor: {
+  screen: { flex: 1, backgroundColor: '#000' },
+  modeLabel: { marginTop: space.lg, fontFamily: fonts.bold, fontSize: 14, letterSpacing: 2, color: '#FFFFFF' },
+  canvas: { position: 'absolute', borderRadius: 20, overflow: 'hidden', backgroundColor: colors.card },
+  emptyHint: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', padding: space.xxl },
+  emptyHintText: { fontFamily: fonts.semibold, fontSize: 18, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+  topRow: { position: 'absolute', top: space.md, left: space.md, right: space.md, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  tools: { gap: space.md, alignItems: 'center' },
+  round: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  aa: { fontFamily: fonts.semibold, fontSize: 20, color: '#FFFFFF' },
+  styleDot: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: '#FFFFFF' },
+  trash: {
     position: 'absolute',
-    left: space.lg,
-    right: space.lg,
-    top: '38%',
-    backgroundColor: 'rgba(20,18,30,0.92)',
-    borderRadius: 14,
-    padding: space.lg,
-    gap: space.sm,
+    alignSelf: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  linkTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  linkInput: {
-    minHeight: 42,
-    borderWidth: 1,
-    borderColor: colors.field,
-    borderRadius: 10,
-    paddingHorizontal: space.md,
-    color: colors.text,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    outlineWidth: 0,
-  },
-  linkStatus: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
-  linkButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.md },
-  linkButton: { paddingVertical: 4, paddingHorizontal: space.sm },
-  linkButtonText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.text },
-  input: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: colors.field,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: colors.text,
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    outlineWidth: 0,
-  },
-  bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modes: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  aaBottom: { fontFamily: fonts.bold, fontSize: 14, color: '#FFFFFF' },
-  camera: { width: 41, height: 41, borderRadius: 21, backgroundColor: '#6C62FF', alignItems: 'center', justifyContent: 'center' },
-  publish: { backgroundColor: '#6C62FF', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
-  publishText: { fontFamily: fonts.bold, fontSize: 12, color: '#FFFFFF' },
-  expires: { fontFamily: fonts.regular, fontSize: 8, color: colors.muted },
-  hint: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
+  trashOver: { width: 72, height: 72, borderRadius: 36, marginTop: -8, backgroundColor: colors.danger, borderColor: colors.danger },
+  bottom: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: space.md },
+  yours: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, height: 52, borderRadius: 26, paddingHorizontal: space.sm, backgroundColor: '#26242F' },
+  yoursText: { fontFamily: fonts.semibold, fontSize: 14, color: '#FFFFFF' },
+  send: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  error: { fontFamily: fonts.regular, fontSize: 12, color: colors.danger, textAlign: 'center', marginTop: space.sm },
 });

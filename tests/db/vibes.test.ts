@@ -244,3 +244,29 @@ describe('prévia de 30 s', () => {
     await expect(db.sql(`update public.link_previews set audio_url = 'https://evil.example/a.mp3' where id = $1`, [lp])).rejects.toThrow(/check constraint/);
   });
 });
+
+describe('vibes no jeito dos Stories', () => {
+  const item = (t: string, extra: Record<string, unknown> = {}) => ({ t, x: 0.5, y: 0.5, f: 'classic', c: 'white', b: 'none', ...extra });
+  const make = (user: string, items: unknown) => db.as<{ id: string }>(user, `select public.vibe_create(p_kind => 'text', p_text_items => $1::jsonb) as id`, [JSON.stringify(items)]);
+
+  it('foto, vídeo e texto podem levar uma música; post compartilhado não', async () => {
+    const preview = await createPreview(db, 'https://open.spotify.com/track/vibestory0000000000001', 'Trilha');
+    const photo = await create(ana, { kind: 'photo', media: await stored(ana, 'jpg'), preview });
+    const video = await create(ana, { kind: 'video', media: await stored(ana, 'mp4'), duration: 5000, preview });
+    const text = await create(ana, { kind: 'text', text: 'com música', preview });
+    const rows = await vibesOf(caio, ana);
+    for (const id of [photo, video, text]) expect(rows.find((r) => r.id === id)?.preview_title).toBe('Trilha');
+
+    const [p] = await db.sql<{ id: string }>(`insert into public.posts (author_id, link_preview_id, body) values ($1, $2, 'x') returning id`, [bia, preview]);
+    await expect(create(ana, { kind: 'post', post: p!.id, preview })).rejects.toThrow(/check constraint/);
+  });
+
+  it('texto com tamanho, giro e alinhamento (opcionais); fora dos limites é recusado', async () => {
+    const [{ id }] = await make(ana, [item('grande', { s: 2.5, r: -30, a: 'left' }), item('normal')]);
+    const [v] = await db.as<{ text_items: { s?: number; r?: number; a?: string }[] }>(ana, `select * from public.vibes_of($1) where id = $2`, [ana, id]);
+    expect(v!.text_items[0]).toMatchObject({ s: 2.5, r: -30, a: 'left' });
+    expect(v!.text_items[1]!.s).toBeUndefined();
+    for (const extra of [{ s: 0.1 }, { s: 5 }, { s: '2' }, { r: 200 }, { r: -181 }, { a: 'justify' }, { a: 1 }])
+      await expect(make(ana, [item('x', extra)])).rejects.toThrow(/invalid_text_items|vibes_text_items|violates check/);
+  });
+});

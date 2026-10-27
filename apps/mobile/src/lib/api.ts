@@ -1066,7 +1066,15 @@ export type VibeTextBg = (typeof VIBE_TEXT_BGS)[number];
 export const VIBE_MAX_TEXTS = 8;
 export const VIBE_TEXT_MAX = 300;
 
-/** Um texto da vibe: onde fica (centro, em fração da tela) e como é desenhado. */
+export const VIBE_TEXT_ALIGNS = ['center', 'left', 'right'] as const;
+export type VibeTextAlign = (typeof VIBE_TEXT_ALIGNS)[number];
+/** Tamanho do texto (multiplicador), dentro do que o servidor aceita (0,3 a 4). */
+export const VIBE_TEXT_SCALE = { min: 0.5, max: 3 } as const;
+
+/**
+ * Um texto da vibe: onde fica (centro, em fração da tela) e como é desenhado. Tamanho (s), giro
+ * em graus (r) e alinhamento (a) são opcionais: textos antigos não têm.
+ */
 export interface VibeTextItem {
   t: string;
   x: number;
@@ -1074,6 +1082,9 @@ export interface VibeTextItem {
   f: VibeFont;
   c: VibeTextColor;
   b: VibeTextBg;
+  s?: number;
+  r?: number;
+  a?: VibeTextAlign;
 }
 
 /** Limites do vídeo (vibes e posts), iguais aos da Edge Function media-upload. */
@@ -1194,6 +1205,7 @@ export interface NewVibe {
   mediaPath?: string;
   durationMs?: number;
   style?: VibeStyle;
+  /** Música: o cartão da vibe de música, ou a música por cima da foto, do vídeo ou do texto. */
   linkPreviewId?: string;
   postId?: string;
   /** Os textos escritos na vibe (até 8, cada um com lugar, fonte, cor e fundo). */
@@ -1201,7 +1213,16 @@ export interface NewVibe {
 }
 
 export async function createVibe(v: NewVibe): Promise<string> {
-  const items = (v.textItems ?? []).map((i) => ({ ...i, t: i.t.trim() })).filter((i) => i.t);
+  // Tamanho e giro arredondados (o servidor confere os limites); padrão (1, 0, centro) não vai.
+  const items = (v.textItems ?? [])
+    .map(({ s, r, a, ...rest }) => ({
+      ...rest,
+      t: rest.t.trim(),
+      ...(s !== undefined && Math.abs(s - 1) > 0.01 ? { s: Math.round(Math.min(VIBE_TEXT_SCALE.max, Math.max(VIBE_TEXT_SCALE.min, s)) * 100) / 100 } : {}),
+      ...(r !== undefined && Math.abs(r) > 0.5 ? { r: Math.round(((((r + 180) % 360) + 360) % 360) - 180) } : {}),
+      ...(a && a !== 'center' ? { a } : {}),
+    }))
+    .filter((i) => i.t);
   const { data, error } = await supabase.rpc('vibe_create', {
     p_kind: v.kind,
     p_media_path: v.mediaPath ?? null,
