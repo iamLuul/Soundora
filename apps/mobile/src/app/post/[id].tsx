@@ -13,7 +13,8 @@ import type { CommentRow } from '../../lib/types';
 import { CommentItem, RepliesToggle } from '../../components/CommentItem';
 import { buildCommentRows } from '../../lib/comment-thread';
 import { useAuth } from '../../lib/auth';
-import { formatError } from '../../lib/errors';
+import { errorStatus, formatError } from '../../lib/errors';
+import { ErrorScreen } from '../../components/ErrorScreen';
 import { keys, usePost, useToggleLike } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
@@ -31,7 +32,7 @@ export default function PostScreen() {
   const insets = useSafeAreaInsets();
   const keyboardOpen = useKeyboardVisible();
   const qc = useQueryClient();
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const post = usePost(id);
   const comments = useQuery({ queryKey: keys.comments(id), queryFn: () => fetchComments(id) });
   const toggleLike = useToggleLike();
@@ -153,9 +154,13 @@ export default function PostScreen() {
           <CommentsSkeleton />
         </View>
       ) : post.isError ? (
-        <ErrorState message={formatError(t, post.error)} onRetry={() => post.refetch()} />
+        [401, 403, 404].includes(errorStatus(post.error)) ? (
+          <ErrorScreen code={errorStatus(post.error) as 401 | 403 | 404} fullScreen={false} onSignIn={signOut} />
+        ) : (
+          <ErrorState message={formatError(t, post.error)} onRetry={() => post.refetch()} />
+        )
       ) : !post.data ? (
-        <Text style={styles.gone}>{t('post.gone')}</Text>
+        <ErrorScreen code={404} fullScreen={false} testID="post-gone" />
       ) : (
         <FlatList
           {...listPerf}

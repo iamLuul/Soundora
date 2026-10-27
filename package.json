@@ -22,7 +22,8 @@
     "check:shared": "node scripts/sync-shared.mjs --check",
     "typecheck:functions": "deno check --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/index.ts supabase/functions/link-preview/handler.test.ts supabase/functions/auth-username/index.ts supabase/functions/auth-username/handler.test.ts supabase/functions/profile-image/index.ts supabase/functions/profile-image/handler.test.ts supabase/functions/delete-account/index.ts supabase/functions/delete-account/handler.test.ts supabase/functions/media-upload/index.ts supabase/functions/media-upload/handler.test.ts supabase/functions/music-charts/index.ts supabase/functions/music-charts/handler.test.ts supabase/functions/discover/index.ts supabase/functions/discover/handler.test.ts",
     "test:functions": "deno test --config supabase/functions/link-preview/deno.json supabase/functions/link-preview/ supabase/functions/auth-username/ supabase/functions/profile-image/ supabase/functions/delete-account/ supabase/functions/media-upload/ supabase/functions/music-charts/ supabase/functions/discover/",
-    "check:secrets": "node scripts/check-secrets.mjs"
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "test:web": "npm run test:web --workspace apps/mobile"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

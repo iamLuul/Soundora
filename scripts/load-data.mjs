@@ -707,8 +707,7 @@ async function main() {
         } else if (media?.videos.length && r < 0.33) {
           const f = int(0, media.videos.length - 1);
           vibeRows.push({ author_id: id, kind: 'video', media_path: `${id}/${randomUUID()}.mp4`, file: ['video', f], duration_ms: media.videos[f].ms, text: null, style: one(STYLES), created_at: at });
-        } else if (rand() < 0.5 && tracks.length) vibeRows.push({ author_id: id, kind: 'music', link_preview_id: one(tracks).id, ...vibeTexts(0.5, 2), style: one(STYLES), created_at: at });
-        else vibeRows.push({ author_id: id, kind: 'text', ...vibeTexts(1, 5), style: one(STYLES), created_at: at });
+        } else vibeRows.push({ author_id: id, kind: 'text', ...vibeTexts(1, 5), style: one(STYLES), created_at: at });
       }
     }
     console.log(`Vibes (${vibeRows.length})...`);

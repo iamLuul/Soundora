@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RingAvatar, SearchField, TopTabs } from '../components/figma';
 import { OptionsSheet, type SheetOption } from '../components/OptionsSheet';
 import { PeopleSkeleton } from '../components/Skeleton';
+import { ErrorScreen } from '../components/ErrorScreen';
 import { Spinner } from '../components/Spinner';
 import { Button, SegmentedControl, TextField } from '../components/ui';
 import { Verified } from '../components/Verified';
@@ -63,7 +64,7 @@ export default function AdminScreen() {
     return (
       <View style={[styles.screen, styles.center]}>
         <Stack.Screen options={{ title: t('admin.title') }} />
-        <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>{t('admin.noAccess')}</Text>
+        <ErrorScreen code={403} fullScreen={false} />
       </View>
     );
   }

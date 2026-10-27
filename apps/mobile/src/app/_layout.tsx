@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { useLiveNotifications } from '../lib/live';
 import { usePushNavigation } from '../lib/push';
 import { colors, fonts } from '../theme';
+import { ErrorScreen } from '../components/ErrorScreen';
 import { AccountLoadFailed } from '../components/AccountLoadFailed';
 import { DesktopShell } from '../components/desktop/DesktopShell';
 import { BootSkeleton } from '../components/desktop/DesktopSkeleton';
@@ -123,9 +124,24 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
       {/* Termos e privacidade abrem com ou sem login (o cadastro mostra os links). */}
       <Stack.Screen name="legal/[doc]" options={{ headerShown: false }} />
+      {/* Telas de erro e 404: com ou sem login. */}
+      <Stack.Screen name="erro/[code]" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
     </Stack>
     </DesktopShell>
   );
+}
+
+/**
+ * O app quebrou ao desenhar uma tela: em vez de tela branca, a tela 500 com "Tentar de novo"
+ * (o detalhe do erro não aparece para quem usa; em desenvolvimento ele vai para o console).
+ */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  useEffect(() => {
+    if (__DEV__) console.error('[Soundhora]', error);
+    void SplashScreen.hideAsync().catch(() => {});
+  }, [error]);
+  return <ErrorScreen code={500} onRetry={retry} />;
 }
 
 export default function RootLayout() {

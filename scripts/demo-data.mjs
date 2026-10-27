@@ -404,11 +404,7 @@ async function main() {
     if (i < TEXT_SETS.length - 1) await vibe(p, { p_kind: 'text', p_text_items: TEXT_SETS[i], p_style: styles[i] });
     else await vibe(p, { p_kind: 'text', p_text: 'playlist nova no forno', p_style: styles[i], p_text_x: 0.5, p_text_y: 0.45 });
     vibeCount++;
-    const song = Object.keys(previews).find((k) => previews[k] && POSTS.some((x) => x.by === p.username && x.song === k));
-    if (song) {
-      await vibe(p, { p_kind: 'music', p_link_preview_id: previews[song], p_text_items: [item('no repeat 🔁', 0.5, 0.22, 'strong', 'white', 'soft')], p_style: styles[(i + 2) % 6] });
-      vibeCount++;
-    }
+    // Vibes não levam música (direitos autorais): só foto, vídeo, texto e post compartilhado.
     const photo = await uploadPhoto(p.session, 'vibe', 1080, 1920, 40 + i, warnings);
     if (photo) {
       const caption = i % 2 ? [item('vista de hoje', 0.5, 0.84, 'script', 'white', 'none'), item('📍 casa', 0.3, 0.12, 'typewriter', 'white', 'solid')] : null;

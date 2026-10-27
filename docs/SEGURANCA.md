@@ -176,6 +176,22 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
   - `X-Content-Type-Options: nosniff`;
   - `Permissions-Policy: camera=(self), microphone=(self), geolocation=()`.
 
+## Servidor da web: rotas escondidas e páginas de erro
+
+- Em produção, a web roda com `npm run web:prod` (ou `node apps/mobile/web-server/server.mjs dist`), um servidor sem dependências.
+- Não há mapa do app. `/_sitemap` (a lista de rotas que o expo-router cria sozinho), `sitemap*.xml`, `robots.txt`, `metadata.json`, source maps (`.map`), os arquivos internos do expo-router (`+not-found`, `(tabs)`), os `.html` acessados direto e os arquivos com ponto (`.env`, `.git`) respondem **404**, igual a um endereço que não existe. No app, `/_sitemap` também virou a tela 404 (`src/app/_sitemap.tsx`).
+- Ele só serve o que está dentro da pasta do build: nada de `..`, barra invertida ou byte nulo.
+- Só aceita GET e HEAD; o resto recebe 405.
+- Limite de pedidos por IP: `WEB_RATE_LIMIT` por minuto, 600 por padrão. Passou do limite, recebe 429 com `Retry-After`. Atrás de um proxy, use `TRUST_PROXY=1`.
+- Manutenção: com `MANUTENCAO=1`, tudo responde 503.
+- Os cabeçalhos de segurança da lista acima já vão em toda resposta. O HSTS vai junto com `WEB_HSTS=1`, quando o site estiver em HTTPS.
+- As páginas de erro (401, 403, 404, 405, 429, 500, 503 e 504) são HTML puro, sem JavaScript e sem nenhum detalhe técnico. Para usar em outra hospedagem (por exemplo, o 504 do nginx ou do Cloudflare): `node apps/mobile/web-server/server.mjs --write-pages paginas-de-erro`.
+- Dentro do app, as telas de erro ficam em `/erro/401`, `/erro/403`, `/erro/429`, `/erro/500`, `/erro/503` e `/erro/504`. Também aparecem:
+  - perfil ou post que não existe: 404;
+  - painel admin para quem não é admin: 403;
+  - tela que quebra ao desenhar: 500, com "Tentar de novo".
+- Os scripts do app (`/_expo/static/js`) continuam públicos, porque o navegador precisa deles. Eles têm os nomes das telas, como todo site feito em React. O que protege os dados é o banco (RLS e funções que conferem o login), não esconder os endereços.
+
 ## Excluir conta
 
 Em **Configurações → Excluir conta**, a pessoa digita o próprio @. A Edge Function `delete-account` confere o login, exige que ele tenha sido feito nos últimos 30 minutos, apaga a foto e o banner dos buckets e apaga o usuário do Supabase Auth. Perfil, posts, curtidas, comentários, seguidores, bloqueios e denúncias feitas saem junto, em cascata no banco (coberto por teste). É exigido pela App Store para apps com cadastro e é um direito pela LGPD.

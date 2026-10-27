@@ -177,3 +177,40 @@ export function formatError(t: (key: string, vars?: Record<string, unknown>) => 
   const message = wait ? rateLimitMessage(t, wait) : t(errorMessageKey(err), vars);
   return detail ? `${message}\n${detail}` : message;
 }
+
+/**
+ * O código HTTP da tela de erro para um carregamento que falhou: 401 (sessão vencida), 403 (sem
+ * permissão), 404 (não existe), 429 (limite), 503 (servidor fora do ar ou sem internet), 504
+ * (servidor demorou demais) ou 500 (o resto).
+ */
+export function errorStatus(err: unknown): 401 | 403 | 404 | 429 | 500 | 503 | 504 {
+  const status = (() => {
+    if (!err || typeof err !== 'object') return 0;
+    const e = err as { status?: unknown; context?: unknown };
+    if (typeof e.status === 'number') return e.status;
+    const ctx = e.context as { status?: unknown } | undefined;
+    return ctx && typeof ctx.status === 'number' ? ctx.status : 0;
+  })();
+  if (status === 503 || status === 502) return 503;
+  if (status === 504 || status === 408) return 504;
+  const message = err instanceof Error ? err.message : typeof err === 'object' && err && 'message' in err ? String((err as { message: unknown }).message) : '';
+  if (/timed? ?out|AbortError|statement timeout/i.test(message) || (err as { code?: unknown } | null)?.code === '57014') return 504;
+  switch (errorCode(err)) {
+    case 'not_authenticated':
+    case 'reauth_required':
+      return 401;
+    case 'forbidden':
+    case 'account_suspended':
+      return 403;
+    case 'not_found':
+    case 'gone':
+    case 'user_not_found':
+      return 404;
+    case 'rate_limited':
+      return 429;
+    case 'network':
+      return 503;
+  }
+  if (status === 401 || status === 403 || status === 404 || status === 429) return status;
+  return 500;
+}

@@ -214,7 +214,6 @@
     "send": "Send",
     "noComments": "No comments yet.",
     "title": "Post",
-    "gone": "This post no longer exists or isn't available.",
     "comments_one": "{{count}} comment",
     "comments_other": "{{count}} comments",
     "comments_zero": "Comments",
@@ -257,7 +256,6 @@
     "noReviews": "No reviews yet.",
     "genresLabel": "Genres",
     "seeVibes": "See {{name}}’s vibes",
-    "notFound": "This profile doesn't exist or isn't available.",
     "requested": "Requested",
     "cancelRequest": "Tap to cancel the request",
     "privateTitle": "This account is private",
@@ -639,7 +637,6 @@
     "title": "Admin panel",
     "entry": "Admin panel",
     "entryHint": "Reports, users, featured and badges",
-    "noAccess": "Only admins can open this screen.",
     "tabReports": "Reports",
     "tabUsers": "Users",
     "tabFeatured": "Featured",
@@ -897,5 +894,38 @@
     "clearConfirm": "Delete all saved searches?",
     "turnOff": "Turn off",
     "offConfirm": "Turning it off deletes your saved searches and stops saving new ones. Continue?"
+  },
+  "errorPages": {
+    "codeLabel": "Error {{code}}",
+    "home": "Back to home",
+    "signIn": "Sign in again",
+    "401": {
+      "title": "You need to sign in",
+      "body": "Your session ended or you are not signed in yet. Sign in again to continue."
+    },
+    "403": {
+      "title": "Access denied",
+      "body": "You don't have permission to see this page."
+    },
+    "404": {
+      "title": "Page not found",
+      "body": "This address doesn't exist or the content was deleted."
+    },
+    "429": {
+      "title": "Too many attempts",
+      "body": "You did too many things in a short time. Wait a little and try again."
+    },
+    "500": {
+      "title": "Something went wrong",
+      "body": "We had a problem on our side. Try again in a moment."
+    },
+    "503": {
+      "title": "Service unavailable",
+      "body": "Soundhora didn't respond. It may be your connection or server maintenance. Try again shortly."
+    },
+    "504": {
+      "title": "The server took too long",
+      "body": "The response didn't arrive in time. Try again in a moment."
+    }
   }
 }

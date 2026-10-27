@@ -60,10 +60,11 @@ beforeEach(async () => {
   jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => buttons?.find((b) => b.style === 'destructive')?.onPress?.());
 });
 
-test('quem não é admin vê só o aviso', async () => {
+test('quem não é admin vê a tela 403', async () => {
   mockIsAdmin = false;
   await wrap(<AdminScreen />);
-  expect(await screen.findByText('Só administradores acessam esta tela.')).toBeTruthy();
+  expect(await screen.findByText('Acesso negado')).toBeTruthy();
+  expect(screen.getByText('403')).toBeTruthy();
   expect(mockRpc).not.toHaveBeenCalledWith('admin_reports', expect.anything());
 });
 

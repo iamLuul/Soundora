@@ -9,11 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockUser, fetchProfileSummary, setFollowing, type ProfileImageKind } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { bannerUrl } from '../lib/avatar';
-import { formatError } from '../lib/errors';
+import { errorStatus, formatError } from '../lib/errors';
+import { ErrorScreen } from './ErrorScreen';
 import { pickAndUploadProfileImage } from '../lib/pick-image';
 import { keys, useProfilePosts, useVibesOf } from '../lib/queries';
 import type { ProfileSummary } from '../lib/types';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, space } from '../theme';
 import { TopTabs } from './figma';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
 import { FavoriteSongs, ProfileGenres, profileKeys } from './ProfileExtras';
@@ -49,6 +50,7 @@ export function compactNumber(n: number, locale: string): string {
 export function ProfileView({ username, underStatusBar = false }: { username: string; underStatusBar?: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { signOut } = useAuth();
   const [tab, setTab] = useState<'posts' | 'reviews'>('posts');
   const summary = useQuery({ queryKey: keys.profile(username), queryFn: () => fetchProfileSummary(username) });
   // Conta privada trancada para mim: nem busca os posts.
@@ -56,8 +58,16 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
 
   if (summary.isLoading) return <ProfileSkeleton />;
   const p = summary.data;
-  if (summary.isError) return <ErrorState message={formatError(t, summary.error)} onRetry={() => summary.refetch()} />;
-  if (!p) return <Text style={[text.body, { textAlign: 'center', marginTop: space.xxl, color: colors.textMuted }]}>{t('profile.notFound')}</Text>;
+  if (summary.isError) {
+    const status = errorStatus(summary.error);
+    return status === 401 || status === 403 || status === 404 ? (
+      <ErrorScreen code={status} fullScreen={false} onSignIn={signOut} />
+    ) : (
+      <ErrorState message={formatError(t, summary.error)} onRetry={() => summary.refetch()} />
+    );
+  }
+  // @ que não existe: a tela 404.
+  if (!p) return <ErrorScreen code={404} fullScreen={false} testID="profile-not-found" />;
 
   // Ao puxar: números, gêneros, favoritas e vibes também.
   const refreshExtras = () =>

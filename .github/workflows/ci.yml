@@ -28,6 +28,8 @@ jobs:
       - run: npm run lint
       - run: npm run test:core
       - run: npm run test:app
+      - name: Servidor da web (rotas bloqueadas, páginas de erro, limites)
+        run: npm run test:web
       - name: Typecheck das Edge Functions (Deno)
         run: npm run typecheck:functions
       - name: Testes das Edge Functions (Deno)

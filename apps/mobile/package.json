@@ -65,11 +65,13 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "web:prod": "expo export -p web --output-dir dist && npx --yes serve -s dist -l 8088",
+    "web:prod": "expo export -p web --output-dir dist && node web-server/server.mjs dist --port 8088",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --watch",
-    "test:ci": "jest --ci --reporters=default --reporters=github-actions"
+    "test:ci": "jest --ci --reporters=default --reporters=github-actions",
+    "web:serve": "node web-server/server.mjs dist",
+    "test:web": "node --test web-server/server.test.mjs"
   },
   "private": true,
   "jest": {
@@ -80,6 +82,10 @@
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|standard-navigation|@soundhora/.*)"
     ],
-    "testTimeout": 20000
+    "testTimeout": 20000,
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/web-server/"
+    ]
   }
 }

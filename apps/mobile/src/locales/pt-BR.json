@@ -214,7 +214,6 @@
     "send": "Enviar",
     "noComments": "Nenhum comentário ainda.",
     "title": "Post",
-    "gone": "Esse post não existe mais ou não está disponível.",
     "comments_one": "{{count}} comentário",
     "comments_other": "{{count}} comentários",
     "comments_zero": "Comentários",
@@ -257,7 +256,6 @@
     "noReviews": "Nenhuma review ainda.",
     "genresLabel": "Gêneros",
     "seeVibes": "Ver as vibes de {{name}}",
-    "notFound": "Esse perfil não existe ou não está disponível.",
     "requested": "Solicitado",
     "cancelRequest": "Toque para desistir do pedido",
     "privateTitle": "Esta conta é privada",
@@ -639,7 +637,6 @@
     "title": "Painel admin",
     "entry": "Painel admin",
     "entryHint": "Denúncias, usuários, destaques e selos",
-    "noAccess": "Só administradores acessam esta tela.",
     "tabReports": "Denúncias",
     "tabUsers": "Usuários",
     "tabFeatured": "Destaques",
@@ -897,5 +894,38 @@
     "clearConfirm": "Apagar todas as pesquisas guardadas?",
     "turnOff": "Desligar",
     "offConfirm": "Desligar apaga as pesquisas guardadas e para de guardar novas. Continuar?"
+  },
+  "errorPages": {
+    "codeLabel": "Erro {{code}}",
+    "home": "Voltar para o início",
+    "signIn": "Entrar de novo",
+    "401": {
+      "title": "Você precisa entrar",
+      "body": "Sua sessão terminou ou você ainda não entrou na sua conta. Entre de novo para continuar."
+    },
+    "403": {
+      "title": "Acesso negado",
+      "body": "Você não tem permissão para ver esta página."
+    },
+    "404": {
+      "title": "Página não encontrada",
+      "body": "Este endereço não existe ou o conteúdo foi apagado."
+    },
+    "429": {
+      "title": "Muitas tentativas",
+      "body": "Você fez muitas ações em pouco tempo. Espere um pouco e tente de novo."
+    },
+    "500": {
+      "title": "Algo deu errado",
+      "body": "Tivemos um problema do nosso lado. Tente de novo em instantes."
+    },
+    "503": {
+      "title": "Serviço indisponível",
+      "body": "O Soundhora não respondeu. Pode ser a sua conexão ou o servidor em manutenção. Tente de novo daqui a pouco."
+    },
+    "504": {
+      "title": "O servidor demorou demais",
+      "body": "A resposta não chegou a tempo. Tente de novo em instantes."
+    }
   }
 }
