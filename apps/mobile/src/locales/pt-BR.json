@@ -88,7 +88,7 @@
     "invalid": "Data de nascimento inválida. Confira o dia, o mês e o ano."
   },
   "errors": {
-    "username_taken": "Esse nome de usuário já está em uso.",
+    "username_taken": "Esse @ já está em uso (por uma pessoa ou uma comunidade).",
     "username_too_short": "O nome de usuário precisa ter pelo menos 3 caracteres.",
     "username_too_long": "O nome de usuário pode ter até 20 caracteres.",
     "username_invalid_chars": "Use só letras minúsculas, números, _ e . no nome de usuário.",
@@ -158,7 +158,7 @@
     "badge_retired": "Este selo foi encerrado e não pode mais ser reaberto.",
     "badge_not_manual": "Este selo é entregue automaticamente pelo app.",
     "user_not_found": "Nenhuma conta com esse @.",
-    "community_slug_taken": "Esse @ já é de outra comunidade.",
+    "community_slug_taken": "Esse @ já está em uso (por uma pessoa ou uma comunidade).",
     "community_slug_invalid": "Use de 3 a 30 letras minúsculas, números ou _.",
     "community_owner_cannot_leave": "A dona não pode sair. Passe a comunidade para alguém ou apague."
   },
@@ -1073,6 +1073,8 @@
       "genres": "Do seu gosto",
       "members": "Gente com o seu gosto",
       "popular": "Popular no Soundhora"
-    }
+    },
+    "slugTaken": "Esse @ já está em uso (por uma pessoa ou uma comunidade).",
+    "slugFree": "Disponível"
   }
 }

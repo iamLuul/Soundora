@@ -199,3 +199,31 @@ describe('busca e recomendações', () => {
     expect(list.map((m) => m.username)).not.toContain('cm_bloq');
   });
 });
+
+describe('@ exclusivo (usuário ou comunidade)', () => {
+  it('comunidade não pega o @ de um usuário, nem usuário o @ de uma comunidade', async () => {
+    await expect(create(fora, 'cm_dona', 'open')).rejects.toThrow(/community_slug_taken/);
+    const [{ ok }] = await db.as<{ ok: boolean }>(fora, `select public.community_slug_available('cm_dona') as ok`);
+    expect(ok).toBe(false);
+
+    // Cadastro com o @ de uma comunidade.
+    const [row] = await db.sql<{ id: string }>(`insert into auth.users (email) values ('handle_novo@teste.dev') returning id`);
+    await expect(
+      db.as(row!.id, `select public.complete_onboarding('fas_da_banda', 'X', '1995-05-10'::date, '{indie,rock,lo_fi}'::text[], 'pt-BR')`),
+    ).rejects.toThrow(/username_taken/);
+    const [{ free }] = await db.as<{ free: boolean }>(row!.id, `select public.username_available('fas_da_banda') as free`);
+    expect(free).toBe(false);
+
+    // Trocar o @ para o de uma comunidade.
+    await expect(db.as(membro, `select public.change_username('fas_da_banda')`)).rejects.toThrow(/username_taken/);
+  });
+
+  it('trocar o @ libera o antigo; apagar a comunidade libera o dela', async () => {
+    const u = await createUser(db, 'cm_troca');
+    await db.as(u, `select public.change_username('cm_troca_nova')`);
+    expect((await db.as<{ ok: boolean }>(fora, `select public.community_slug_available('cm_troca') as ok`))[0]!.ok).toBe(true);
+    const c = await create(fora, 'libera_depois', 'open');
+    await db.as(fora, `select public.community_delete($1)`, [c]);
+    expect((await db.as<{ ok: boolean }>(fora, `select public.username_available('libera_depois') as ok`))[0]!.ok).toBe(true);
+  });
+});

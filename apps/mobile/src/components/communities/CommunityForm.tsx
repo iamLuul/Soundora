@@ -1,8 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { COMMUNITY_MAX_ARTISTS, COMMUNITY_MAX_GENRES, COMMUNITY_SLUG, type CommunityInput, type CommunityVisibility } from '../../lib/api';
+import {
+  communitySlugAvailable,
+  COMMUNITY_MAX_ARTISTS,
+  COMMUNITY_MAX_GENRES,
+  COMMUNITY_SLUG,
+  type CommunityInput,
+  type CommunityVisibility,
+} from '../../lib/api';
+import { useDebouncedValue } from '../../lib/hooks';
 import { colors, fonts, radius, space, text } from '../../theme';
 import { GenrePicker } from '../GenrePicker';
 import { Button, TextField } from '../ui';
@@ -52,7 +61,16 @@ export function CommunityForm({
   const finalSlug = (slugEdited ? slug : slugFromName(name)).toLowerCase();
   const nameOk = name.trim().length >= 3 && name.trim().length <= 60;
   const slugOk = !creating || COMMUNITY_SLUG.test(finalSlug);
-  const canSubmit = nameOk && slugOk && description.length <= 500 && !busy;
+  // O @ é único entre pessoas e comunidades: confere enquanto a pessoa digita.
+  const slugToCheck = useDebouncedValue(creating && slugOk ? finalSlug : '', 400);
+  const available = useQuery({
+    queryKey: ['community-slug', slugToCheck],
+    queryFn: () => communitySlugAvailable(slugToCheck),
+    enabled: !!slugToCheck,
+    staleTime: 30_000,
+  });
+  const slugTaken = creating && slugToCheck === finalSlug && available.data === false;
+  const canSubmit = nameOk && slugOk && !slugTaken && description.length <= 500 && !busy;
 
   const addArtist = () => {
     const a = artist.trim();
@@ -94,7 +112,8 @@ export function CommunityForm({
           autoCorrect={false}
           maxLength={30}
           hint={t('communities.slugHint')}
-          error={finalSlug && !slugOk ? t('communities.slugInvalid') : null}
+          error={finalSlug && !slugOk ? t('communities.slugInvalid') : slugTaken ? t('communities.slugTaken') : null}
+          success={creating && slugOk && slugToCheck === finalSlug && available.data === true ? t('communities.slugFree') : null}
         />
       ) : null}
       <TextField

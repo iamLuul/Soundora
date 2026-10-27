@@ -225,6 +225,7 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
   - 5 comunidades criadas por dia;
   - 60 entradas por hora.
 - Conta suspensa não cria comunidade nem entra.
+- O @ é exclusivo: um mesmo @ pertence a um usuário ou a uma comunidade, nunca aos dois. A tabela `handles` guarda todos os @ em uso, com o @ como chave primária, e é mantida por triggers (cadastro, troca de @, criação e exclusão), então a regra vale mesmo com dois pedidos ao mesmo tempo.
 - Cobertos por teste: `tests/db/communities.test.ts`.
 
 ## Excluir conta

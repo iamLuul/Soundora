@@ -45,6 +45,7 @@ jest.mock('../src/lib/api', () => ({
   createCommunity: (c: unknown) => mockCreate(c),
   fetchMyCommunities: () => mockMine(),
   fetchRecommendedCommunities: async () => [],
+  communitySlugAvailable: async (slug: string) => slug !== 'raul',
   searchCommunities: async () => [{ id: 'c9', slug: 'achada', name: 'Comunidade Achada', visibility: 'open', color: 2, member_count: 7 }],
   fetchFollowingIds: async () => [],
   fetchMyFollowingIds: async () => new Set(),
@@ -196,6 +197,13 @@ describe('Explorar e criar', () => {
       ),
     );
     expect(mockReplace).toHaveBeenCalledWith('/c/fas_do_arctic_monkeys');
+  });
+
+  test('@ já usado (por pessoa ou comunidade): avisa e não deixa criar', async () => {
+    await wrap(<NewCommunityScreen />);
+    await fireEvent.changeText(screen.getByTestId('community-name'), 'Raul');
+    expect(await screen.findByText('Esse @ já está em uso (por uma pessoa ou uma comunidade).')).toBeTruthy();
+    expect(screen.getByTestId('community-submit').props.accessibilityState.disabled).toBe(true);
   });
 
   test('slug a partir do nome', () => {

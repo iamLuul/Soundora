@@ -1589,3 +1589,10 @@ export async function fetchRecommendedCommunities(limit = 8): Promise<CommunityC
   if (error) throw error;
   return (data ?? []) as CommunityCard[];
 }
+
+/** O @ da comunidade está livre? (único entre pessoas e comunidades) */
+export async function communitySlugAvailable(slug: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('community_slug_available', { p_slug: slug });
+  if (error) throw error;
+  return data === true;
+}

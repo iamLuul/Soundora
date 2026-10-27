@@ -88,7 +88,7 @@
     "invalid": "Invalid date of birth. Check the day, month and year."
   },
   "errors": {
-    "username_taken": "That username is taken.",
+    "username_taken": "That @ is already taken (by a person or a community).",
     "username_too_short": "Your username needs at least 3 characters.",
     "username_too_long": "Your username can have up to 20 characters.",
     "username_invalid_chars": "Use only lowercase letters, numbers, _ and . in your username.",
@@ -158,7 +158,7 @@
     "badge_retired": "This badge was retired and can't be reopened.",
     "badge_not_manual": "This badge is given automatically by the app.",
     "user_not_found": "No account with that @.",
-    "community_slug_taken": "That @ belongs to another community.",
+    "community_slug_taken": "That @ is already taken (by a person or a community).",
     "community_slug_invalid": "Use 3 to 30 lowercase letters, numbers or _.",
     "community_owner_cannot_leave": "The owner can't leave. Transfer the community or delete it."
   },
@@ -1073,6 +1073,8 @@
       "genres": "Your taste",
       "members": "People with your taste",
       "popular": "Popular on Soundhora"
-    }
+    },
+    "slugTaken": "That @ is already taken (by a person or a community).",
+    "slugFree": "Available"
   }
 }
