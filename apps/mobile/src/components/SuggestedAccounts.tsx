@@ -34,6 +34,7 @@ export function SuggestedAccounts({
       const names = a.genres.map((g) => genreLabel(genres.data, g, i18n.language) ?? g);
       return t('suggest.genres', { genres: names.join(', ') });
     }
+    if (a.reason === 'community') return t('suggest.community');
     return t(a.reason === 'liked' ? 'suggest.liked' : 'suggest.friends');
   };
 

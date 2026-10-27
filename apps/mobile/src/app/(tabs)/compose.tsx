@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { router, useFocusEffect, useNavigation } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Animated, {
   Easing,
@@ -46,7 +46,8 @@ import {
 } from "../../lib/api";
 import { AppError, formatError } from "../../lib/errors";
 import { convertPostPhoto } from "../../lib/image-convert";
-import { keys } from "../../lib/queries";
+import { keys, useMyCommunities } from "../../lib/queries";
+import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import type { LinkPreviewRow } from "../../lib/types";
 import { colors, fonts, space } from "../../theme";
 import { webTouch } from "../../lib/touch";
@@ -121,6 +122,16 @@ export default function ComposeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [publishing, setPublishing] = useState<null | string>(null);
+  // Onde o post vai: geral (perfil e timeline) ou uma comunidade de que faço parte.
+  const params = useLocalSearchParams<{ community?: string }>();
+  const communities = useMyCommunities();
+  const [destination, setDestination] = useState<string | null>(null);
+  const [fromParam, setFromParam] = useState<string | undefined>(undefined);
+  if (params.community !== fromParam) {
+    setFromParam(params.community);
+    if (params.community) setDestination(params.community);
+  }
+  const target = communities.data?.find((c) => c.id === destination) ?? null;
   const myGenres = useQuery({ queryKey: ["my-genres"], queryFn: getMyGenres });
 
   const hasVideo = media.some((m) => m.type === "video");
@@ -276,6 +287,7 @@ export default function ComposeScreen() {
         previewId: preview?.id ?? null,
         genres: preview ? genres : [],
         media: uploaded,
+        communityId: target?.id ?? null,
       });
       setBody("");
       setMedia([]);
@@ -285,7 +297,9 @@ export default function ComposeScreen() {
       await Promise.all([
         qc.invalidateQueries({ queryKey: keys.feed }),
         qc.invalidateQueries({ queryKey: ["profile-posts"] }),
+        qc.invalidateQueries({ queryKey: ["communities", "posts"] }),
       ]);
+      setDestination(null);
       // Sai da aba de postar antes de abrir o post: ao fechar o post, volta para onde a pessoa estava.
       goBack();
       router.push(`/post/${id}`);
@@ -338,6 +352,53 @@ export default function ComposeScreen() {
               contentContainerStyle={styles.content}
               keyboardShouldPersistTaps="handled"
             >
+              {communities.data?.length ? (
+                <View style={{ gap: space.xs }}>
+                  <Text style={styles.limits}>
+                    {target
+                      ? t("communities.postingTo", { name: target.name })
+                      : t("communities.postingGeneral")}
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.destinations}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel={t("communities.postWhere")}
+                  >
+                    <Pressable
+                      testID="destination-general"
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: !target }}
+                      onPress={() => setDestination(null)}
+                      style={[styles.destination, !target && styles.destinationOn]}
+                    >
+                      <Ionicons name="globe-outline" size={16} color={colors.text} />
+                      <Text style={styles.destinationText}>
+                        {t("communities.general")}
+                      </Text>
+                    </Pressable>
+                    {communities.data.map((c) => (
+                      <Pressable
+                        key={c.id}
+                        testID={`destination-${c.slug}`}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: target?.id === c.id }}
+                        onPress={() => setDestination(c.id)}
+                        style={[
+                          styles.destination,
+                          target?.id === c.id && styles.destinationOn,
+                        ]}
+                      >
+                        <CommunityAvatar name={c.name} color={c.color} size={18} />
+                        <Text style={styles.destinationText} numberOfLines={1}>
+                          {c.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
               <View>
                 <TextInput
                   testID="post-body"
@@ -544,6 +605,20 @@ function Tool({
 }
 
 const styles = StyleSheet.create({
+  destinations: { gap: space.sm },
+  destination: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 32,
+    maxWidth: 200,
+    paddingHorizontal: space.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.surface,
+  },
+  destinationOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  destinationText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text, flexShrink: 1 },
   screen: { flex: 1, backgroundColor: colors.background },
   top: {
     flexDirection: "row",

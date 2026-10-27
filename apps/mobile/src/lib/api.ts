@@ -128,7 +128,14 @@ export interface NewPostMedia {
 }
 
 /** Publica: texto, música (opcional), gêneros e mídia já enviada (uploadMedia). */
-export async function createPost(input: { body: string; previewId?: string | null; genres?: string[]; media?: NewPostMedia[] }): Promise<string> {
+export async function createPost(input: {
+  body: string;
+  previewId?: string | null;
+  genres?: string[];
+  media?: NewPostMedia[];
+  /** Post de comunidade (só aparece nela e na aba Comunidades). */
+  communityId?: string | null;
+}): Promise<string> {
   const parsed = postTextSchema.safeParse(input.body);
   if (!parsed.success) throw new AppError(parsed.error.issues[0]?.message ?? 'generic');
   const { data, error } = await supabase.rpc('post_create', {
@@ -136,6 +143,7 @@ export async function createPost(input: { body: string; previewId?: string | nul
     p_link_preview_id: input.previewId ?? null,
     p_genres: input.genres ?? [],
     p_media: input.media ?? [],
+    p_community: input.communityId ?? null,
   });
   if (error) throw error;
   return data as string;
@@ -255,7 +263,7 @@ export async function fetchFollowingFeed(before: PostCursor | null): Promise<Fee
 }
 
 /** Por que a conta foi sugerida: gêneros parecidos, posts que curti ou seguida por quem sigo. */
-export type SuggestionReason = 'genres' | 'liked' | 'friends';
+export type SuggestionReason = 'genres' | 'liked' | 'friends' | 'community';
 export interface SuggestedAccount {
   id: string;
   username: string;
@@ -1410,4 +1418,174 @@ export async function likeDm(messageId: number, liked: boolean): Promise<void> {
 export async function unsendDm(messageId: number): Promise<void> {
   const { error } = await supabase.rpc('dm_unsend', { p_message: messageId });
   if (error) throw error;
+}
+
+// ---------------------------------------------------------------- comunidades
+
+export const COMMUNITY_COLORS = 6;
+export const COMMUNITY_MAX_ARTISTS = 10;
+export const COMMUNITY_MAX_GENRES = 5;
+export type CommunityVisibility = 'open' | 'closed';
+export type CommunityRole = 'owner' | 'moderator' | 'member';
+export type CommunityMemberStatus = 'active' | 'pending' | 'banned';
+
+export interface Community {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  visibility: CommunityVisibility;
+  color: number;
+  artists: string[];
+  genres: string[];
+  member_count: number;
+  created_at: string;
+  my_role: CommunityRole | null;
+  my_status: CommunityMemberStatus | null;
+  /** Posso ver os posts (aberta, ou sou membro da fechada). */
+  can_view: boolean;
+  /** Pedidos esperando (só para moderadores). */
+  pending_count: number | null;
+}
+
+export interface CommunityCard {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  visibility: CommunityVisibility;
+  color: number;
+  member_count: number;
+  joined?: boolean;
+  genres?: string[];
+  reason?: 'artists' | 'genres' | 'members' | 'popular';
+  role?: CommunityRole;
+}
+
+export interface CommunityMember {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  role: CommunityRole;
+  status: CommunityMemberStatus;
+  since: string;
+}
+
+export interface CommunityInput {
+  slug?: string;
+  name: string;
+  description: string;
+  visibility: CommunityVisibility;
+  genres: string[];
+  artists: string[];
+  color: number;
+}
+
+/** @ da comunidade: letras minúsculas, números e _ (3 a 30). */
+export const COMMUNITY_SLUG = /^[a-z0-9_]{3,30}$/;
+
+export async function createCommunity(c: CommunityInput & { slug: string }): Promise<string> {
+  const { data, error } = await supabase.rpc('community_create', {
+    p_slug: c.slug.trim().toLowerCase(),
+    p_name: c.name.trim(),
+    p_description: c.description.trim(),
+    p_visibility: c.visibility,
+    p_genres: c.genres,
+    p_artists: c.artists,
+    p_color: c.color,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function updateCommunity(id: string, c: CommunityInput): Promise<void> {
+  const { error } = await supabase.rpc('community_update', {
+    p_community: id,
+    p_name: c.name.trim(),
+    p_description: c.description.trim(),
+    p_visibility: c.visibility,
+    p_genres: c.genres,
+    p_artists: c.artists,
+    p_color: c.color,
+  });
+  if (error) throw error;
+}
+
+export async function deleteCommunity(id: string): Promise<void> {
+  const { error } = await supabase.rpc('community_delete', { p_community: id });
+  if (error) throw error;
+}
+
+export async function fetchCommunity(slug: string): Promise<Community | null> {
+  const { data, error } = await supabase.rpc('community_get', { p_slug: slug });
+  if (error) throw error;
+  return ((data ?? []) as Community[])[0] ?? null;
+}
+
+export async function fetchMyCommunities(): Promise<CommunityCard[]> {
+  const { data, error } = await supabase.rpc('my_communities');
+  if (error) throw error;
+  return (data ?? []) as CommunityCard[];
+}
+
+export async function joinCommunity(id: string): Promise<CommunityMemberStatus> {
+  const { data, error } = await supabase.rpc('community_join', { p_community: id });
+  if (error) throw error;
+  return data as CommunityMemberStatus;
+}
+
+export async function leaveCommunity(id: string): Promise<void> {
+  const { error } = await supabase.rpc('community_leave', { p_community: id });
+  if (error) throw error;
+}
+
+export async function fetchCommunityMembers(id: string, status: CommunityMemberStatus = 'active', offset = 0): Promise<CommunityMember[]> {
+  const { data, error } = await supabase.rpc('community_members_list', { p_community: id, p_status: status, p_limit: 50, p_offset: offset });
+  if (error) throw error;
+  return (data ?? []) as CommunityMember[];
+}
+
+export async function respondCommunityRequest(id: string, userId: string, accept: boolean): Promise<void> {
+  const { error } = await supabase.rpc('community_respond', { p_community: id, p_user: userId, p_accept: accept });
+  if (error) throw error;
+}
+
+export async function banFromCommunity(id: string, userId: string, banned: boolean): Promise<void> {
+  const { error } = await supabase.rpc('community_ban', { p_community: id, p_user: userId, p_banned: banned });
+  if (error) throw error;
+}
+
+export async function setCommunityRole(id: string, userId: string, role: CommunityRole): Promise<void> {
+  const { error } = await supabase.rpc('community_set_role', { p_community: id, p_user: userId, p_role: role });
+  if (error) throw error;
+}
+
+export async function removeCommunityPost(postId: string): Promise<void> {
+  const { error } = await supabase.rpc('community_remove_post', { p_post: postId });
+  if (error) throw error;
+}
+
+/** Posts de uma comunidade (ou de todas as minhas, com id null), do mais novo ao mais velho. */
+export async function fetchCommunityPosts(id: string | null, before: PostCursor | null): Promise<FeedItem[]> {
+  const { data, error } = await supabase.rpc('community_posts', {
+    p_community: id,
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: FEED_PAGE_SIZE,
+  });
+  if (error) throw error;
+  return (data ?? []) as FeedItem[];
+}
+
+export async function searchCommunities(query: string): Promise<CommunityCard[]> {
+  const { data, error } = await supabase.rpc('communities_search', { p_query: query, p_limit: 20 });
+  if (error) throw error;
+  return (data ?? []) as CommunityCard[];
+}
+
+export async function fetchRecommendedCommunities(limit = 8): Promise<CommunityCard[]> {
+  const { data, error } = await supabase.rpc('communities_recommended', { p_limit: limit });
+  if (error) throw error;
+  return (data ?? []) as CommunityCard[];
 }

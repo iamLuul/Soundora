@@ -123,6 +123,10 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
         <Stack.Screen name="messages/index" options={{ headerShown: false, animation: 'slide_from_left' }} />
         <Stack.Screen name="messages/compose" options={{ headerShown: false }} />
         <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="communities/index" options={{ headerShown: false }} />
+        <Stack.Screen name="communities/new" options={{ headerShown: false }} />
+        <Stack.Screen name="c/[slug]/index" options={{ headerShown: false }} />
+        <Stack.Screen name="c/[slug]/settings" options={{ headerShown: false }} />
       </Stack.Protected>
 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />

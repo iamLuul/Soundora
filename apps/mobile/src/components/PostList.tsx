@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Text, type ListViewToken } from 'react-native';
-import { blockUser, deletePost, report } from '../lib/api';
+import { blockUser, deletePost, removeCommunityPost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
 import { useFollow, useFollowingIds, useToggleLike } from '../lib/queries';
@@ -42,7 +42,13 @@ export function PostList({
   strips,
   onSeen,
   scrollTopKey,
+  modOf,
+  hideCommunity = false,
 }: {
+  /** Comunidades que eu modero: os posts delas ganham "Remover da comunidade". */
+  modOf?: Set<string>;
+  /** Na página da comunidade, o cartão "post da comunidade X" é repetitivo. */
+  hideCommunity?: boolean;
   items: FeedItem[];
   loading: boolean;
   /** Puxar para atualizar (o spinner fica até a promessa terminar). */
@@ -134,6 +140,10 @@ export function PostList({
       if (action.type === 'report') {
         await report('post', item.id, action.reason);
         showToast(t('feed.reported'));
+      } else if (action.type === 'removeFromCommunity') {
+        if (!(await confirmAction(t('communities.removePostConfirm'), t('confirm.delete'), t('common.cancel')))) return;
+        await removeCommunityPost(item.id);
+        showToast(t('toast.postDeleted'));
       } else if (action.type === 'block') {
         await blockUser(item.author_id);
         showToast(t('feed.blocked', { username: item.author_username }));
@@ -175,6 +185,7 @@ export function PostList({
                 onMore={setMenuFor}
                 onOpenComments={(p) => router.push(`/post/${p.id}`)}
                 onOpen={(p) => router.push(`/post/${p.id}`)}
+                hideCommunity={hideCommunity}
               />
             );
           }}
@@ -196,6 +207,9 @@ export function PostList({
         visible={!!menuFor}
         username={menuFor?.author_username ?? ''}
         isMine={!!menuFor && menuFor.author_id === session?.user.id}
+        canModerate={!!menuFor?.community && !!modOf?.has(menuFor.community.id)}
+        // Post de comunidade fechada não vira vibe (quem vê a vibe pode não ser da comunidade).
+        allowVibe={!menuFor?.community?.closed}
         onClose={() => setMenuFor(null)}
         onAction={handleAction}
       />

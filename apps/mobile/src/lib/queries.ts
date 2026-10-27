@@ -21,6 +21,10 @@ import {
   fetchUnreadNotifications,
   fetchVibesOf,
   fetchVibesTray,
+  fetchCommunity,
+  fetchCommunityPosts,
+  fetchMyCommunities,
+  fetchRecommendedCommunities,
   DM_PAGE,
   fetchDmConversation,
   fetchDmInbox,
@@ -64,7 +68,38 @@ export const keys = {
   dmUnread: ['dm', 'unread'] as const,
   dmConversation: (id: string) => ['dm', 'conversation', id] as const,
   dmMessages: (id: string) => ['dm', 'messages', id] as const,
+  /** Comunidades (tudo começa com 'communities' para atualizar junto depois de entrar/sair). */
+  community: (slug: string) => ['communities', 'one', slug] as const,
+  communityPosts: (id: string | null) => ['communities', 'posts', id ?? 'all'] as const,
+  myCommunities: ['communities', 'mine'] as const,
+  recommendedCommunities: ['communities', 'recommended'] as const,
 };
+
+export function useCommunity(slug: string) {
+  return useQuery({ queryKey: keys.community(slug), queryFn: () => fetchCommunity(slug), enabled: !!slug });
+}
+
+export function useMyCommunities(enabled = true) {
+  return useQuery({ queryKey: keys.myCommunities, queryFn: fetchMyCommunities, enabled, staleTime: 60_000 });
+}
+
+export function useRecommendedCommunities(enabled = true) {
+  return useQuery({ queryKey: keys.recommendedCommunities, queryFn: () => fetchRecommendedCommunities(8), enabled, staleTime: 10 * 60_000 });
+}
+
+/** Posts de uma comunidade, ou de todas as minhas (null). */
+export function useCommunityPosts(id: string | null, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: keys.communityPosts(id),
+    enabled,
+    queryFn: ({ pageParam }) => fetchCommunityPosts(id, pageParam),
+    initialPageParam: null as PostCursor | null,
+    getNextPageParam: (last) => {
+      const tail = last[last.length - 1];
+      return last.length === FEED_PAGE_SIZE && tail ? { createdAt: tail.created_at, id: tail.id } : undefined;
+    },
+  });
+}
 
 /** Conversas (ou pedidos), da mais recente para a mais antiga. */
 export function useDmInbox(requests: boolean) {

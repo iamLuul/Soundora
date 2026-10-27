@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { type GenreHit, logSearch, searchPostGenres, searchProfiles, searchTracks, unblockUser } from '../lib/api';
+import { type GenreHit, logSearch, searchCommunities, searchPostGenres, searchProfiles, searchTracks, unblockUser } from '../lib/api';
+import { CommunityRow } from './communities/CommunityRow';
 import { formatError } from '../lib/errors';
 import { uniqueBy, useDebouncedValue } from '../lib/hooks';
 import { useSearchPosts } from '../lib/queries';
@@ -176,6 +177,7 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
   const people = useQuery({ queryKey: ['search-people', q], queryFn: () => searchProfiles(q), enabled });
   const tracks = useQuery({ queryKey: ['search-tracks', q], queryFn: () => searchTracks(q), enabled });
   const genres = useQuery({ queryKey: ['search-genres-posts', q], queryFn: () => searchPostGenres(q), enabled, staleTime: 60_000 });
+  const communities = useQuery({ queryKey: ['communities', 'search', q], queryFn: () => searchCommunities(q), enabled });
   // Pesquisas feitas de verdade (Enter, abrir um gênero, buscar nos posts, ou vindo da busca do
   // desktop) vão para o histórico usado nas recomendações; o que é só digitado, não.
   const openGenre = (slug: string) => {
@@ -267,6 +269,16 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
                 : undefined
             }
           />
+          {enabled && communities.data?.length ? (
+            <View testID="search-communities">
+              <Text style={styles.section}>{t('communities.title')}</Text>
+              {communities.data.slice(0, 5).map((c) => (
+                <View key={c.id} style={{ marginHorizontal: -space.lg }}>
+                  <CommunityRow item={c} />
+                </View>
+              ))}
+            </View>
+          ) : null}
           {message ? <Text style={[text.small, { color: colors.danger, textAlign: 'center' }]}>{message}</Text> : null}
         </ScrollView>
       )}

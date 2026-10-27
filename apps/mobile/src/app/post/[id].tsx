@@ -8,14 +8,14 @@ import { BackHeader } from '../../components/figma';
 import { PostActions, type PostAction } from '../../components/PostActions';
 import { PostCard } from '../../components/PostCard';
 import { ErrorText, keyboardBehavior, useKeyboardVisible } from '../../components/ui';
-import { addComment, blockUser, deletePost, fetchComments, report, setCommentLiked } from '../../lib/api';
+import { addComment, blockUser, deletePost, fetchComments, removeCommunityPost, report, setCommentLiked } from '../../lib/api';
 import type { CommentRow } from '../../lib/types';
 import { CommentItem, RepliesToggle } from '../../components/CommentItem';
 import { buildCommentRows } from '../../lib/comment-thread';
 import { useAuth } from '../../lib/auth';
 import { errorStatus, formatError } from '../../lib/errors';
 import { ErrorScreen } from '../../components/ErrorScreen';
-import { keys, usePost, useToggleLike } from '../../lib/queries';
+import { keys, useMyCommunities, usePost, useToggleLike } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
@@ -34,6 +34,7 @@ export default function PostScreen() {
   const qc = useQueryClient();
   const { session, signOut } = useAuth();
   const post = usePost(id);
+  const myCommunities = useMyCommunities(!!post.data?.community);
   const comments = useQuery({ queryKey: keys.comments(id), queryFn: () => fetchComments(id) });
   const toggleLike = useToggleLike();
   const [body, setBody] = useState('');
@@ -125,6 +126,11 @@ export default function PostScreen() {
       } else if (action.type === 'block') {
         await blockUser(item.author_id);
         showToast(t('feed.blocked', { username: item.author_username }));
+        router.back();
+      } else if (action.type === 'removeFromCommunity') {
+        if (!(await confirmAction(t('communities.removePostConfirm'), t('confirm.delete'), t('common.cancel')))) return;
+        await removeCommunityPost(item.id);
+        showToast(t('toast.postDeleted'));
         router.back();
       } else {
         if (!(await confirmAction(t('confirm.deletePost'), t('confirm.delete'), t('common.cancel')))) return;
@@ -237,6 +243,8 @@ export default function PostScreen() {
           visible={menuOpen}
           username={post.data.author_username}
           isMine={post.data.author_id === session?.user.id}
+          canModerate={!!post.data.community && !!myCommunities.data?.some((c) => c.id === post.data!.community!.id && (c.role === 'owner' || c.role === 'moderator'))}
+          allowVibe={!post.data.community?.closed}
           onClose={() => setMenuOpen(false)}
           onAction={handleAction}
         />

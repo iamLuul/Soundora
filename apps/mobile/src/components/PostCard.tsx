@@ -12,6 +12,7 @@ import { PostMedia } from './PostMedia';
 import { webTouch } from '../lib/touch';
 import { useHasActiveVibes } from '../lib/vibe-ring';
 import { Verified } from './Verified';
+import { CommunityAvatar } from './communities/CommunityAvatar';
 
 export interface PostCardProps {
   item: FeedItem;
@@ -25,10 +26,12 @@ export interface PostCardProps {
   expanded?: boolean;
   /** Botão "Seguir" ao lado do menu (só quando eu ainda não sigo o autor). */
   onFollow?: (item: FeedItem) => void;
+  /** Na página da comunidade, sem o cartão "post da comunidade X". */
+  hideCommunity?: boolean;
 }
 
 /** Post no layout do Figma (Home page/For You): autor, texto, cartão da música e ações. */
-export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink, onOpen, expanded = false, onFollow }: PostCardProps) {
+export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLink, onOpen, expanded = false, onFollow, hideCommunity = false }: PostCardProps) {
   const { t, i18n } = useTranslation();
   const genres = useGenres();
   // Anel roxo na foto só para quem tem vibe ativa (que eu posso ver).
@@ -49,6 +52,21 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
       accessibilityHint={onOpen ? t('post.openHint') : undefined}
       style={[styles.post, expanded && styles.expanded]}
     >
+      {item.community && !hideCommunity ? (
+        // Post de comunidade: de qual comunidade e quem postou (tocar abre a comunidade).
+        <Pressable
+          testID={`post-community-${item.id}`}
+          accessibilityRole="link"
+          accessibilityLabel={t('communities.postFrom', { name: item.community.name, username: item.author_username })}
+          onPress={() => router.push(`/c/${item.community!.slug}`)}
+          style={({ pressed }) => [styles.community, pressed && { opacity: 0.8 }]}
+        >
+          <CommunityAvatar name={item.community.name} color={item.community.color} size={22} />
+          <Text style={styles.communityText} numberOfLines={1}>
+            <Text style={styles.communityName}>{item.community.name}</Text> · {t('communities.postedBy', { username: item.author_username })}
+          </Text>
+        </Pressable>
+      ) : null}
       <View style={styles.header}>
         <Link href={`/u/${item.author_username}`} asChild>
           <Pressable style={styles.author} accessibilityRole="link">
@@ -167,6 +185,20 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
 }
 
 const styles = StyleSheet.create({
+  community: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    paddingVertical: 4,
+    paddingLeft: 4,
+    paddingRight: space.md,
+    borderRadius: 10,
+    backgroundColor: colors.card,
+  },
+  communityText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, flexShrink: 1 },
+  communityName: { fontFamily: fonts.bold, color: colors.text },
   follow: { marginLeft: 'auto', backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 14, height: 28, justifyContent: 'center' },
   followText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
   post: { gap: space.md, paddingVertical: space.lg, borderBottomWidth: 1, borderBottomColor: colors.tabBar },

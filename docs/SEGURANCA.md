@@ -208,6 +208,25 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
 - Responder vibe: só uma vibe ativa de quem vai receber e que eu posso ver. Quando a vibe vence, a mensagem fica e a miniatura some.
 - Cobertos por teste: `tests/db/direct-messages.test.ts`.
 
+## Comunidades
+
+- As tabelas `communities`, `community_members` e `community_genres` são fechadas para escrita do app. Tudo passa pelas funções `community_*`, que conferem o login e o papel de quem pede:
+  - **dona:** edita, nomeia moderadores, passa a comunidade e apaga;
+  - **moderadores:** aceitam pedidos, banem e removem posts;
+  - **membros:** postam.
+- Comunidade fechada: os posts ficam escondidos de quem não é membro no próprio banco, e não só na tela. A regra `community_visible` está:
+  - na policy da tabela `posts` (e, por ela, também em curtidas e comentários);
+  - em todas as funções que leem posts: detalhe, comentários, mídia, curtidas, notificações e vibes.
+- Post de comunidade fechada não vira vibe.
+- Post de comunidade não entra no perfil, no Seguindo, na busca de posts, nos gêneros, no Descobrir nem nas mais tocadas. No Para você, só entram os muito populares (5+ curtidas e curtidas de pelo menos 10% dos membros), e só para quem é membro.
+- Banido não entra de novo nem posta. Pedido pendente também não posta.
+- Apagar a comunidade apaga os posts dela, para que nada de uma comunidade fechada vire post público.
+- Limites:
+  - 5 comunidades criadas por dia;
+  - 60 entradas por hora.
+- Conta suspensa não cria comunidade nem entra.
+- Cobertos por teste: `tests/db/communities.test.ts`.
+
 ## Excluir conta
 
 Em **Configurações → Excluir conta**, a pessoa digita o próprio @. A Edge Function `delete-account` confere o login, exige que ele tenha sido feito nos últimos 30 minutos, apaga a foto e o banner dos buckets e apaga o usuário do Supabase Auth. Perfil, posts, curtidas, comentários, seguidores, bloqueios e denúncias feitas saem junto, em cascata no banco (coberto por teste). É exigido pela App Store para apps com cadastro e é um direito pela LGPD.

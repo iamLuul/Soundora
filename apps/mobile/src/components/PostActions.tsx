@@ -6,7 +6,7 @@ import { canCreateVibes } from '../lib/vibes-create';
 import { colors, fonts, radius, space, text } from '../theme';
 import { SheetBackdrop } from './ui';
 
-export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' } | { type: 'vibe' };
+export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' } | { type: 'vibe' } | { type: 'removeFromCommunity' };
 
 /**
  * Menu "…" de um post: denunciar, bloquear o autor ou apagar o próprio post.
@@ -20,7 +20,10 @@ export function PostActions({
   onAction,
   allowVibe = true,
   deleteLabel,
+  canModerate = false,
 }: {
+  /** Moderador da comunidade do post: pode remover o post dela. */
+  canModerate?: boolean;
   /** Compartilhar no Vibes (só posts). */
   allowVibe?: boolean;
   /** Texto de "apagar" (padrão: apagar post). */
@@ -50,6 +53,9 @@ export function PostActions({
           {step === 'menu' ? (
             <>
               {allowVibe && canCreateVibes ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
+              {canModerate && !isMine ? (
+                <Option label={t('communities.removePost')} danger onPress={() => pick({ type: 'removeFromCommunity' })} />
+              ) : null}
               {isMine ? (
                 <Option label={deleteLabel ?? t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
               ) : (

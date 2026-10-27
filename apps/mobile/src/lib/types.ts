@@ -70,6 +70,16 @@ export interface FeedItem {
   /** Fotos (até 4) ou um vídeo, na ordem. Caminhos no bucket privado "post-media". */
   media: PostMedia[];
   post_type: 'music' | 'text' | 'media';
+  /** Post de comunidade: de qual (o cartão "post da comunidade X"). null = post geral. */
+  community?: PostCommunity | null;
+}
+
+export interface PostCommunity {
+  id: string;
+  slug: string;
+  name: string;
+  color: number;
+  closed: boolean;
 }
 
 export interface PostMedia {

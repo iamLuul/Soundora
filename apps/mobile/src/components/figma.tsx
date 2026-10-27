@@ -123,9 +123,11 @@ export function TopTabs<T extends string>({
   const { t } = useTranslation();
   // Desktop: as notificações ficam na barra lateral.
   const desktop = useIsDesktop();
+  // Três abas com os ícones dos lados (Início no celular): abas mais juntas, sem passar por baixo dos ícones.
+  const compact = tabs.length >= 3 && !desktop && (showBell || showMessages);
   return (
     <View style={[styles.topTabs, desktop && styles.topTabsDesktop, style]}>
-      <View style={styles.tabsRow} accessibilityRole="tablist">
+      <View style={[styles.tabsRow, compact && styles.tabsRowCompact]} accessibilityRole="tablist">
         {tabs.map((tab) => {
           const active = tab.value === value;
           return (
@@ -137,7 +139,9 @@ export function TopTabs<T extends string>({
               onPress={() => onChange?.(tab.value)}
               hitSlop={8} style={webTouch(8)}
             >
-              <Text style={[styles.tabText, active && styles.tabActive]}>{tab.label}</Text>
+              <Text style={[styles.tabText, compact && styles.tabTextCompact, active && styles.tabActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {tab.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -190,6 +194,8 @@ const styles = StyleSheet.create({
   topTabs: { height: 44, justifyContent: 'center' },
   topTabsDesktop: { height: 64 },
   tabsRow: { flexDirection: 'row', justifyContent: 'center', gap: 36 },
+  tabsRowCompact: { gap: 14, paddingHorizontal: 34 },
+  tabTextCompact: { fontSize: 15 },
   tabText: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
   tabActive: { fontFamily: fonts.bold },
   bell: { position: 'absolute', right: 0, top: 12 },

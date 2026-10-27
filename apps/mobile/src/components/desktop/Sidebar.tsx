@@ -39,6 +39,7 @@ export function Sidebar() {
     { key: 'home', href: '/', label: t('desktop.home'), icon: 'home', active: (p) => p === '/' },
     { key: 'discover', href: '/discover', label: t('tabs.discover'), icon: 'search', active: (p) => p.startsWith('/discover') || p.startsWith('/genre') },
     { key: 'notifications', href: '/notifications', label: t('notifications.title'), icon: 'bell', active: (p) => p.startsWith('/notifications') },
+    { key: 'communities', href: '/communities', label: t('communities.title'), icon: 'community', active: (p) => p.startsWith('/communities') || p.startsWith('/c/') },
     { key: 'messages', href: '/messages', label: t('messages.title'), icon: 'message', active: (p) => p.startsWith('/messages') },
     { key: 'music', href: '/music', label: t('tabs.music'), icon: 'music', active: (p) => p.startsWith('/music') || p.startsWith('/album') },
     {

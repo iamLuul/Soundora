@@ -16,8 +16,10 @@ import { colors, space, text } from '../../theme';
 import { formatError } from '../../lib/errors';
 import { useAds } from '../../lib/ads';
 import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
+import { CommunitiesFeed } from '../../components/communities/CommunitiesFeed';
+import { CommunityStrip } from '../../components/communities/CommunityStrip';
 
-type FeedTab = 'feed' | 'following';
+type FeedTab = 'feed' | 'following' | 'communities';
 
 /** Contas sugeridas entram depois deste tanto de posts no Para você. */
 const SUGGESTIONS_AFTER = 4;
@@ -48,6 +50,7 @@ export default function FeedScreen() {
         tabs={[
           { value: 'feed', label: t('tabs.feed') },
           { value: 'following', label: t('tabs.following') },
+          { value: 'communities', label: t('communities.tab') },
         ]}
         value={tab}
         onChange={setTab}
@@ -67,6 +70,9 @@ export default function FeedScreen() {
       </View>
       <View style={{ flex: 1, display: tab === 'following' ? 'flex' : 'none' }}>
         <Following active={tab === 'following'} adsEvery={ads.feedEvery} />
+      </View>
+      <View style={{ flex: 1, display: tab === 'communities' ? 'flex' : 'none' }}>
+        <CommunitiesFeed active={tab === 'communities'} />
       </View>
     </View>
   );
@@ -105,7 +111,9 @@ function ForYou({ adsEvery }: { adsEvery: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const items = feed.data?.pages.flat() ?? [];
-  const strips = reviewStrips(reviews.data ?? []).map((list, i) => <ReviewStrip key={i} index={i} reviews={list} />);
+  const reviewElements = reviewStrips(reviews.data ?? []).map((list, i) => <ReviewStrip key={i} index={i} reviews={list} />);
+  // De vez em quando, comunidades para você (a faixa depois das de reviews).
+  const strips = [...reviewElements, <CommunityStrip key="communities" />];
   return (
     <PostList
       header={<FollowingRow />}

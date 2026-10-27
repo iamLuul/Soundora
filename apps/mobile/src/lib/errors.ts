@@ -66,6 +66,9 @@ const KNOWN = new Set([
   'gone',
   'duplicate',
   'request_not_found',
+  'community_slug_taken',
+  'community_slug_invalid',
+  'community_owner_cannot_leave',
   // Erros do login (Supabase Auth devolvem o código em `code`).
   'identity_not_found',
   'single_identity_not_deletable',

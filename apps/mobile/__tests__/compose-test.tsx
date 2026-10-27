@@ -13,6 +13,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 const mockPreview = jest.fn();
 const mockCreatePost = jest.fn(async () => 'p1');
 const mockNav: string[] = [];
+let mockCommunities: unknown[] = [];
 jest.mock('expo-router', () => ({
   router: { push: (to: string) => mockNav.push(`push ${to}`), navigate: jest.fn() },
   useFocusEffect: (cb: () => void) => {
@@ -20,7 +21,9 @@ jest.mock('expo-router', () => ({
     useEffect(cb, [cb]);
   },
   useNavigation: () => ({ addListener: () => () => {}, canGoBack: () => true, goBack: () => mockNav.push('back'), isFocused: () => true }),
+  useLocalSearchParams: () => mockParams,
 }));
+const mockParams: Record<string, string> = {};
 jest.mock('expo-clipboard', () => ({ getStringAsync: async () => '' }));
 jest.mock('expo-image-picker', () => ({ VideoExportPreset: { H264_1280x720: 0 } }));
 jest.mock('expo-image-manipulator', () => ({ ImageManipulator: {}, SaveFormat: { JPEG: 'jpeg' } }));
@@ -31,6 +34,7 @@ jest.mock('../src/lib/api', () => ({
   previewLink: (...a: unknown[]) => mockPreview(...a),
   createPost: (...a: unknown[]) => mockCreatePost(...(a as [])),
   getMyGenres: async () => ['indie'],
+  fetchMyCommunities: async () => mockCommunities,
   fetchGenres: async () => [
     { slug: 'rock', name_pt: 'Rock', name_en: 'Rock' },
     { slug: 'indie', name_pt: 'Indie', name_en: 'Indie' },
@@ -46,6 +50,8 @@ function wrap(ui: React.ReactElement) {
 
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockCommunities = [];
+  for (const k of Object.keys(mockParams)) delete mockParams[k];
   await i18n.changeLanguage('pt-BR');
 });
 
@@ -63,7 +69,7 @@ describe('Postar', () => {
     expect(screen.getByTestId('genre-selected-rock')).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId('publish'));
-    await waitFor(() => expect(mockCreatePost).toHaveBeenCalledWith({ body: 'ouçam', previewId: 'lp1', genres: ['rock'], media: [] }));
+    await waitFor(() => expect(mockCreatePost).toHaveBeenCalledWith({ body: 'ouçam', previewId: 'lp1', genres: ['rock'], media: [], communityId: null }));
     // Sai da aba de postar e só então abre o post: fechar o post volta para a tela anterior.
     await waitFor(() => expect(mockNav).toEqual(['back', 'push /post/p1']));
   });
@@ -122,5 +128,26 @@ describe('Comentário', () => {
   test('comentário sem respostas: sem linha, com divisória', async () => {
     await render(<CommentItem item={c} onToggleLike={jest.fn()} onReply={jest.fn()} />);
     expect(screen.queryByTestId('thread-line-c1')).toBeNull();
+  });
+
+  test('postar numa comunidade: escolher onde publicar (ou já vir escolhida da comunidade)', async () => {
+    mockCommunities = [{ id: 'c1', slug: 'fas', name: 'Fãs da Banda', color: 0, visibility: 'open', role: 'member', member_count: 3 }];
+    Object.assign(mockParams, { community: 'c1' });
+    await wrap(<ComposeScreen />);
+    expect(await screen.findByText('Publicar só na comunidade Fãs da Banda')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('post-body'), 'oi comunidade');
+    await fireEvent.press(screen.getByTestId('publish'));
+    await waitFor(() => expect(mockCreatePost).toHaveBeenCalledWith(expect.objectContaining({ body: 'oi comunidade', communityId: 'c1' })));
+  });
+
+  test('sem comunidade escolhida, o post é geral', async () => {
+    mockCommunities = [{ id: 'c1', slug: 'fas', name: 'Fãs da Banda', color: 0, visibility: 'open', role: 'member', member_count: 3 }];
+    await wrap(<ComposeScreen />);
+    await fireEvent.press(await screen.findByTestId('destination-fas'));
+    await fireEvent.press(screen.getByTestId('destination-general'));
+    expect(screen.getByText('Publicar no seu perfil e na timeline')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('post-body'), 'geral');
+    await fireEvent.press(screen.getByTestId('publish'));
+    await waitFor(() => expect(mockCreatePost).toHaveBeenCalledWith(expect.objectContaining({ communityId: null })));
   });
 });
