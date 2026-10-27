@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { TabBar, tabBarSpace } from '../src/components/TabBar';
+import { rubberBand, TabBar, tabBarSpace } from '../src/components/TabBar';
 import i18n from '../src/lib/i18n';
 
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }) }));
@@ -13,7 +13,13 @@ const routes = ['index', 'discover', 'compose', 'music', 'me'].map((name) => ({ 
 async function renderBar(index = 0) {
   const navigateToTab = jest.fn();
   const emitter = { emit: jest.fn(() => ({ defaultPrevented: false })) };
-  const props = { state: { index, routes }, emitter, navigateToTab, descriptors: {}, insets: { top: 0, bottom: 34, left: 0, right: 0 } } as unknown as Parameters<typeof TabBar>[0];
+  const props = {
+    state: { index, routes },
+    emitter,
+    navigateToTab,
+    descriptors: {},
+    insets: { top: 0, bottom: 34, left: 0, right: 0 },
+  } as unknown as Parameters<typeof TabBar>[0];
   await render(<TabBar {...props} />);
   return { navigateToTab, emitter };
 }
@@ -23,10 +29,18 @@ beforeEach(async () => {
 });
 
 describe('Barra de abas em Liquid Glass', () => {
-  test('abas com nome, a ativa marcada; tocar troca de aba', async () => {
+  test('o vidro acompanha o dedo como um elástico, sem passar do limite', () => {
+    expect(rubberBand(0, 9)).toBe(0);
+    expect(rubberBand(20, 9)).toBeGreaterThan(0);
+    expect(rubberBand(1000, 9)).toBeLessThanOrEqual(9);
+    expect(rubberBand(-1000, 9)).toBeGreaterThanOrEqual(-9);
+  });
+
+  test('abas só com ícone (nome para leitor de tela), a ativa marcada; tocar troca de aba', async () => {
     const { navigateToTab } = await renderBar(0);
     expect(screen.getByTestId('tab-index').props.accessibilityState.selected).toBe(true);
-    expect(screen.getByText('Descobrir')).toBeTruthy();
+    expect(screen.queryByText('Descobrir')).toBeNull();
+    expect(screen.getByLabelText('Descobrir')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('tab-music'));
     expect(navigateToTab).toHaveBeenCalledWith('music-k');
   });
