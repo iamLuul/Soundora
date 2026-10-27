@@ -12,6 +12,7 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
 const mockCreate = jest.fn(async () => 'v1');
+const mockSendDm = jest.fn(async (..._a: unknown[]) => ({ conversation_id: 'c1', message_id: 1 }));
 const mockPreviewLink = jest.fn();
 const mockConvert = jest.fn(async () => new Uint8Array([1]));
 const mockParams: Record<string, string> = {};
@@ -33,6 +34,7 @@ jest.mock('../src/lib/auth', () => ({
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
   createVibe: (...a: unknown[]) => mockCreate(...(a as [])),
+  sendDm: (...a: unknown[]) => mockSendDm(...a),
   previewLink: (...a: unknown[]) => mockPreviewLink(...a),
   uploadVibeMedia: async (type: string) => ({ path: type === 'photo' ? 'me/f.jpg' : 'me/v.mp4', durationMs: undefined }),
   fetchVibesTray: async () => [
@@ -277,6 +279,26 @@ describe('Vibes: ver', () => {
     await wrap(<VibeViewerScreen />);
     await waitFor(() => expect(screen.getByText('a')).toBeTruthy());
     expect(screen.getByText('b')).toBeTruthy();
+  });
+});
+
+describe('Responder vibe por mensagem', () => {
+  test('a resposta vai para a conversa com quem postou, com a vibe junto', async () => {
+    Object.assign(mockParams, { author: 'b' });
+    await wrap(<VibeViewerScreen />);
+    await waitFor(() => expect(screen.getByText('oi da bia')).toBeTruthy());
+    await fireEvent(screen.getByTestId('vibe-reply-input'), 'focus');
+    await fireEvent.changeText(screen.getByTestId('vibe-reply-input'), 'amei!');
+    await fireEvent.press(screen.getByTestId('vibe-reply-send'));
+    await waitFor(() => expect(mockSendDm).toHaveBeenCalledWith('amei!', { to: 'b' }, 'b1'));
+  });
+
+  test('nas minhas vibes não tem resposta (tem quem viu)', async () => {
+    mockVibesOf.me = [textVibe('me1', 'minha')];
+    Object.assign(mockParams, { author: 'me' });
+    await wrap(<VibeViewerScreen />);
+    await waitFor(() => expect(screen.getByText('minha')).toBeTruthy());
+    expect(screen.queryByTestId('vibe-reply-input')).toBeNull();
   });
 });
 

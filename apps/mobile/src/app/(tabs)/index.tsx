@@ -51,6 +51,7 @@ export default function FeedScreen() {
         ]}
         value={tab}
         onChange={setTab}
+        showMessages
         style={{ marginHorizontal: space.lg }}
       />
       <SuspendedBanner />

@@ -21,6 +21,11 @@ import {
   fetchUnreadNotifications,
   fetchVibesOf,
   fetchVibesTray,
+  DM_PAGE,
+  fetchDmConversation,
+  fetchDmInbox,
+  fetchDmMessages,
+  fetchDmUnread,
   vibeMediaUrl,
   setLiked,
   type NotificationFilter,
@@ -54,7 +59,42 @@ export const keys = {
   vibesOf: (authorId: string) => ['vibes', 'of', authorId] as const,
   streamingPlatform: ['streaming-platform'] as const,
   worldChart: ['world-chart'] as const,
+  /** Mensagens diretas (tudo começa com 'dm': o aviso ao vivo atualiza tudo de uma vez). */
+  dmInbox: (requests: boolean) => ['dm', 'inbox', requests] as const,
+  dmUnread: ['dm', 'unread'] as const,
+  dmConversation: (id: string) => ['dm', 'conversation', id] as const,
+  dmMessages: (id: string) => ['dm', 'messages', id] as const,
 };
+
+/** Conversas (ou pedidos), da mais recente para a mais antiga. */
+export function useDmInbox(requests: boolean) {
+  return useInfiniteQuery({
+    queryKey: keys.dmInbox(requests),
+    queryFn: ({ pageParam }) => fetchDmInbox(requests, pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => (last.length < 30 ? undefined : last[last.length - 1]!.last_at),
+  });
+}
+
+/** Bolinha do ícone de mensagens. Atualiza ao vivo (aviso 'dm'), a cada minuto e ao voltar para o app. */
+export function useDmUnread(enabled = true) {
+  return useQuery({ queryKey: keys.dmUnread, queryFn: fetchDmUnread, enabled, refetchInterval: 60_000, refetchOnWindowFocus: true, staleTime: 10_000 });
+}
+
+export function useDmConversation(id: string | null) {
+  return useQuery({ queryKey: keys.dmConversation(id ?? ''), queryFn: () => fetchDmConversation(id!), enabled: !!id });
+}
+
+/** Mensagens de uma conversa, da mais nova para a mais antiga (a lista é invertida na tela). */
+export function useDmMessages(id: string | null) {
+  return useInfiniteQuery({
+    queryKey: keys.dmMessages(id ?? ''),
+    queryFn: ({ pageParam }) => fetchDmMessages(id!, pageParam),
+    enabled: !!id,
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => (last.length < DM_PAGE ? undefined : last[last.length - 1]!.id),
+  });
+}
 
 /** Plataforma de streaming da pessoa (null = ainda não escolheu). */
 export function useStreamingPlatform(enabled = true) {

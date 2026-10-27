@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { useDmBadge } from '../messages/MessagesButton';
 import { SIDEBAR_STROKE, sidebarIcons, type SidebarIconName } from '../../assets/sidebarIcons';
 import { useAuth } from '../../lib/auth';
 import { confirmAction } from '../../lib/dialogs';
@@ -31,11 +32,14 @@ export function Sidebar() {
   const path = usePathname();
   const { profile } = useAuth();
   const unread = useUnreadNotifications().data ?? 0;
+  const dmUnread = useDmBadge();
+  const badgeOf = (key: string) => (key === 'notifications' ? unread : key === 'messages' ? dmUnread : 0);
 
   const items: NavItem[] = [
     { key: 'home', href: '/', label: t('desktop.home'), icon: 'home', active: (p) => p === '/' },
     { key: 'discover', href: '/discover', label: t('tabs.discover'), icon: 'search', active: (p) => p.startsWith('/discover') || p.startsWith('/genre') },
     { key: 'notifications', href: '/notifications', label: t('notifications.title'), icon: 'bell', active: (p) => p.startsWith('/notifications') },
+    { key: 'messages', href: '/messages', label: t('messages.title'), icon: 'message', active: (p) => p.startsWith('/messages') },
     { key: 'music', href: '/music', label: t('tabs.music'), icon: 'music', active: (p) => p.startsWith('/music') || p.startsWith('/album') },
     {
       key: 'profile',
@@ -62,7 +66,7 @@ export function Sidebar() {
               key={item.key}
               testID={`side-${item.key}`}
               accessibilityRole="link"
-              accessibilityLabel={item.key === 'notifications' && unread > 0 ? `${item.label} (${unread})` : item.label}
+              accessibilityLabel={badgeOf(item.key) > 0 ? `${item.label} (${badgeOf(item.key)})` : item.label}
               accessibilityState={{ selected: active }}
               aria-current={active ? 'page' : undefined}
               onPress={() => router.navigate(item.href)}
@@ -70,9 +74,9 @@ export function Sidebar() {
             >
               <View style={styles.icon}>
                 <StrokeIcon name={item.icon} color={color} />
-                {item.key === 'notifications' && unread > 0 ? (
-                  <View style={styles.badge} testID="side-unread">
-                    <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+                {badgeOf(item.key) > 0 ? (
+                  <View style={styles.badge} testID={item.key === 'notifications' ? 'side-unread' : `side-${item.key}-unread`}>
+                    <Text style={styles.badgeText}>{badgeOf(item.key) > 9 ? '9+' : badgeOf(item.key)}</Text>
                   </View>
                 ) : null}
               </View>

@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Keyboard, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -31,6 +31,7 @@ import { confirmAction, notify } from '../../lib/dialogs';
 import { showToast } from '../../components/Toast';
 import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 import { itemsOf } from '../../components/vibes/textStyle';
+import { VibeReplyBar } from '../../components/vibes/VibeReplyBar';
 import { AdVibe } from '../../components/ads/AdVibe';
 import { useAds, withAds } from '../../lib/ads';
 import { useIsDesktop } from '../../lib/layout';
@@ -310,6 +311,9 @@ function AuthorVibes({
   const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
   const [holding, setHolding] = useState(false);
+  // Escrevendo a resposta: a vibe pausa e tocar nela só fecha o teclado.
+  const [typing, setTyping] = useState(false);
+  const windowHeight = useWindowDimensions().height;
   const [menu, setMenu] = useState<null | 'options' | 'report'>(null);
   const [viewersFor, setViewersFor] = useState<string | null>(null);
 
@@ -318,7 +322,7 @@ function AuthorVibes({
   const mediaReady = !current?.media_path || !!media.data;
   // Vibe de música não toca prévia (as licenças das lojas não cobrem esse uso): é só o cartão.
   const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : STILL_MS;
-  const paused = !active || holding || !!menu || !!viewersFor || !mediaReady || tipOpen;
+  const paused = !active || holding || typing || !!menu || !!viewersFor || !mediaReady || tipOpen;
 
   const resetClock = () => {
     elapsedRef.current = 0;
@@ -377,6 +381,9 @@ function AuthorVibes({
   useEffect(() => {
     if (Platform.OS !== 'web' || !active || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
+      // Escrevendo a resposta: as setas andam no texto, não nas vibes.
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
       if (e.key === 'ArrowRight') arrowKeys.current.next();
       else if (e.key === 'ArrowLeft') arrowKeys.current.prev();
     };
@@ -479,7 +486,7 @@ function AuthorVibes({
             accessibilityRole="button"
             accessibilityLabel={t('vibes.previous')}
             style={[styles.zone, { left: 0 }]}
-            onPress={goPrev}
+            onPress={() => (typing ? Keyboard.dismiss() : goPrev())}
             {...hold}
           />
           <Pressable
@@ -487,7 +494,7 @@ function AuthorVibes({
             accessibilityRole="button"
             accessibilityLabel={t('vibes.next')}
             style={[styles.zone, { right: 0 }]}
-            onPress={goNext}
+            onPress={() => (typing ? Keyboard.dismiss() : goNext())}
             {...hold}
           />
 
@@ -579,6 +586,17 @@ function AuthorVibes({
               <Ionicons name="eye-outline" size={18} color={colors.text} />
               <Text style={styles.viewersText}>{t('vibes.views', { count: current.view_count ?? 0 })}</Text>
             </Pressable>
+          ) : active && username ? (
+            <VibeReplyBar
+              key={current.id}
+              author={author}
+              username={username}
+              vibeId={current.id}
+              left={canvas.left}
+              width={canvas.width}
+              bottom={Math.max(space.sm, windowHeight - (canvas.top + canvas.height) - space.sm - 44)}
+              onTyping={setTyping}
+            />
           ) : null}
         </>
       ) : null}

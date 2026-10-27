@@ -119,6 +119,10 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
         <Stack.Screen name="settings/accessibility" options={{ title: '' }} />
         <Stack.Screen name="settings/about" options={{ title: '' }} />
         <Stack.Screen name="admin" options={{ title: '' }} />
+        {/* Mensagens: entram pela esquerda (o ícone fica à esquerda do Início). */}
+        <Stack.Screen name="messages/index" options={{ headerShown: false, animation: 'slide_from_left' }} />
+        <Stack.Screen name="messages/compose" options={{ headerShown: false }} />
+        <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
       </Stack.Protected>
 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />

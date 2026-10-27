@@ -192,6 +192,22 @@ O `config.toml` só vale para o Supabase local. Na nuvem, ajuste no painel (os n
   - tela que quebra ao desenhar: 500, com "Tentar de novo".
 - Os scripts do app (`/_expo/static/js`) continuam públicos, porque o navegador precisa deles. Eles têm os nomes das telas, como todo site feito em React. O que protege os dados é o banco (RLS e funções que conferem o login), não esconder os endereços.
 
+## Mensagens diretas
+
+- As tabelas `conversations`, `conversation_members` e `messages` são fechadas para o app (RLS sem policies, sem grants). Tudo passa pelas funções `dm_*`, que conferem o login e se a pessoa é da conversa. Quem não é da conversa recebe lista vazia ou `not_found`, sem saber se ela existe.
+- Quem tem bloqueio com a outra pessoa não manda mensagem, e a conversa some da lista dos dois.
+- Conta suspensa não manda mensagem.
+- Limites:
+  - 60 mensagens a cada 10 minutos;
+  - 30 conversas novas por dia;
+  - 300 curtidas de mensagem por hora;
+  - 30 pushes de mensagem por hora para cada pessoa.
+- Pedidos: quem recebe e não segue quem mandou vê a conversa em "Pedidos". Enquanto não aceitar, não recebe push e quem mandou não vê "Visto".
+- O push diz só quem mandou ("@fulano enviou uma mensagem"), nunca o texto. O aviso ao vivo leva só o id da conversa, no canal privado da pessoa.
+- "Desfazer envio" apaga o texto do banco, não só da tela.
+- Responder vibe: só uma vibe ativa de quem vai receber e que eu posso ver. Quando a vibe vence, a mensagem fica e a miniatura some.
+- Cobertos por teste: `tests/db/direct-messages.test.ts`.
+
 ## Excluir conta
 
 Em **Configurações → Excluir conta**, a pessoa digita o próprio @. A Edge Function `delete-account` confere o login, exige que ele tenha sido feito nos últimos 30 minutos, apaga a foto e o banner dos buckets e apaga o usuário do Supabase Auth. Perfil, posts, curtidas, comentários, seguidores, bloqueios e denúncias feitas saem junto, em cascata no banco (coberto por teste). É exigido pela App Store para apps com cadastro e é um direito pela LGPD.

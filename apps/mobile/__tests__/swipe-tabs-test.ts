@@ -11,8 +11,11 @@ describe('arrastar para os lados troca de aba', () => {
     expect(swipeTarget('index', -40, -100)).toBeNull();
     expect(swipeTarget('index', -40, -900)).toBe('discover');
   });
+  test('Início puxado para a direita abre as Mensagens', () => {
+    expect(swipeTarget('index', 200, 0)).toBe('messages');
+    expect(swipeTarget('index', 30, 0)).toBeNull();
+  });
   test('nas pontas e no + fica onde está', () => {
-    expect(swipeTarget('index', 200, 0)).toBeNull();
     expect(swipeTarget('me', -200, 0)).toBeNull();
     expect(swipeTarget('compose', -200, 0)).toBeNull();
   });
@@ -29,8 +32,8 @@ describe('carrossel das abas', () => {
     expect(dragOffset('discover', -130)).toBe(-100);
     expect(dragOffset('discover', 130)).toBe(100);
     expect(dragOffset('discover', 20)).toBe(0);
-    // Início não tem aba à esquerda: anda só um quarto.
-    expect(dragOffset('index', 130)).toBe(25);
+    // À esquerda do Início ficam as Mensagens: anda pela metade.
+    expect(dragOffset('index', 130)).toBe(50);
     expect(dragOffset('index', -130)).toBe(-100);
   });
   test('o + abre e fecha sem deslizar; as outras abas usam o carrossel', () => {

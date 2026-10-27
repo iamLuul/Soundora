@@ -11,6 +11,7 @@ import { useAuth } from '../lib/auth';
 import { bannerUrl } from '../lib/avatar';
 import { errorStatus, formatError } from '../lib/errors';
 import { ErrorScreen } from './ErrorScreen';
+import { openConversationWith } from './messages/open';
 import { pickAndUploadProfileImage } from '../lib/pick-image';
 import { keys, useProfilePosts, useVibesOf } from '../lib/queries';
 import type { ProfileSummary } from '../lib/types';
@@ -295,13 +296,16 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
           {p.is_me ? (
             <Pill testID="edit-profile" label={t('profile.edit')} onPress={() => router.push('/settings/profile')} />
           ) : (
-            <Pill
-              testID="follow-button"
-              accessibilityHint={p.i_follow ? t('profile.unfollow') : p.requested ? t('profile.cancelRequest') : undefined}
-              label={p.i_follow ? t('profile.followingButton') : p.requested ? t('profile.requested') : t('profile.follow')}
-              variant={p.i_follow || p.requested ? 'outline' : 'primary'}
-              onPress={toggleFollow}
-            />
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
+              <Pill
+                testID="follow-button"
+                accessibilityHint={p.i_follow ? t('profile.unfollow') : p.requested ? t('profile.cancelRequest') : undefined}
+                label={p.i_follow ? t('profile.followingButton') : p.requested ? t('profile.requested') : t('profile.follow')}
+                variant={p.i_follow || p.requested ? 'outline' : 'primary'}
+                onPress={toggleFollow}
+              />
+              <Pill testID="message-button" label={t('messages.messageButton')} variant="outline" onPress={() => void openConversationWith(p).catch((err) => notify(formatError(t, err)))} />
+            </View>
           )}
         </View>
 

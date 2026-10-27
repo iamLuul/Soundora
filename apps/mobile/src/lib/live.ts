@@ -64,6 +64,7 @@ export function useLiveNotifications(me: { id: string; username: string } | null
     let channel: RealtimeChannel | null = null;
     let pending: LiveNotification[] = [];
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let dmTimer: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
     let connectedBefore = false;
 
@@ -84,6 +85,14 @@ export function useLiveNotifications(me: { id: string; username: string } | null
       if (!alive) return;
       channel = supabase
         .channel(`user:${id}`, { config: { private: true } })
+        // Mensagem nova, lida, curtida ou desfeita: atualiza as conversas e a bolinha (o aviso
+        // leva só o id da conversa; o resto vem das funções, que conferem quem pode ver).
+        .on('broadcast', { event: 'dm' }, () => {
+          dmTimer ??= setTimeout(() => {
+            dmTimer = null;
+            if (alive) void qc.invalidateQueries({ queryKey: ['dm'] });
+          }, BATCH_MS);
+        })
         .on('broadcast', { event: 'notification' }, ({ payload }) => {
           const event = parseLiveNotification(payload);
           if (!event) return;
@@ -93,7 +102,10 @@ export function useLiveNotifications(me: { id: string; username: string } | null
         .subscribe((status) => {
           // Voltou a conectar depois de cair: busca o que pode ter chegado nesse meio tempo.
           if (status !== 'SUBSCRIBED') return;
-          if (connectedBefore) refresh(qc, [], who);
+          if (connectedBefore) {
+            refresh(qc, [], who);
+            void qc.invalidateQueries({ queryKey: ['dm'] });
+          }
           connectedBefore = true;
         });
     })();
@@ -101,6 +113,7 @@ export function useLiveNotifications(me: { id: string; username: string } | null
     return () => {
       alive = false;
       if (timer) clearTimeout(timer);
+      if (dmTimer) clearTimeout(dmTimer);
       if (channel) void supabase.removeChannel(channel);
     };
   }, [qc, id, username]);

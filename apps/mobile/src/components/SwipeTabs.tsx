@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Animated, Dimensions, Easing, Platform, View, type LayoutChangeEvent } from 'react-native';
+import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { display } from '../lib/display';
 import { useIsDesktop } from '../lib/layout';
@@ -25,9 +26,14 @@ export function swipeTarget(current: string, dx: number, vx: number): string | n
   const i = (SWIPE_TABS as readonly string[]).indexOf(current);
   if (i < 0) return null;
   if (Math.abs(dx) < DISTANCE && Math.abs(vx) < VELOCITY) return null;
+  // Início puxado para o lado do ícone de mensagens (a esquerda): abre as Mensagens.
+  if (current === 'index' && dx > 0) return MESSAGES;
   const next = i + (dx < 0 ? 1 : -1);
   return SWIPE_TABS[next] ?? null;
 }
+
+/** Destino especial do arrasto no Início: a tela de Mensagens (fora das abas). */
+export const MESSAGES = 'messages';
 
 /** As vizinhas de uma aba no carrossel (null nas pontas). */
 export function swipeNeighbors(current: string): { left: string | null; right: string | null } {
@@ -40,6 +46,8 @@ export function swipeNeighbors(current: string): { left: string | null; right: s
 export function dragOffset(current: string, dx: number): number {
   const moved = Math.sign(dx) * Math.max(0, Math.abs(dx) - ACTIVATE);
   const { left, right } = swipeNeighbors(current);
+  // No Início, à esquerda ficam as Mensagens: a tela anda um pouco mais (meio elástico).
+  if (current === 'index' && moved > 0) return moved * 0.5;
   const hasNeighbor = moved < 0 ? !!right : !!left;
   return hasNeighbor ? moved : moved * EDGE_RESISTANCE;
 }
@@ -143,6 +151,11 @@ function endDrag(route: string, dx: number, vx: number, onNavigate: (name: strin
   dragging = false;
   if (Platform.OS === 'web') swallowNextClick();
   if (!target) return springBack();
+  if (target === MESSAGES) {
+    springBack();
+    router.push('/messages');
+    return;
+  }
   releasing = true;
   onNavigate(target);
   // Se a troca não começar (navegação recusada), a tela volta para o lugar.

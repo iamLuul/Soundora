@@ -13,7 +13,7 @@ import { colors } from '../../theme';
 /** Tipos de aviso agrupados como a pessoa pensa neles (cada grupo liga/desliga junto). */
 export const NOTIFICATION_GROUPS: {
   key: string;
-  icon: 'heart-outline' | 'chatbubble-outline' | 'return-down-forward-outline' | 'person-add-outline' | 'people-outline';
+  icon: 'heart-outline' | 'chatbubble-outline' | 'return-down-forward-outline' | 'person-add-outline' | 'people-outline' | 'paper-plane-outline';
   kinds: NotificationKind[];
 }[] = [
   { key: 'Likes', icon: 'heart-outline', kinds: ['like', 'comment_like', 'review_like'] },
@@ -21,6 +21,7 @@ export const NOTIFICATION_GROUPS: {
   { key: 'Replies', icon: 'return-down-forward-outline', kinds: ['comment_reply'] },
   { key: 'Follows', icon: 'person-add-outline', kinds: ['follow'] },
   { key: 'Requests', icon: 'people-outline', kinds: ['follow_request', 'follow_accepted'] },
+  { key: 'Messages', icon: 'paper-plane-outline', kinds: ['message'] },
 ];
 
 const mutedKey = ['notification-settings'] as const;

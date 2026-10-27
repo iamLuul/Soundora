@@ -15,6 +15,7 @@ import { Avatar } from './ui';
 import { webTouch } from '../lib/touch';
 import { iconScale } from '../lib/display';
 import { useIsDesktop } from '../lib/layout';
+import { MessagesButton } from './messages/MessagesButton';
 
 /** Tamanho natural de cada SVG (do viewBox), para manter a proporção. */
 function svgSize(xml: string): { w: number; h: number } {
@@ -108,12 +109,15 @@ export function TopTabs<T extends string>({
   value,
   onChange,
   showBell = true,
+  showMessages = false,
   style,
 }: {
   tabs: TopTab<T>[];
   value: T;
   onChange?: (value: T) => void;
   showBell?: boolean;
+  /** Início: o ícone de mensagens no canto esquerdo (no computador ele fica na barra lateral). */
+  showMessages?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const { t } = useTranslation();
@@ -138,6 +142,7 @@ export function TopTabs<T extends string>({
           );
         })}
       </View>
+      {showMessages && !desktop ? <MessagesButton style={styles.messages} /> : null}
       {showBell && !desktop ? (
         <Pressable
           testID="open-notifications"
@@ -188,6 +193,7 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
   tabActive: { fontFamily: fonts.bold },
   bell: { position: 'absolute', right: 0, top: 12 },
+  messages: { position: 'absolute', left: 0, top: 11 },
   badge: {
     position: 'absolute',
     top: -6,
