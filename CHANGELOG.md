@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.44 · Mensagens diretas: conversas, pedidos, responder vibes por mensagem, ícone no Início e arrastar para abrir
+
+- `0.44.0.10.26` · 27/10/2026 · Mensagens diretas: conversas, pedidos, responder vibes por mensagem, ícone no Início e arrastar para abrir (79c2e93)
+
 ## 0.43 · Vibes no computador em camada sobre o site (fundo escurecido, setas, Esc) e troca de pessoa com o cubo girando
 
 - `0.43.0.10.26` · 27/10/2026 · Vibes no computador em camada sobre o site (fundo escurecido, setas, Esc) e troca de pessoa com o cubo girando (190db1e)
