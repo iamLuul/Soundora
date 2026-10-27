@@ -74,6 +74,50 @@ npm run app                      # abre o Expo: tecle w (Web) ou leia o QR code 
 | `npm run web:prod` | Gera o build de produção da web e serve em `localhost:8088`. Use para avaliar a velocidade: `npm run app` roda o modo de desenvolvimento (React com checagens extras, bundle sem minificar), que é bem mais lento que o app publicado |
 | `npm run sync:shared` | Copia o indexador de `packages/core` para a Edge Function. Rode após mudar `packages/core/src/links` |
 
+## Versões
+
+O Soundhora usa 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (ex.: `0.40.0.10.26`). O histórico de todas as versões está no [CHANGELOG.md](CHANGELOG.md).
+
+| Número | Quando sobe | Exemplo |
+| --- | --- | --- |
+| GRANDE | mudança gigante: sistema novo, sair do beta para a versão final. **Fica 0 durante o beta.** | `0.7.3` → `1.0.0` |
+| MÉDIA | funcionalidade nova (ou mudança grande numa que já existe) | `0.40.3` → `0.41.0` |
+| PEQUENA | ajuste pequeno ou correção: fonte, botão, ícone, bug | `0.40.0` → `0.40.1` |
+| MÊS.ANO | mês e ano da mudança, ano com 2 dígitos (automático) | `10.26` |
+
+Subir um número zera os que vêm depois dele. Mudanças só de ferramentas (CI, testes, scripts de dados, configuração local) não mudam a versão.
+
+**A versão sobe sozinha pela marca no commit.** Ao enviar para a `main`, o GitHub (`.github/workflows/versao.yml`) lê cada commit novo, sobe a versão, escreve no CHANGELOG.md, cria uma tag `vGRANDE.MÉDIA.PEQUENA.MÊS.ANO` no commit e envia um commit "Versão … [versao-auto]". Depois de enviar, rode `git pull` para trazer esse commit.
+
+| Marca na mensagem do commit | Efeito |
+| --- | --- |
+| `[media]` (ou `[média]`) | funcionalidade nova |
+| `[pequena]` | ajuste pequeno ou correção |
+| `[grande]` | mudança gigante (só ao sair do beta) |
+| `[nada]` | não muda a versão |
+| sem marca | `[pequena]` se mexeu no app ou no servidor (`apps/mobile`, `packages/core`, `supabase`); senão `[nada]` |
+
+Exemplo: `git commit -m "Mensagens diretas [media]"`. O MÊS.ANO é o da data do commit.
+
+As tags das versões antigas estão em `scripts/versao-historico.txt`. O robô do GitHub não tem permissão para criar tags em commits que mexeram em `.github/workflows` (as 6 primeiras, de v0.1.0.10.26 a v0.4.0.10.26; o aviso aparece na Action). Para enviá-las do seu computador (PowerShell, na pasta do projeto):
+
+```powershell
+git pull
+Get-Content scripts\versao-historico.txt | ForEach-Object { $t, $s = $_ -split ' '; git tag -a $t $s -m $t 2>$null }
+git push origin --tags
+```
+
+Para casos fora do comum dá para mudar à mão (marque o commit com `[nada]`, senão sobe de novo); o texto entre aspas entra no CHANGELOG.md:
+
+```bash
+npm run versao                                        # mostra a atual
+npm run versao -- pequena "Ícone novo do sino"        # ajuste pequeno ou correção
+npm run versao -- media "Mensagens diretas"           # funcionalidade nova
+npm run versao -- grande --confirmar "Versão final"   # só ao sair do beta
+```
+
+O app mostra os 5 números, com "(beta)" enquanto a GRANDE for 0 (Configurações e Configurações › Sobre). As lojas só aceitam 3, então o `app.config.js` manda `GRANDE.MÉDIA.PEQUENA` como versão e calcula o número do build (`GRANDE×1.000.000 + MÉDIA×1.000 + PEQUENA`), que sobe sozinho a cada versão. Para mandar outro build da mesma versão às lojas, suba a PEQUENA.
+
 ## Decisões importantes
 
 - **Sem reprodução de áudio.** Toda faixa abre no app ou site de origem. Isso evita licenças de música.

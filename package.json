@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "app": "npm run start --workspace apps/mobile --",
+    "versao": "node scripts/versao.mjs",
     "web:prod": "npm run web:prod --workspace apps/mobile",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test:core && npm run test:app",
