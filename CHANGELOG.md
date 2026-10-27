@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.41 · Vibes no jeito do Story: câmera, editor com texto que arrasta/aumenta/gira, música em qualquer vibe e visualização em cartão
+
+- `0.41.0.10.26` · 26/10/2026 · Vibes no jeito do Story: câmera, editor com texto que arrasta/aumenta/gira, música em qualquer vibe e visualização em cartão (9e5e209)
+
 ## 0.40 · Para você sempre renovado: conteúdo novo ao voltar para o Início
 
 - `0.40.1.10.26` · 25/10/2026 · Versão automática pela marca no commit, tags no GitHub e "(beta)" no app (139c371)
