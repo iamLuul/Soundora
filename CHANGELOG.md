@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.46 · Visual em vidro (glassmorphism) no app inteiro, com mais reação ao toque e ao mouse
 
+- `0.46.3.10.26` · 27/10/2026 · Expo Go no Android: decide o push pela presença do módulo nativo (dd1ee67)
 - `0.46.2.10.26` · 27/10/2026 · App abre no Expo Go do Android (push só fora dele) (3f38836)
 - `0.46.1.10.26` · 27/10/2026 · Arrastar para abrir as Mensagens só no Início (cba40b6)
 - `0.46.0.10.26` · 27/10/2026 · Visual em vidro (glassmorphism) no app inteiro, com mais reação ao toque e ao mouse (edd4078)
