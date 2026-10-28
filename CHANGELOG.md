@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.48 · Vídeos da timeline tocam sozinhos e sem som, com o player do Soundhora
+
+- `0.48.0.10.26` · 28/10/2026 · Vídeos da timeline tocam sozinhos e sem som, com o player do Soundhora (f07eab8)
+
 ## 0.47 · Várias contas no aparelho: adicionar e trocar de conta sem sair
 
 - `0.47.1.10.26` · 28/10/2026 · Android: fotos e vídeos voltam a subir (lidos do arquivo, não com fetch) (ce1c7e9)
