@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.47 · Várias contas no aparelho: adicionar e trocar de conta sem sair
+
+- `0.47.0.10.26` · 28/10/2026 · Várias contas no aparelho: adicionar e trocar de conta sem sair (6f4a11d)
+
 ## 0.46 · Visual em vidro (glassmorphism) no app inteiro, com mais reação ao toque e ao mouse
 
 - `0.46.4.10.26` · 28/10/2026 · Cadastro novo: depois do código do e-mail vai para o onboarding, não para o 404 (758e4b4)
