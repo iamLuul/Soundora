@@ -65,6 +65,10 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
   // Curtidas, comentários, respostas e seguidores chegam na hora, sem puxar para atualizar.
   useLiveNotifications(me);
 
+  // Para onde vai uma tela que deixou de ser liberada (entrou, confirmou o código, saiu). Sem
+  // isto o roteador caía na primeira rota livre da lista, o /_sitemap (que mostra o 404): foi o
+  // que aconteceu ao confirmar o código do e-mail num cadastro novo.
+  const home = !signedIn ? '/sign-in' : !onboarded ? '/onboarding' : '/';
   return (
     // Web em tela grande: barra lateral e coluna da direita em volta da tela (só com o app liberado).
     <DesktopShell enabled={onboarded}>
@@ -81,17 +85,17 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
       }}
     >
       {/* Sem login: só a tela de entrada. */}
-      <Stack.Protected guard={!signedIn}>
+      <Stack.Protected guard={!signedIn} redirectTo={home}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
       </Stack.Protected>
 
       {/* Logado sem perfil: onboarding obrigatório. */}
-      <Stack.Protected guard={signedIn && !onboarded}>
+      <Stack.Protected guard={signedIn && !onboarded} redirectTo={home}>
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       </Stack.Protected>
 
       {/* Logado com perfil: o app. */}
-      <Stack.Protected guard={onboarded}>
+      <Stack.Protected guard={onboarded} redirectTo={home}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="u/[username]" options={{ title: '' }} />
         <Stack.Screen name="post/[id]" options={{ headerShown: false }} />
