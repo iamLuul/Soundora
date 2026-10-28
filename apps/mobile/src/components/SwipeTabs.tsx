@@ -129,7 +129,17 @@ function springBack() {
   Animated.spring(drag, { toValue: 0, useNativeDriver, bounciness: 0, speed: 18 }).start();
 }
 
+/**
+ * Algo de dentro da tela está usando o arrasto para os lados (a linha do tempo de um vídeo):
+ * enquanto isso, arrastar não troca de aba nem abre as Mensagens.
+ */
+let swipeLocked = false;
+export function lockSwipe(locked: boolean) {
+  swipeLocked = locked;
+}
+
 function startDrag(route: string) {
+  if (swipeLocked) return;
   dragging = true;
   releasing = false;
   drag.stopAnimation();
@@ -147,6 +157,8 @@ function moveDrag(route: string, dx: number) {
 
 /** Soltou: troca de aba (e a cena termina o caminho) ou volta para o lugar. */
 function endDrag(route: string, dx: number, vx: number, onNavigate: (name: string) => void) {
+  // O arrasto nem começou (estava travado): nada a fazer.
+  if (!dragging) return;
   const target = swipeTarget(route, dx, vx);
   dragging = false;
   if (Platform.OS === 'web') swallowNextClick();
@@ -175,7 +187,7 @@ function cancelDrag() {
  * (abriria o post). Chamado ao soltar (o clique vem logo depois), não no começo: num arrasto
  * lento o bloqueio expirava antes. No celular o gesture-handler já cancela o toque.
  */
-function swallowNextClick() {
+export function swallowNextClick() {
   const stop = (e: Event) => {
     e.stopPropagation();
     e.preventDefault();

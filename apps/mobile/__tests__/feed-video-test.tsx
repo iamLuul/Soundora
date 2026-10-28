@@ -90,3 +90,22 @@ test('tempo que falta no formato do relógio', () => {
   expect(formatClock(83)).toBe('1:23');
   expect(formatClock(-1)).toBe('0:00');
 });
+
+test('tocar no vídeo mostra os controles: play/pause, voltar/avançar 10 s, linha do tempo e tela cheia', async () => {
+  await renderVideo();
+  const p = mockPlayers[0]! as unknown as { currentTime: number; pause: jest.Mock };
+  expect(screen.queryByTestId('post-video-seek')).toBeNull();
+  await fireEvent.press(screen.getByTestId('post-video-toggle'));
+  expect(screen.getByTestId('post-video-seek')).toBeTruthy();
+  expect(screen.getByTestId('post-video-fullscreen')).toBeTruthy();
+  expect(screen.getByText('0:00 / 0:12')).toBeTruthy();
+
+  await fireEvent.press(screen.getByTestId('post-video-forward'));
+  expect(p.currentTime).toBe(10);
+  // Leitor de tela: a linha do tempo é ajustável (+5 s / −5 s).
+  await fireEvent(screen.getByTestId('post-video-seek'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+  expect(p.currentTime).toBe(5);
+
+  // O mock começa parado: o botão do meio é "play"; tocar nele marca como pausado pela pessoa ou continua.
+  expect(screen.getByLabelText('Assistir ao vídeo')).toBeTruthy();
+});

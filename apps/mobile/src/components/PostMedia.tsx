@@ -3,10 +3,11 @@ import { Image } from 'expo-image';
 import { useEvent } from 'expo';
 import { useIsFocused } from 'expo-router';
 import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
@@ -14,6 +15,7 @@ import { display } from '../lib/display';
 import { formatClock, useFeedMuted, usePostVisible } from '../lib/feed-video';
 import { colors, fonts, gradients } from '../theme';
 import { MediaViewer, type ViewerItem } from './MediaViewer';
+import { lockSwipe, swallowNextClick } from './SwipeTabs';
 import { Spinner } from './Spinner';
 
 /** URLs assinadas (1 h) das mídias do post; os posts da mesma página assinam juntos (signPostMedia). */
@@ -141,6 +143,12 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   const [muted, setMuted] = useFeedMuted();
   // Pausado pela pessoa: não volta a tocar sozinho até ela tocar de novo.
   const [userPaused, setUserPaused] = useState(false);
+  // Controles (play/pause, avançar/voltar, linha do tempo, tela cheia): aparecem ao tocar no vídeo.
+  const [controls, setControls] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  // Arrastando a linha do tempo: a posição que o dedo mostra (segundos).
+  const [scrub, setScrub] = useState<number | null>(null);
+  const videoRef = useRef<VideoView>(null);
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
@@ -152,62 +160,224 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   const { status } = useEvent(player, 'statusChange', { status: player.status });
   const time = useEvent(player, 'timeUpdate', { currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0 });
 
-  const shouldPlay = visible && !userPaused;
+  // Em tela cheia continua tocando mesmo que o post saia da lista.
+  const shouldPlay = (visible || fullscreen) && !userPaused;
   useEffect(() => {
     if (shouldPlay) player.play();
     else player.pause();
   }, [player, shouldPlay]);
   useEffect(() => applySound(player, muted), [player, muted]);
 
+  // Controles somem sozinhos depois de 3 s tocando (parado ou arrastando, ficam).
+  useEffect(() => {
+    if (!controls || !isPlaying || scrub !== null) return;
+    const id = setTimeout(() => setControls(false), 3000);
+    return () => clearTimeout(id);
+  }, [controls, isPlaying, scrub, time.currentTime]);
+
   const duration = player.duration || 0;
-  const progress = duration > 0 ? Math.min(1, time.currentTime / duration) : 0;
+  const now = scrub ?? time.currentTime;
+  const progress = duration > 0 ? Math.min(1, Math.max(0, now / duration)) : 0;
   const loading = status === 'loading' || (status === 'idle' && shouldPlay && !isPlaying);
+  const togglePlay = () => setUserPaused(isPlaying);
+  const skip = (delta: number) => seekTo(player, Math.min(Math.max(0, time.currentTime + delta), Math.max(0, duration - 0.1)));
 
   return (
     <>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
-      {/* Tocar no vídeo: pausa ou continua (sem abrir o post). */}
+      <VideoView
+        ref={videoRef}
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        // Em tela cheia, os controles do sistema; na timeline, os do Soundhora.
+        nativeControls={fullscreen}
+        onFullscreenEnter={() => setFullscreen(true)}
+        onFullscreenExit={() => setFullscreen(false)}
+      />
+      {/* Tocar no vídeo: mostra ou esconde os controles (sem abrir o post). */}
       <Pressable
         testID="post-video-toggle"
         accessibilityRole="button"
-        accessibilityLabel={isPlaying ? t('post.pauseVideo') : t('post.playVideo')}
-        onPress={() => setUserPaused(isPlaying)}
-        style={StyleSheet.absoluteFill}
-      >
-        {!isPlaying && !loading ? (
-          <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(150)} style={styles.center}>
-            <View style={styles.bigPlay}>
-              <Ionicons name="play" size={30} color={colors.text} style={{ marginLeft: 3 }} />
-            </View>
-          </Animated.View>
-        ) : null}
-        {loading ? (
-          <View style={styles.center}>
-            <Spinner color={colors.text} />
-          </View>
-        ) : null}
-      </Pressable>
-      {duration > 0 ? (
-        <View style={styles.clock} pointerEvents="none">
-          <Text style={styles.clockText}>{formatClock(duration - time.currentTime)}</Text>
+        accessibilityLabel={controls ? t('post.hideControls') : t('post.showControls')}
+        onPress={() => setControls((v) => !v)}
+        style={[StyleSheet.absoluteFill, controls && styles.dim]}
+      />
+
+      {loading ? (
+        <View style={styles.center} pointerEvents="none">
+          <Spinner color={colors.text} />
         </View>
+      ) : controls || !isPlaying ? (
+        <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(150)} style={styles.center} pointerEvents="box-none">
+          <View style={styles.centerRow} pointerEvents="box-none">
+            {controls ? <RoundButton testID="post-video-back" label={t('post.back10')} icon="play-back" size={44} onPress={() => skip(-10)} /> : null}
+            <RoundButton
+              testID="post-video-play-pause"
+              label={isPlaying ? t('post.pauseVideo') : t('post.playVideo')}
+              icon={isPlaying ? 'pause' : 'play'}
+              size={60}
+              onPress={togglePlay}
+            />
+            {controls ? <RoundButton testID="post-video-forward" label={t('post.forward10')} icon="play-forward" size={44} onPress={() => skip(10)} /> : null}
+          </View>
+        </Animated.View>
       ) : null}
-      <Pressable
-        testID="post-video-mute"
-        accessibilityRole="button"
-        accessibilityLabel={muted ? t('post.unmute') : t('post.mute')}
-        accessibilityState={{ checked: !muted }}
-        onPress={() => setMuted(!muted)}
-        hitSlop={10}
-        style={({ pressed }) => [styles.speaker, pressed && { transform: [{ scale: 0.9 }] }]}
-      >
-        <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={16} color={colors.text} />
-      </Pressable>
-      <View style={styles.track} pointerEvents="none">
-        <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-      </View>
+
+      {controls && duration > 0 ? (
+        // A linha do tempo sobe do pé do vídeo: arraste (ou toque) para voltar e avançar.
+        <Animated.View entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(150)} style={styles.bar}>
+          <Scrubber
+            progress={progress}
+            duration={duration}
+            label={t('post.seek')}
+            onScrub={(sec) => setScrub(sec)}
+            onSeek={(sec) => {
+              seekTo(player, sec);
+              setScrub(null);
+            }}
+          />
+          <View style={styles.barRow}>
+            <Text style={styles.barTime}>
+              {formatClock(now)} / {formatClock(duration)}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <SpeakerButton muted={muted} onToggle={() => setMuted(!muted)} inline />
+              <RoundButton
+                testID="post-video-fullscreen"
+                label={t('post.fullscreen')}
+                icon="expand"
+                size={32}
+                iconSize={16}
+                onPress={() => void videoRef.current?.enterFullscreen()}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      ) : (
+        <>
+          {duration > 0 ? (
+            <View style={styles.clock} pointerEvents="none">
+              <Text style={styles.clockText}>{formatClock(duration - time.currentTime)}</Text>
+            </View>
+          ) : null}
+          <SpeakerButton muted={muted} onToggle={() => setMuted(!muted)} />
+          <View style={styles.track} pointerEvents="none">
+            <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+          </View>
+        </>
+      )}
     </>
   );
+}
+
+/** Botão redondo de vidro escuro do player. */
+function RoundButton({
+  testID,
+  label,
+  icon,
+  size,
+  iconSize,
+  onPress,
+}: {
+  testID: string;
+  label: string;
+  icon: ComponentProps<typeof Ionicons>['name'];
+  size: number;
+  iconSize?: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [styles.round, { width: size, height: size, borderRadius: size / 2 }, pressed && { transform: [{ scale: 0.9 }] }]}
+    >
+      <Ionicons name={icon} size={iconSize ?? Math.round(size * 0.45)} color={colors.text} style={icon === 'play' ? { marginLeft: 3 } : undefined} />
+    </Pressable>
+  );
+}
+
+/** Alto-falante: liga e desliga o som (vale para todos os vídeos da timeline). */
+function SpeakerButton({ muted, onToggle, inline = false }: { muted: boolean; onToggle: () => void; inline?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      testID="post-video-mute"
+      accessibilityRole="button"
+      accessibilityLabel={muted ? t('post.unmute') : t('post.mute')}
+      accessibilityState={{ checked: !muted }}
+      onPress={onToggle}
+      hitSlop={10}
+      style={({ pressed }) => [styles.round, styles.speakerSize, !inline && styles.speaker, pressed && { transform: [{ scale: 0.9 }] }]}
+    >
+      <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={16} color={colors.text} />
+    </Pressable>
+  );
+}
+
+/**
+ * Linha do tempo arrastável: o dedo (ou o mouse) mostra a posição enquanto arrasta e o vídeo
+ * pula para lá ao soltar; tocar num ponto também pula. Leitor de tela: ajustável (±5 s).
+ */
+function Scrubber({
+  progress,
+  duration,
+  label,
+  onScrub,
+  onSeek,
+}: {
+  progress: number;
+  duration: number;
+  label: string;
+  onScrub: (sec: number) => void;
+  onSeek: (sec: number) => void;
+}) {
+  const [width, setWidth] = useState(0);
+  const at = (x: number) => (width > 0 ? Math.min(1, Math.max(0, x / width)) * duration : 0);
+  const pan = Gesture.Pan()
+    .runOnJS(true)
+    .minDistance(0)
+    .onBegin((e) => {
+      // Arrastar a linha do tempo não troca de aba nem abre as Mensagens.
+      lockSwipe(true);
+      onScrub(at(e.x));
+    })
+    .onUpdate((e) => onScrub(at(e.x)))
+    .onEnd((e) => onSeek(at(e.x)))
+    .onFinalize((_e, success) => {
+      lockSwipe(false);
+      // Web: soltar o mouse vira um clique no post (que abriria ele): esse clique é ignorado.
+      if (Platform.OS === 'web') swallowNextClick();
+      if (!success) onSeek(progress * duration);
+    });
+  return (
+    <GestureDetector gesture={pan}>
+      <View
+        testID="post-video-seek"
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityValue={{ min: 0, max: Math.round(duration), now: Math.round(progress * duration), text: formatClock(progress * duration) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => onSeek(Math.min(duration, Math.max(0, progress * duration + (e.nativeEvent.actionName === 'increment' ? 5 : -5))))}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        style={styles.scrubHit}
+      >
+        <View style={styles.scrubTrack}>
+          <View style={[styles.fill, styles.scrubFill, { width: `${progress * 100}%` }]} />
+        </View>
+        <View style={[styles.thumb, { left: Math.max(0, progress * width - 7) }]} />
+      </View>
+    </GestureDetector>
+  );
+}
+
+/** Pula para um ponto do vídeo (segundos). */
+function seekTo(player: VideoPlayer, seconds: number) {
+  player.currentTime = seconds;
 }
 
 /** Com som, pausa a música de outro app enquanto o vídeo fala; mudo, deixa tocar junto. */
@@ -249,18 +419,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  speaker: {
+  round: { ...GLASS_DARK, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.22)', alignItems: 'center', justifyContent: 'center' },
+  speakerSize: { width: 32, height: 32, borderRadius: 16 },
+  speaker: { position: 'absolute', right: 10, bottom: 12 },
+  centerRow: { flexDirection: 'row', alignItems: 'center', gap: 22 },
+  // Véu escuro sobre o vídeo enquanto os controles aparecem (texto e botões legíveis).
+  dim: { backgroundColor: 'rgba(15, 12, 30, 0.35)' },
+  // Faixa de baixo com a linha do tempo, sobre um degradê escuro.
+  bar: {
     position: 'absolute',
-    right: 10,
-    bottom: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    ...GLASS_DARK,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 18,
+    paddingBottom: 10,
+    gap: 6,
+    backgroundImage: 'linear-gradient(180deg, rgba(15, 12, 30, 0) 0%, rgba(15, 12, 30, 0.75) 100%)',
+  },
+  barRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  barTime: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text, fontVariant: ['tabular-nums'] },
+  scrubHit: { height: 24, justifyContent: 'center' },
+  scrubTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.25)', overflow: 'hidden' },
+  scrubFill: { height: 4 },
+  thumb: {
+    position: 'absolute',
+    top: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0 0 0 3px rgba(104, 94, 255, 0.55)',
   },
   clock: {
     position: 'absolute',
