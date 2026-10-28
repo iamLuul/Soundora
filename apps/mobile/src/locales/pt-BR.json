@@ -233,7 +233,10 @@
     "playVideo": "Assistir ao vídeo",
     "mediaPosition": "{{current}} de {{total}}",
     "previousMedia": "Anterior",
-    "nextMedia": "Próxima"
+    "nextMedia": "Próxima",
+    "mute": "Desativar o som do vídeo",
+    "unmute": "Ativar o som do vídeo",
+    "pauseVideo": "Pausar o vídeo"
   },
   "profile": {
     "followers": "Seguidores",

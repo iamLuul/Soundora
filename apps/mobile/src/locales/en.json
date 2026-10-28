@@ -233,7 +233,10 @@
     "playVideo": "Play video",
     "mediaPosition": "{{current}} of {{total}}",
     "previousMedia": "Previous",
-    "nextMedia": "Next"
+    "nextMedia": "Next",
+    "mute": "Mute video",
+    "unmute": "Unmute video",
+    "pauseVideo": "Pause video"
   },
   "profile": {
     "followers": "Followers",
