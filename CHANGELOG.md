@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.47 · Várias contas no aparelho: adicionar e trocar de conta sem sair
 
+- `0.47.1.10.26` · 28/10/2026 · Android: fotos e vídeos voltam a subir (lidos do arquivo, não com fetch) (ce1c7e9)
 - `0.47.0.10.26` · 28/10/2026 · Várias contas no aparelho: adicionar e trocar de conta sem sair (6f4a11d)
 
 ## 0.46 · Visual em vidro (glassmorphism) no app inteiro, com mais reação ao toque e ao mouse
