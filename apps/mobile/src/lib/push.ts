@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
 import type * as NotificationsModule from 'expo-notifications';
+import { requireOptionalNativeModule } from 'expo';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -21,11 +22,18 @@ export type PushAvailability =
 const inExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
- * expo-notifications só é carregado fora do Expo Go. No Expo Go do Android (SDK 53+) o módulo
- * nativo de push não existe e só importar a biblioteca já derrubava o app ("Cannot find native
- * module 'ExpoTopicSubscriptionModule'"). No Expo Go o push não funciona mesmo; o resto do app sim.
+ * O app tem a parte nativa do push? No Expo Go do Android (SDK 53+) ela não existe, e só importar
+ * expo-notifications já derrubava o app ("Cannot find native module 'ExpoTopicSubscriptionModule'").
+ * Confere o módulo em si (e não só "é o Expo Go?": essa marca nem sempre vem certa no aparelho).
  */
-const Notifications: typeof NotificationsModule | null = inExpoGo
+function hasNativePush(): boolean {
+  if (inExpoGo) return false;
+  if (Platform.OS === 'android' && !requireOptionalNativeModule('ExpoTopicSubscriptionModule')) return false;
+  return !!requireOptionalNativeModule('ExpoPushTokenManager');
+}
+
+/** expo-notifications só é carregado com a parte nativa presente; sem ela o push fica indisponível e o resto funciona. */
+const Notifications: typeof NotificationsModule | null = !hasNativePush()
   ? null
   : // eslint-disable-next-line @typescript-eslint/no-require-imports -- carregar só fora do Expo Go
     (require('expo-notifications') as typeof NotificationsModule);
@@ -37,7 +45,7 @@ function projectId(): string | undefined {
 
 export function pushAvailability(): PushAvailability {
   if (!Device.isDevice) return { ok: false, reason: 'emulator' };
-  if (inExpoGo || !Notifications) return { ok: false, reason: 'expo_go' };
+  if (!Notifications) return { ok: false, reason: 'expo_go' };
   if (!projectId()) return { ok: false, reason: 'no_project' };
   return { ok: true };
 }
