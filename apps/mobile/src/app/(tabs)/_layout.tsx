@@ -25,6 +25,7 @@ export default function TabsLayout() {
           focused={navigation.isFocused()}
           onNavigate={(name) => navigation.navigate(name)}
           onPreload={(name) => navigation.preload(name)}
+          focusEvents={navigation}
         >
           {children}
         </SwipeTabs>

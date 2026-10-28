@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
 import { Animated, Dimensions, Easing, Platform, View, type LayoutChangeEvent } from 'react-native';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -151,7 +151,7 @@ function endDrag(route: string, dx: number, vx: number, onNavigate: (name: strin
   dragging = false;
   if (Platform.OS === 'web') swallowNextClick();
   if (!target) return springBack();
-  if (target === MESSAGES) {
+  if (target === MESSAGES && route === 'index') {
     springBack();
     router.push('/messages');
     return;
@@ -194,6 +194,7 @@ export function SwipeTabs({
   focused,
   onNavigate,
   onPreload,
+  focusEvents,
   children,
 }: {
   route: string;
@@ -202,11 +203,34 @@ export function SwipeTabs({
   onNavigate: (name: string) => void;
   /** Monta a aba vizinha antes de ela aparecer (para não entrar vazia). */
   onPreload?: (name: string) => void;
+  /**
+   * Avisos de foco/saída da aba (navigation.addListener). A aba também perde o foco quando
+   * outra tela (post, perfil, notificações…) abre por cima das abas.
+   */
+  focusEvents?: { addListener: (event: 'focus' | 'blur', cb: () => void) => () => void; isFocused: () => boolean };
   children: ReactNode;
 }) {
+  // Só a aba visível e sem nada por cima reage ao arrasto. Sem isto, uma aba escondida (o
+  // Início, por exemplo) ainda pegava o gesto: arrastar em outra tela abria as Mensagens em vez
+  // do movimento normal (voltar, trocar de aba).
+  const active = useSyncExternalStore(
+    useCallback(
+      (onChange: () => void) => {
+        if (!focusEvents) return () => {};
+        const offFocus = focusEvents.addListener('focus', onChange);
+        const offBlur = focusEvents.addListener('blur', onChange);
+        return () => {
+          offFocus();
+          offBlur();
+        };
+      },
+      [focusEvents],
+    ),
+    () => (focusEvents ? focusEvents.isFocused() : focused),
+  );
   // Desktop: troca de aba pela barra lateral; arrastar com o mouse não troca.
   const desktop = useIsDesktop();
-  const enabled = !desktop && (SWIPE_TABS as readonly string[]).includes(route);
+  const enabled = !desktop && active && (SWIPE_TABS as readonly string[]).includes(route);
   const pan = Gesture.Pan()
     .enabled(enabled)
     .runOnJS(true)
