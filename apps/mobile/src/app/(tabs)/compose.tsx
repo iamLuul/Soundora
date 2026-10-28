@@ -46,6 +46,7 @@ import {
 } from "../../lib/api";
 import { AppError, formatError } from "../../lib/errors";
 import { convertPostPhoto } from "../../lib/image-convert";
+import { readLocalFile } from "../../lib/local-file";
 import { keys, useMyCommunities } from "../../lib/queries";
 import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import type { LinkPreviewRow } from "../../lib/types";
@@ -268,7 +269,7 @@ export default function ComposeScreen() {
             throw new AppError("video_too_long");
           if (m.fileSize && m.fileSize > VIBE_VIDEO_MAX.bytes)
             throw new AppError("video_too_large");
-          bytes = new Uint8Array(await (await fetch(m.uri)).arrayBuffer());
+          bytes = await readLocalFile(m.uri);
           if (bytes.byteLength > VIBE_VIDEO_MAX.bytes)
             throw new AppError("video_too_large");
         }

@@ -1,6 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { ProfileImageKind } from './api';
 import { AppError } from './errors';
+import { readLocalFile } from './local-file';
 import { JPEG_QUALITIES, POST_PHOTO_MAX, PROFILE_IMAGE_OUTPUT, VIBE_PHOTO_MAX, planPostPhoto, planProfileImage, planVibePhoto, type ImagePlan } from './image-plan';
 
 /**
@@ -41,7 +42,7 @@ async function convertImage(uri: string, width: number, height: number, planFor:
 
   for (const compress of JPEG_QUALITIES) {
     const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress });
-    const bytes = new Uint8Array(await (await fetch(saved.uri)).arrayBuffer());
+    const bytes = await readLocalFile(saved.uri);
     if (bytes.byteLength <= maxBytes) return bytes;
   }
   throw new AppError('payload_too_large');
