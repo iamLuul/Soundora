@@ -1,8 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { useEffect, useRef, useState, type ReactElement } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Text, type ListViewToken } from 'react-native';
+import { VisiblePosts, VisiblePostsContext } from '../lib/feed-video';
 import { blockUser, deletePost, removeCommunityPost, report } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -107,11 +108,34 @@ export function PostList({
   useEffect(() => {
     seenRef.current = onSeen;
   });
-  const [viewability] = useState(() => ({ itemVisiblePercentThreshold: 50, minimumViewTime: 800 }));
-  const [onViewable] = useState(() => ({ changed }: { changed: ListViewToken[] }) => {
-    const ids = changed.filter((v) => v.isViewable && (v.item as Row).kind === 'post').map((v) => (v.item as { item: FeedItem }).item.id);
-    if (ids.length) seenRef.current?.(ids);
-  });
+  // Dois "olhos" na lista: posts vistos (meio post por 0,8 s, para o feed) e posts na tela
+  // agora (60%, na hora: os vídeos tocam sozinhos só enquanto aparecem).
+  const [visiblePosts] = useState(() => new VisiblePosts());
+  const [viewabilityPairs] = useState(() => [
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 50, minimumViewTime: 800 },
+      onViewableItemsChanged: ({ changed }: { changed: ListViewToken[] }) => {
+        const ids = changed.filter((v) => v.isViewable && (v.item as Row).kind === 'post').map((v) => (v.item as { item: FeedItem }).item.id);
+        if (ids.length) seenRef.current?.(ids);
+      },
+    },
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 60, minimumViewTime: 0 },
+      onViewableItemsChanged: ({ changed }: { changed: ListViewToken[] }) => {
+        visiblePosts.update(
+          changed.filter((v) => (v.item as Row).kind === 'post').map((v) => ({ id: (v.item as { item: FeedItem }).item.id, visible: v.isViewable })),
+        );
+      },
+    },
+  ]);
+  // Voltou para esta tela (outra aba, post aberto): a lista recalcula o que está na tela depois
+  // da animação de troca. Sem isto, o cálculo feito durante a troca deixava o vídeo parado.
+  useFocusEffect(
+    useCallback(() => {
+      const id = setTimeout(() => listRef.current?.recordInteraction(), 400);
+      return () => clearTimeout(id);
+    }, []),
+  );
   const qc = useQueryClient();
   const toggleLike = useToggleLike();
   const [menuFor, setMenuFor] = useState<FeedItem | null>(null);
@@ -161,14 +185,13 @@ export function PostList({
   };
 
   return (
-    <>
+    <VisiblePostsContext.Provider value={visiblePosts}>
       <PullToRefresh onRefresh={onRefresh}>
         <FlatList
           {...listPerf}
           ref={listRef}
           data={rows}
-          viewabilityConfig={viewability}
-          onViewableItemsChanged={onSeen ? onViewable : undefined}
+          viewabilityConfigCallbackPairs={viewabilityPairs}
           keyExtractor={(row) =>
             row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : row.kind === 'strip' ? `strip-${row.index}` : 'extra'
           }
@@ -215,6 +238,6 @@ export function PostList({
         onClose={() => setMenuFor(null)}
         onAction={handleAction}
       />
-    </>
+    </VisiblePostsContext.Provider>
   );
 }

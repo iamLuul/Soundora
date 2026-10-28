@@ -128,7 +128,7 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
         </MentionText>
       ) : null}
 
-      <PostMedia media={item.media ?? []} />
+      <PostMedia media={item.media ?? []} postId={item.id} />
 
       {item.preview_url && item.preview_platform && item.preview_title ? (
         <MusicCard
