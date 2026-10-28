@@ -1,5 +1,5 @@
 import { router, Tabs } from 'expo-router';
-import { useContext, useEffect, useRef, type ComponentProps } from 'react';
+import { useContext, useEffect, useRef, useState, type ComponentProps } from 'react';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { BottomTabBarHeightCallbackContext, BottomTabBarHeightContext } from 'expo-router/js-tabs';
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IconName } from '../assets/icons';
 import { useIsDesktop } from '../lib/layout';
 import { colors, space } from '../theme';
+import { AccountSwitcher } from './AccountSwitcher';
 import { GlassSurface, nativeGlass } from './GlassSurface';
 import { Icon } from './figma';
 
@@ -57,6 +58,7 @@ export function TabBar({ state, emitter, navigateToTab }: TabBarProps) {
   useEffect(() => {
     setHeight?.(space);
   }, [setHeight, space]);
+  const [switcher, setSwitcher] = useState(false);
   if (desktop) return null;
 
   const press = (index: number) => {
@@ -73,6 +75,7 @@ export function TabBar({ state, emitter, navigateToTab }: TabBarProps) {
 
   return (
     <View style={[styles.wrap, { bottom: Math.max(insets.bottom, BAR_GAP) }]} pointerEvents="box-none">
+      <AccountSwitcher visible={switcher} onClose={() => setSwitcher(false)} />
       <Jelly style={styles.capsule}>
         <GlassSurface style={styles.fill} interactive>
           <View style={styles.row} accessibilityRole="tablist">
@@ -90,6 +93,9 @@ export function TabBar({ state, emitter, navigateToTab }: TabBarProps) {
                   accessibilityLabel={label}
                   accessibilityState={{ selected: focused }}
                   onPress={() => press(index)}
+                  // Segurar o Perfil: trocar de conta (como no Instagram).
+                  onLongPress={route.name === 'me' ? () => setSwitcher(true) : undefined}
+                  accessibilityHint={route.name === 'me' ? t('accounts.longPressHint') : undefined}
                   style={({ pressed }) => [styles.slot, pressed && { opacity: 0.7 }]}
                   hitSlop={4}
                 >

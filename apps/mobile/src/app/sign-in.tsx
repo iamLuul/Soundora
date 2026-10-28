@@ -5,9 +5,13 @@ import { SvgXml } from 'react-native-svg';
 import { appleSvg, googleSvg } from '../assets/brand';
 import { SignInForm, SignUpForm, useDescribeError } from '../components/auth/AuthForms';
 import { BackHeader, Logo } from '../components/figma';
-import { ErrorText, Screen } from '../components/ui';
-import { signInWithProvider } from '../lib/auth';
-import { colors, fonts, space } from '../theme';
+import { ErrorText, Screen , Avatar } from '../components/ui';
+import { signInWithProvider, useAuth } from '../lib/auth';
+import { confirmAction } from '../lib/dialogs';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Reactive } from '../components/Reactive';
+import { Spinner } from '../components/Spinner';
+import { colors, fonts, glass, radius, space } from '../theme';
 
 type Mode = 'signIn' | 'signUp';
 
@@ -53,6 +57,8 @@ export default function SignIn() {
         <Text style={styles.tagline}>{t('auth.tagline')}</Text>
       </View>
 
+      <SavedAccounts onError={(err) => setError(describe(err))} />
+
       <SignInForm onUnconfirmed={(email) => go('signUp', email)} />
 
       <View style={styles.divider}>
@@ -61,7 +67,12 @@ export default function SignIn() {
 
       <View style={styles.signUpRow}>
         <Text style={styles.small}>{t('auth.noAccountYet')}</Text>
-        <Pressable testID="open-sign-up" accessibilityRole="button" onPress={() => go('signUp')} style={({ pressed }) => [styles.lightButton, styles.signUpButton, pressed && styles.pressed]}>
+        <Pressable
+          testID="open-sign-up"
+          accessibilityRole="button"
+          onPress={() => go('signUp')}
+          style={({ pressed }) => [styles.lightButton, styles.signUpButton, pressed && styles.pressed]}
+        >
           <Text style={styles.lightText}>{t('auth.signUp')}</Text>
         </Pressable>
       </View>
@@ -75,10 +86,79 @@ export default function SignIn() {
   );
 }
 
+/**
+ * Contas guardadas neste aparelho (de "Adicionar conta" ou de quem trocou de conta): entra com
+ * um toque, sem senha. Quem saiu da conta pelo "Sair" não aparece aqui.
+ */
+function SavedAccounts({ onError }: { onError: (err: unknown) => void }) {
+  const { t } = useTranslation();
+  const { accounts, signInSaved, forgetSavedAccount } = useAuth();
+  const [busy, setBusy] = useState<string | null>(null);
+  if (accounts.length === 0) return null;
+  const enter = async (userId: string) => {
+    setBusy(userId);
+    try {
+      await signInSaved(userId);
+    } catch (err) {
+      onError(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <View style={styles.saved} testID="saved-accounts">
+      <Text style={styles.savedTitle}>{t('accounts.saved')}</Text>
+      {accounts.map((a) => (
+        <View key={a.userId} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Reactive
+            testID={`continue-${a.username}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('accounts.continueAs', { username: a.username })}
+            disabled={!!busy}
+            onPress={() => void enter(a.userId)}
+            pressScale={0.97}
+            hoverScale={1.01}
+            style={styles.savedRow}
+          >
+            <Avatar uri={a.avatarUrl} name={a.displayName} size={36} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.savedName} numberOfLines={1}>
+                {t('accounts.continueAs', { username: a.username })}
+              </Text>
+              <Text style={styles.savedHandle} numberOfLines={1}>
+                {a.displayName}
+              </Text>
+            </View>
+            {busy === a.userId ? <Spinner size={18} /> : <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />}
+          </Reactive>
+          <Pressable
+            testID={`forget-saved-${a.username}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('accounts.forget', { username: a.username })}
+            onPress={async () => {
+              if (await confirmAction(t('accounts.forgetConfirm', { username: a.username }), t('accounts.remove'), t('common.cancel')))
+                await forgetSavedAccount(a.userId);
+            }}
+            hitSlop={8}
+            style={{ padding: space.sm }}
+          >
+            <Ionicons name="close" size={18} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Figma: botão branco de 245 × 48 com a marca à esquerda. */
 function SocialButton({ svg, label, onPress, testID }: { svg: string; label: string; onPress: () => void; testID: string }) {
   return (
-    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.lightButton, styles.social, pressed && styles.pressed]}>
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.lightButton, styles.social, pressed && styles.pressed]}
+    >
       <SvgXml xml={svg} width={22} height={22} />
       <Text style={styles.lightText}>{label}</Text>
     </Pressable>
@@ -109,4 +189,18 @@ const styles = StyleSheet.create({
   social: { width: 245, maxWidth: '100%', height: 48 },
   lightText: { fontFamily: fonts.regular, fontSize: 12, color: colors.background },
   pressed: { opacity: 0.8 },
+  saved: { gap: space.xs },
+  savedTitle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted, marginLeft: space.xs },
+  savedRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    padding: space.sm,
+    paddingRight: space.md,
+    borderRadius: radius.lg,
+    ...glass.card,
+  },
+  savedName: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  savedHandle: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
 });

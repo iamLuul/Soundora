@@ -4,6 +4,8 @@ import { Text } from 'react-native';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { useIsAdmin } from '../../lib/admin';
 import { useAuth } from '../../lib/auth';
+import { useState } from 'react';
+import { AccountSwitcher } from '../../components/AccountSwitcher';
 import { confirmAction } from '../../lib/dialogs';
 import { text } from '../../theme';
 import { APP_VERSION_LABEL } from '../../lib/version';
@@ -12,6 +14,7 @@ import { APP_VERSION_LABEL } from '../../lib/version';
 export default function SettingsScreenIndex() {
   const { t } = useTranslation();
   const { profile, signOut } = useAuth();
+  const [switcher, setSwitcher] = useState(false);
   const admin = useIsAdmin(!!profile);
   if (!profile) return null;
 
@@ -84,7 +87,9 @@ export default function SettingsScreenIndex() {
         </SettingsSection>
       ) : null}
 
+      <AccountSwitcher visible={switcher} onClose={() => setSwitcher(false)} />
       <SettingsSection>
+        <SettingsRow testID="settings-switch-account" icon="people-outline" label={t('accounts.switch')} onPress={() => setSwitcher(true)} />
         <SettingsRow
           testID="settings-sign-out"
           icon="log-out-outline"

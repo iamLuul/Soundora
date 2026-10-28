@@ -160,7 +160,9 @@
     "user_not_found": "No account with that @.",
     "community_slug_taken": "That @ is already taken (by a person or a community).",
     "community_slug_invalid": "Use 3 to 30 lowercase letters, numbers or _.",
-    "community_owner_cannot_leave": "The owner can't leave. Transfer the community or delete it."
+    "community_owner_cannot_leave": "The owner can't leave. Transfer the community or delete it.",
+    "account_expired": "This account's sign-in expired or was ended. Sign in to it again.",
+    "too_many_accounts": "You can have up to 5 accounts on this device. Remove one to add another."
   },
   "tabs": {
     "feed": "For you",
@@ -1076,5 +1078,21 @@
     },
     "slugTaken": "That @ is already taken (by a person or a community).",
     "slugFree": "Available"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "switch": "Switch account",
+    "add": "Add account",
+    "current": "Current account",
+    "switched": "You're now @{{username}}",
+    "forget": "Remove @{{username}} from this device",
+    "forgetConfirm": "Remove @{{username}} from this device? To use it again you'll need to sign in.",
+    "remove": "Remove",
+    "saved": "Accounts on this device",
+    "continueAs": "Continue as @{{username}}",
+    "addHint": "Up to 5 accounts on this device. The current account stays saved so you can come back with one tap.",
+    "open": "Open account @{{username}}",
+    "cancelAdd": "Back to @{{username}}",
+    "longPressHint": "Hold to switch accounts"
   }
 }

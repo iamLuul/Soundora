@@ -11,6 +11,7 @@ import { confirmAction } from '../../lib/dialogs';
 import { iconScale } from '../../lib/display';
 import { useUnreadNotifications } from '../../lib/queries';
 import { colors, fonts, glass, gradients, space } from '../../theme';
+import { AccountSwitcher } from '../AccountSwitcher';
 import { Reactive } from '../Reactive';
 import { Logo } from '../figma';
 import { Avatar } from '../ui';
@@ -128,12 +129,14 @@ function AccountChip({ name, username, avatar }: { name: string; username: strin
   const { t } = useTranslation();
   const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [switcher, setSwitcher] = useState(false);
   const leave = async () => {
     setOpen(false);
     if (await confirmAction(t('confirm.signOut'), t('profile.signOut'), t('common.cancel'))) await signOut();
   };
   return (
     <View>
+      <AccountSwitcher visible={switcher} onClose={() => setSwitcher(false)} />
       {open ? (
         <View style={styles.menu} testID="side-account-menu">
           <Pressable
@@ -145,6 +148,17 @@ function AccountChip({ name, username, avatar }: { name: string; username: strin
             style={styles.menuItem}
           >
             <Text style={styles.menuText}>{t('desktop.viewProfile')}</Text>
+          </Pressable>
+          <Pressable
+            testID="side-switch-account"
+            accessibilityRole="button"
+            onPress={() => {
+              setOpen(false);
+              setSwitcher(true);
+            }}
+            style={styles.menuItem}
+          >
+            <Text style={styles.menuText}>{t('accounts.switch')}</Text>
           </Pressable>
           <Pressable testID="side-sign-out" accessibilityRole="button" onPress={leave} style={styles.menuItem}>
             <Text style={[styles.menuText, { color: colors.danger }]}>{t('profile.signOut')}</Text>

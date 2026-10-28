@@ -4,9 +4,11 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
+import { canAddAccount, forgetAccount, listAccounts, nextParked, parkCurrent, rememberCurrent, tokenOf, type AccountInfo } from './accounts';
 import { getMyProfile } from './api';
+import { AppError } from './errors';
 import i18n from './i18n';
-import { disablePush } from './push';
+import { disablePush, enablePush, pushEnabled } from './push';
 import { supabase } from './supabase';
 import type { Profile } from './types';
 
@@ -24,7 +26,21 @@ interface AuthState {
    */
   profileFailed: boolean;
   refreshProfile: () => Promise<void>;
+  /**
+   * Sai da conta. Se houver outra conta salva neste aparelho, ela abre no lugar (como trocar);
+   * senão, volta para a tela de entrar.
+   */
   signOut: () => Promise<void>;
+  /** Contas salvas neste aparelho (a aberta incluída), para trocar sem sair. */
+  accounts: AccountInfo[];
+  /** Abre outra conta salva. Se o login dela venceu, ela sai da lista e a atual continua. */
+  switchAccount: (userId: string) => Promise<void>;
+  /** Guarda a conta aberta e vai para a tela de entrar, para entrar em mais uma. */
+  addAccount: () => Promise<void>;
+  /** Tira uma conta (que não é a aberta) da lista deste aparelho. */
+  forgetSavedAccount: (userId: string) => Promise<void>;
+  /** Na tela de entrar: entra direto numa conta salva no aparelho. */
+  signInSaved: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -34,6 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileFailed, setProfileFailed] = useState(false);
+  const [accounts, setAccounts] = useState<AccountInfo[]>([]);
+  const reloadAccounts = useCallback(async () => setAccounts(await listAccounts()), []);
   const qc = useQueryClient();
   // Conta da sessão atual. Mudou (saiu, entrou, trocou de conta): apaga o cache das consultas,
   // senão a conta nova veria dados da anterior (sugestões do Descobrir, curtidas, plataforma...).
@@ -83,8 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setProfile(failed ? null : next);
       setProfileFailed(failed);
+      // Conta pronta: entra na lista de contas do aparelho (sem token; ver accounts.ts).
+      if (next) await rememberCurrent(accountInfo(next)).catch(() => undefined);
+      await reloadAccounts();
     },
-    [switchUser],
+    [switchUser, reloadAccounts],
   );
 
   useEffect(() => {
@@ -114,25 +135,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [applySession]);
 
+  /**
+   * Entra numa conta salva com o token guardado dela. Se não der (o login dela venceu ou foi
+   * encerrado), ela sai da lista e, se havia uma conta aberta, ela volta.
+   */
+  const enterSaved = useCallback(
+    async (userId: string, current: Session | null) => {
+      const token = await tokenOf(userId);
+      const { data, error } = token ? await supabase.auth.refreshSession({ refresh_token: token }) : { data: { session: null }, error: null };
+      if (!error && data.session && data.session.user.id === userId) return;
+      await forgetAccount(userId);
+      if (current) {
+        const { data: now } = await supabase.auth.getSession();
+        if (now.session?.user.id !== current.user.id) {
+          await supabase.auth.setSession({ access_token: current.access_token, refresh_token: current.refresh_token }).catch(() => undefined);
+        }
+      }
+      await reloadAccounts();
+      throw new AppError('account_expired');
+    },
+    [reloadAccounts],
+  );
+
   const value = useMemo<AuthState>(
     () => ({
       loading,
       session,
       profile,
       profileFailed,
+      accounts,
       refreshProfile: () => applySession(session),
       signOut: async () => {
+        const leaving = session?.user.id ?? null;
         // Este aparelho para de receber push da conta que está saindo (precisa da sessão ainda).
         await disablePush().catch(() => undefined);
         await supabase.auth.signOut();
+        if (leaving) await forgetAccount(leaving).catch(() => undefined);
         switchUser(null);
         qc.clear();
+        // Outra conta salva no aparelho: abre ela em vez da tela de entrar.
+        const next = await nextParked(leaving).catch(() => null);
+        if (next) await enterSaved(next.userId, null).catch(() => undefined);
+        await reloadAccounts();
+      },
+      switchAccount: async (userId: string) => {
+        if (!session || userId === session.user.id) return;
+        const pushWasOn = pushEnabled();
+        // O push deste aparelho é da conta aberta: sai dela e (se estava ligado) vai para a nova.
+        await disablePush().catch(() => undefined);
+        if (profile) await parkCurrent(accountInfo(profile), session);
+        await enterSaved(userId, session);
+        if (pushWasOn) await enablePush().catch(() => undefined);
+      },
+      addAccount: async () => {
+        if (!session) return;
+        if (!(await canAddAccount(session.user.id))) throw new AppError('too_many_accounts');
+        await disablePush().catch(() => undefined);
+        if (profile) await parkCurrent(accountInfo(profile), session);
+        // Só neste aparelho: o login da conta guardada continua valendo para voltar a ela.
+        await supabase.auth.signOut({ scope: 'local' });
+        await reloadAccounts();
+      },
+      signInSaved: (userId: string) => enterSaved(userId, null),
+      forgetSavedAccount: async (userId: string) => {
+        if (userId === session?.user.id) return;
+        await forgetAccount(userId);
+        await reloadAccounts();
       },
     }),
-    [loading, session, profile, profileFailed, applySession, switchUser, qc],
+    [loading, session, profile, profileFailed, accounts, applySession, switchUser, qc, enterSaved, reloadAccounts],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function accountInfo(p: Profile): AccountInfo {
+  return { userId: p.id, username: p.username, displayName: p.display_name, avatarUrl: p.avatar_url };
 }
 
 /** true só quando o servidor diz que a conta da sessão não existe (sem internet = false). */

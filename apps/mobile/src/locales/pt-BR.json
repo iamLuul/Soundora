@@ -160,7 +160,9 @@
     "user_not_found": "Nenhuma conta com esse @.",
     "community_slug_taken": "Esse @ já está em uso (por uma pessoa ou uma comunidade).",
     "community_slug_invalid": "Use de 3 a 30 letras minúsculas, números ou _.",
-    "community_owner_cannot_leave": "A dona não pode sair. Passe a comunidade para alguém ou apague."
+    "community_owner_cannot_leave": "A dona não pode sair. Passe a comunidade para alguém ou apague.",
+    "account_expired": "O login dessa conta venceu ou foi encerrado. Entre nela de novo.",
+    "too_many_accounts": "Dá para ter até 5 contas neste aparelho. Remova uma para adicionar outra."
   },
   "tabs": {
     "feed": "Para você",
@@ -1076,5 +1078,21 @@
     },
     "slugTaken": "Esse @ já está em uso (por uma pessoa ou uma comunidade).",
     "slugFree": "Disponível"
+  },
+  "accounts": {
+    "title": "Contas",
+    "switch": "Trocar de conta",
+    "add": "Adicionar conta",
+    "current": "Conta aberta",
+    "switched": "Agora você está como @{{username}}",
+    "forget": "Remover @{{username}} deste aparelho",
+    "forgetConfirm": "Remover @{{username}} da lista deste aparelho? Para voltar a ela, você vai precisar entrar de novo.",
+    "remove": "Remover",
+    "saved": "Contas neste aparelho",
+    "continueAs": "Entrar como @{{username}}",
+    "addHint": "Até 5 contas neste aparelho. A conta aberta fica salva para você voltar a ela com um toque.",
+    "open": "Abrir a conta @{{username}}",
+    "cancelAdd": "Voltar para @{{username}}",
+    "longPressHint": "Segure para trocar de conta"
   }
 }

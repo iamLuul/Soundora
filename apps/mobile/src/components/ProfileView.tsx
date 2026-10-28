@@ -19,6 +19,7 @@ import { colors, fonts, glass, gradients, radius, space } from '../theme';
 import { Reactive } from './Reactive';
 import { TopTabs } from './figma';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
+import { AccountSwitcher } from './AccountSwitcher';
 import { FavoriteSongs, ProfileGenres, profileKeys } from './ProfileExtras';
 import { ProfileBadges } from './ProfileBadges';
 import { ReviewList } from './ReviewList';
@@ -135,6 +136,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
   const { refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
   const [uploading, setUploading] = useState<ProfileImageKind | null>(null);
 
   const vibes = useVibesOf(p.id);
@@ -184,6 +186,13 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         { key: 'photo', label: t('profile.changePhoto'), icon: 'person-circle-outline', onPress: () => changeImage('avatar') },
         { key: 'banner', label: t('profile.changeBanner'), icon: 'image-outline', onPress: () => changeImage('banner') },
         { key: 'settings', label: t('settings.title'), icon: 'settings-outline', onPress: () => router.push('/settings') },
+        {
+          key: 'switch-account',
+          label: t('accounts.switch'),
+          icon: 'people-outline',
+          // Espera o menu fechar (no iOS, um modal não abre enquanto outro está saindo).
+          onPress: () => setTimeout(() => setSwitcherOpen(true), 350),
+        },
       ]
     : [
         {
@@ -344,6 +353,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
       <FavoriteSongs userId={p.id} isMe={p.is_me} />
 
       <OptionsSheet visible={menuOpen} title={`@${p.username}`} options={options} onClose={() => setMenuOpen(false)} />
+      {p.is_me ? <AccountSwitcher visible={switcherOpen} onClose={() => setSwitcherOpen(false)} /> : null}
     </View>
   );
 }
