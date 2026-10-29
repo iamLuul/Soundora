@@ -1,0 +1,16 @@
+diff --git a/node_modules/expo-router/build/react-navigation/bottom-tabs/views/ScreenFallback.js b/node_modules/expo-router/build/react-navigation/bottom-tabs/views/ScreenFallback.js
+index 7d2116c..c9accd2 100644
+--- a/node_modules/expo-router/build/react-navigation/bottom-tabs/views/ScreenFallback.js
++++ b/node_modules/expo-router/build/react-navigation/bottom-tabs/views/ScreenFallback.js
+@@ -52,7 +52,10 @@ const MaybeScreenContainer = ({ enabled, ...rest })=>{
+     });
+ };
+ function MaybeScreen({ enabled, active, ...rest }) {
+-    if (Screens?.screensEnabled?.()) {
++    // Soundhora: com detachInactiveScreens=false (enabled=false), uma View comum. O Screen do
++    // react-native-screens escondia as abas inativas com display:none, e o carrossel não
++    // mostrava a aba vizinha durante o arrasto no celular.
++    if (enabled && Screens?.screensEnabled?.()) {
+         return /*#__PURE__*/ (0, _jsxruntime().jsx)(Screens.Screen, {
+             ...rest,
+             enabled: enabled,

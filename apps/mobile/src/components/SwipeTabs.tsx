@@ -1,5 +1,6 @@
-import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
-import { Animated, Dimensions, Easing, Platform, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { Animated, Dimensions, Easing, Platform, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { MessagesInbox } from '../app/messages';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { display } from '../lib/display';
@@ -46,8 +47,8 @@ export function swipeNeighbors(current: string): { left: string | null; right: s
 export function dragOffset(current: string, dx: number): number {
   const moved = Math.sign(dx) * Math.max(0, Math.abs(dx) - ACTIVATE);
   const { left, right } = swipeNeighbors(current);
-  // No Início, à esquerda ficam as Mensagens: a tela anda um pouco mais (meio elástico).
-  if (current === 'index' && moved > 0) return moved * 0.5;
+  // No Início, à esquerda ficam as Mensagens: a tela vai junto com o dedo e mostra a prévia delas.
+  if (current === 'index' && moved > 0) return moved;
   const hasNeighbor = moved < 0 ? !!right : !!left;
   return hasNeighbor ? moved : moved * EDGE_RESISTANCE;
 }
@@ -126,7 +127,28 @@ export function onTabTransition(name: string) {
 
 function springBack() {
   releasing = false;
-  Animated.spring(drag, { toValue: 0, useNativeDriver, bounciness: 0, speed: 18 }).start();
+  Animated.spring(drag, { toValue: 0, useNativeDriver, bounciness: 0, speed: 18 }).start(() => showPeek(false));
+}
+
+/** Prévia das Mensagens à esquerda do Início, montada só enquanto o Início é arrastado. */
+let peekListener: ((show: boolean) => void) | null = null;
+function showPeek(show: boolean) {
+  peekListener?.(show);
+}
+
+/**
+ * Soltou o Início puxado para as Mensagens: a prévia termina de entrar e a tela de verdade abre
+ * já no lugar (sem deslizar de novo). Depois o Início volta para o lugar, escondido atrás dela.
+ */
+function openMessages() {
+  releasing = false;
+  Animated.timing(drag, { toValue: widthNow, duration: display.reduceMotion ? 0 : 160, easing: Easing.out(Easing.cubic), useNativeDriver }).start(() => {
+    router.push({ pathname: '/messages', params: { peek: '1' } });
+    setTimeout(() => {
+      drag.setValue(0);
+      showPeek(false);
+    }, 400);
+  });
 }
 
 /**
@@ -141,6 +163,7 @@ export function lockSwipe(locked: boolean) {
 function startDrag(route: string) {
   if (swipeLocked) return;
   dragging = true;
+  if (route === 'index') showPeek(true);
   releasing = false;
   drag.stopAnimation();
   drag.setValue(0);
@@ -163,11 +186,8 @@ function endDrag(route: string, dx: number, vx: number, onNavigate: (name: strin
   dragging = false;
   if (Platform.OS === 'web') swallowNextClick();
   if (!target) return springBack();
-  if (target === MESSAGES && route === 'index') {
-    springBack();
-    router.push('/messages');
-    return;
-  }
+  showPeek(false);
+  if (target === MESSAGES && route === 'index') return openMessages();
   releasing = true;
   onNavigate(target);
   // Se a troca não começar (navegação recusada), a tela volta para o lugar.
@@ -242,6 +262,15 @@ export function SwipeTabs({
   );
   // Desktop: troca de aba pela barra lateral; arrastar com o mouse não troca.
   const desktop = useIsDesktop();
+  const [peek, setPeek] = useState(false);
+  const isHome = route === 'index' && !desktop;
+  useEffect(() => {
+    if (!isHome) return;
+    peekListener = setPeek;
+    return () => {
+      if (peekListener === setPeek) peekListener = null;
+    };
+  }, [isHome]);
   const enabled = !desktop && active && (SWIPE_TABS as readonly string[]).includes(route);
   const pan = Gesture.Pan()
     .enabled(enabled)
@@ -278,7 +307,17 @@ export function SwipeTabs({
         aria-hidden={!focused}
       >
         {children}
+        {isHome && peek ? (
+          // À esquerda do Início (anda junto com ele): as Mensagens, só para ver durante o arrasto.
+          <View pointerEvents="none" style={[styles.peek, { left: -widthNow, width: widthNow }]}>
+            <MessagesInbox preview />
+          </View>
+        ) : null}
       </View>
     </GestureDetector>
   );
 }
+
+const styles = StyleSheet.create({
+  peek: { position: 'absolute', top: 0, bottom: 0, boxShadow: '8px 0 24px rgba(10, 6, 30, 0.45)' },
+});

@@ -20,6 +20,7 @@ const mockUnsend = jest.fn(async (_id: number) => undefined);
 const mockFind = jest.fn(async (_id: string): Promise<string | null> => null);
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
+  usePreventRemove: () => () => undefined,
   router: { push: (...a: unknown[]) => mockPush(...a), replace: (...a: unknown[]) => mockReplace(...a), canGoBack: () => true, back: jest.fn() },
   useLocalSearchParams: () => mockParams,
   useFocusEffect: (cb: () => void) => {

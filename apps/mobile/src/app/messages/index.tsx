@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorState } from '../../components/ErrorState';
 import { BackHeader, RingAvatar, TopTabs } from '../../components/figma';
+import { SidePage } from '../../components/SidePage';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { Spinner } from '../../components/Spinner';
@@ -22,9 +23,22 @@ type Tab = 'chats' | 'requests';
 
 /**
  * Mensagens: as conversas (da mais recente para a mais antiga) e os Pedidos (de quem você não
- * segue). Abre pelo ícone do topo do Início ou arrastando o Início para o lado.
+ * segue). Fica à esquerda do Início, como uma página ao lado:
+ * - abre pelo ícone do topo do Início (desliza da esquerda) ou arrastando o Início para a
+ *   direita (a tela vem junto com o dedo);
+ * - fecha arrastando para a esquerda (o Início aparece atrás, acompanhando o dedo), pela seta
+ *   ou pelo "voltar" do Android.
  */
 export default function MessagesScreen() {
+  const params = useLocalSearchParams<{ peek?: string }>();
+  return <SidePage fromPeek={params.peek === '1'}>{(close) => <MessagesInbox onBack={close} />}</SidePage>;
+}
+
+/**
+ * A lista de conversas. `preview`: a prévia que aparece ao arrastar o Início (só para ver,
+ * sem toques).
+ */
+export function MessagesInbox({ onBack, preview = false }: { onBack?: () => void; preview?: boolean }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('chats');
@@ -35,10 +49,10 @@ export default function MessagesScreen() {
   const pending = unread.data?.requests ?? 0;
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + space.sm }]}>
-      <Stack.Screen options={{ headerShown: false }} />
+    <View style={[styles.screen, { paddingTop: insets.top + space.sm }]} pointerEvents={preview ? 'none' : 'auto'}>
       <View style={styles.header}>
         <BackHeader
+          onBack={onBack}
           right={
             <Pressable
               testID="new-message"

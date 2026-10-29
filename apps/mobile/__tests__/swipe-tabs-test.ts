@@ -32,8 +32,8 @@ describe('carrossel das abas', () => {
     expect(dragOffset('discover', -130)).toBe(-100);
     expect(dragOffset('discover', 130)).toBe(100);
     expect(dragOffset('discover', 20)).toBe(0);
-    // À esquerda do Início ficam as Mensagens: anda pela metade.
-    expect(dragOffset('index', 130)).toBe(50);
+    // À esquerda do Início ficam as Mensagens: a tela vai junto com o dedo (e mostra a prévia delas).
+    expect(dragOffset('index', 130)).toBe(100);
     expect(dragOffset('index', -130)).toBe(-100);
   });
   test('o + abre e fecha sem deslizar; as outras abas usam o carrossel', () => {

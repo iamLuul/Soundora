@@ -74,7 +74,10 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
     <DesktopShell enabled={onboarded}>
     <Stack
       // Cada tela sobre o fundo com brilho (o vidro dos cartões e barras mostra ele).
-      screenLayout={({ children, options }) => <Backdrop headed={options.headerShown !== false}>{children}</Backdrop>}
+      // (As Mensagens desenham o próprio fundo: elas deslizam por cima do Início.)
+      screenLayout={({ children, options, route }) =>
+        route.name === 'messages/index' ? children : <Backdrop headed={options.headerShown !== false}>{children}</Backdrop>
+      }
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
@@ -127,7 +130,8 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
         <Stack.Screen name="settings/about" options={{ title: '' }} />
         <Stack.Screen name="admin" options={{ title: '' }} />
         {/* Mensagens: entram pela esquerda (o ícone fica à esquerda do Início). */}
-        <Stack.Screen name="messages/index" options={{ headerShown: false, animation: 'slide_from_left' }} />
+        {/* Por cima do Início, que continua aparecendo atrás: a tela desliza e acompanha o dedo (SidePage). */}
+        <Stack.Screen name="messages/index" options={{ headerShown: false, presentation: 'transparentModal', animation: 'none', contentStyle: { backgroundColor: 'transparent' } }} />
         <Stack.Screen name="messages/compose" options={{ headerShown: false }} />
         <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="communities/index" options={{ headerShown: false }} />
