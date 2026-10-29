@@ -140,6 +140,9 @@ function PostVideo({ uri, postId }: { uri: string; postId?: string }) {
   return <PlayingVideo uri={uri} visible={visible} />;
 }
 
+/** Computador com mouse (passar o mouse por cima existe): os controles seguem o mouse. */
+const hoverMode = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+
 function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   const { t } = useTranslation();
   const [muted, setMuted] = useFeedMuted();
@@ -158,9 +161,12 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
     // Sem som, não interrompe a música que a pessoa ouve em outro app.
     p.audioMixingMode = 'mixWithOthers';
   });
-  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+  const playingEvent = useEvent(player, 'playingChange', { isPlaying: player.playing }).isPlaying;
   const { status } = useEvent(player, 'statusChange', { status: player.status });
   const time = useEvent(player, 'timeUpdate', { currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0 });
+  // Na web o aviso de "começou a tocar" pode chegar antes de a tela escutar (vídeo que começa
+  // sozinho): também vale o estado do próprio player, lido a cada atualização do tempo.
+  const isPlaying = playingEvent || player.playing;
 
   // Em tela cheia continua tocando mesmo que o post saia da lista.
   const shouldPlay = (visible || fullscreen) && !userPaused;
@@ -170,38 +176,54 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   }, [player, shouldPlay]);
   useEffect(() => applySound(player, muted), [player, muted]);
 
-  // Controles somem sozinhos depois de 3 s tocando (parado ou arrastando, ficam).
+  // Computador (mouse): os controles aparecem com o mouse em cima do vídeo e somem quando ele
+  // sai ou fica parado por 3 s. Toque (celular): aparecem ao tocar e somem 3 s depois, tocando.
+  const [mouseTick, setMouseTick] = useState(0);
+  const lastMove = useRef(0);
+  const onMouseMove = () => {
+    const t = Date.now();
+    if (t - lastMove.current < 200) return;
+    lastMove.current = t;
+    setControls(true);
+    setMouseTick((n) => n + 1);
+  };
+  // O que "renova" os 3 s: o mouse mexendo (computador) ou o vídeo andando (toque).
+  const activity = hoverMode ? mouseTick : time.currentTime;
   useEffect(() => {
-    if (!controls || !isPlaying || scrub !== null) return;
+    if (!controls || scrub !== null) return;
+    if (!hoverMode && !isPlaying) return;
     const id = setTimeout(() => setControls(false), 3000);
     return () => clearTimeout(id);
-  }, [controls, isPlaying, scrub, time.currentTime]);
+  }, [controls, isPlaying, scrub, activity]);
 
   const duration = player.duration || 0;
   const now = scrub ?? time.currentTime;
   const progress = duration > 0 ? Math.min(1, Math.max(0, now / duration)) : 0;
   const loading = status === 'loading' || (status === 'idle' && shouldPlay && !isPlaying);
-  const togglePlay = () => setUserPaused(isPlaying);
+  const togglePlay = () => {
+    setUserPaused(player.playing);
+  };
   const skip = (delta: number) => seekTo(player, Math.min(Math.max(0, time.currentTime + delta), Math.max(0, duration - 0.1)));
 
   return (
-    <>
+    <View style={StyleSheet.absoluteFill} {...(hoverMode ? { onPointerMove: onMouseMove, onPointerLeave: () => scrub === null && setControls(false) } : null)}>
       <VideoView
         ref={videoRef}
         player={player}
-        style={StyleSheet.absoluteFill}
+        // Na web, o <video> não estica com left/right: largura e altura de 100% para ocupar o post todo.
+        style={styles.videoFill}
         contentFit="cover"
         // Em tela cheia, os controles do sistema; na timeline, os do Soundhora.
         nativeControls={fullscreen}
         onFullscreenEnter={() => setFullscreen(true)}
         onFullscreenExit={() => setFullscreen(false)}
       />
-      {/* Tocar no vídeo: mostra ou esconde os controles (sem abrir o post). */}
+      {/* Toque: mostra ou esconde os controles. Mouse: clique pausa e continua (os controles vêm com o mouse). */}
       <Pressable
         testID="post-video-toggle"
         accessibilityRole="button"
-        accessibilityLabel={controls ? t('post.hideControls') : t('post.showControls')}
-        onPress={() => setControls((v) => !v)}
+        accessibilityLabel={hoverMode ? (isPlaying ? t('post.pauseVideo') : t('post.playVideo')) : controls ? t('post.hideControls') : t('post.showControls')}
+        onPress={() => (hoverMode ? togglePlay() : setControls((v) => !v))}
         style={[StyleSheet.absoluteFill, controls && styles.dim]}
       />
 
@@ -268,7 +290,7 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
           </View>
         </>
       )}
-    </>
+    </View>
   );
 }
 
@@ -409,6 +431,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     backgroundImage: 'linear-gradient(135deg, rgba(104, 94, 255, 0.35) 0%, rgba(50, 47, 66, 1) 70%)',
   },
+  videoFill: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   // Botões do player: vidro escuro com a borda clara do Soundhora (legível sobre qualquer imagem).
   bigPlay: {

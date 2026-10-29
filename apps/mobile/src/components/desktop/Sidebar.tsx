@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useDmBadge } from '../messages/MessagesButton';
 import { SIDEBAR_STROKE, sidebarIcons, type SidebarIconName } from '../../assets/sidebarIcons';
@@ -130,12 +130,28 @@ function AccountChip({ name, username, avatar }: { name: string; username: strin
   const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [switcher, setSwitcher] = useState(false);
+  const box = useRef<ViewInstance>(null);
+  // Menu aberto: clicar em qualquer lugar fora dele (ou Esc) fecha.
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return;
+    const outside = (e: Event) => {
+      const el = box.current as unknown as HTMLElement | null;
+      if (el && !el.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
   const leave = async () => {
     setOpen(false);
     if (await confirmAction(t('confirm.signOut'), t('profile.signOut'), t('common.cancel'))) await signOut();
   };
   return (
-    <View>
+    <View ref={box}>
       <AccountSwitcher visible={switcher} onClose={() => setSwitcher(false)} />
       {open ? (
         <View style={styles.menu} testID="side-account-menu">
