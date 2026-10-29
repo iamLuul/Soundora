@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.50 · Menus que sobem de baixo acompanham o dedo: puxou para baixo, fecham
 
+- `0.50.1.10.26` · 28/10/2026 · Vídeo da aba Seguindo não toca mais com o Para você aberto (1bd3e5f)
 - `0.50.0.10.26` · 28/10/2026 · Menus que sobem de baixo acompanham o dedo: puxou para baixo, fecham (8625128)
 
 ## 0.49 · Vídeo da timeline: tocar mostra os controles (linha do tempo, play/pause, ±10 s, tela cheia)
