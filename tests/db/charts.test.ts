@@ -53,16 +53,62 @@ describe('cache do ranking', () => {
     );
   });
 
-  it('só guarda link https, e só 60 dias de ranking', async () => {
+  it('só guarda link https, e só 365 dias de ranking (o ano do Trending usa 360)', async () => {
     await expect(db.sql(`insert into public.track_platform_links (source_url, links) values ('ftp://evil.example.com/track/1', '{}')`)).rejects.toThrow(
       /check/,
     );
     await db.sql(
       `insert into public.track_platform_links (source_url, links) values ('https://www.deezer.com/track/1', '{}'), ('https://music.apple.com/us/album/x/1?i=2', '{}')`,
     );
+    await db.sql(`insert into public.music_chart_snapshots (taken_on, entries) values (current_date - 400, '[]')`);
     await db.sql(`insert into public.music_chart_snapshots (taken_on, entries) values (current_date - 90, '[]')`);
     await db.sql(`insert into public.music_chart_snapshots (taken_on, entries) values (current_date - 2, '[]')`);
     const days = await db.sql<{ d: number }>(`select current_date - taken_on as d from public.music_chart_snapshots order by taken_on`);
-    expect(days.map((r) => r.d)).toEqual([2, 0]);
+    expect(days.map((r) => r.d)).toEqual([90, 2, 0]);
+    await db.sql(`delete from public.music_chart_snapshots`);
+  });
+});
+
+describe('ranking da semana, do mês e do ano (pontos por posição)', () => {
+  const snap = (daysAgo: number, keys: string[]) =>
+    db.sql(`insert into public.music_chart_snapshots (taken_on, entries) values (current_date - $1::int, $2::jsonb)`, [
+      daysAgo,
+      JSON.stringify(keys.map((key, i) => ({ key, position: i + 1, title: key.toUpperCase(), artist: 'Artista' }))),
+    ]);
+  const ranking = (from: number, to: number) =>
+    db.sql<{ key: string; points: string; days: number; best: number; entry: { title: string; position: number } }>(
+      `select * from public.music_chart_ranking(current_date - $1::int, current_date - $2::int)`,
+      [from, to],
+    );
+
+  beforeAll(async () => {
+    await db.sql(`delete from public.music_chart_snapshots`);
+    // x: 1º num dia só (50). y: 2º em dois dias (98). z: 3º em dois dias (96). w: 1º há 40 dias (fora do mês).
+    await snap(0, ['x', 'y', 'z']);
+    await snap(1, ['q', 'y', 'z']);
+    await snap(40, ['w']);
+  });
+
+  it('constância ganha de um dia só no topo; a janela de dias é respeitada', async () => {
+    const month = await ranking(29, 0);
+    expect(month.map((r) => [r.key, Number(r.points), r.days, r.best])).toEqual([
+      ['y', 98, 2, 2],
+      ['z', 96, 2, 3],
+      ['q', 50, 1, 1],
+      ['x', 50, 1, 1],
+    ]);
+    // Os dados da música vêm da foto mais recente em que ela apareceu.
+    expect(month[0]!.entry.title).toBe('Y');
+    expect((await ranking(359, 0)).map((r) => r.key)).toContain('w');
+  });
+
+  it('o app não chama a conta (só a Edge Function, com a chave secreta)', async () => {
+    await expect(db.as(ana, `select * from public.music_chart_ranking(current_date - 6, current_date)`)).rejects.toThrow(/permission denied/);
+    await expect(db.anon(`select * from public.music_chart_ranking(current_date - 6, current_date)`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('a tarefa diária sem os segredos do Vault não faz nada (e o app não chama)', async () => {
+    await db.sql(`select private.record_music_chart()`);
+    await expect(db.as(ana, `select private.record_music_chart()`)).rejects.toThrow(/permission denied/);
   });
 });

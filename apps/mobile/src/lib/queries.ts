@@ -62,7 +62,7 @@ export const keys = {
   vibesTray: ['vibes', 'tray'] as const,
   vibesOf: (authorId: string) => ['vibes', 'of', authorId] as const,
   streamingPlatform: ['streaming-platform'] as const,
-  worldChart: ['world-chart'] as const,
+  worldChart: (period: string) => ['world-chart', period] as const,
   /** Mensagens diretas (tudo começa com 'dm': o aviso ao vivo atualiza tudo de uma vez). */
   dmInbox: (requests: boolean) => ['dm', 'inbox', requests] as const,
   dmUnread: ['dm', 'unread'] as const,

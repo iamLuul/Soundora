@@ -347,7 +347,12 @@
     "reviewCount_one": "{{count}} review",
     "reviewCount_other": "{{count}} reviews",
     "averageLabel": "Average {{average}} out of 10",
-    "rowReviewLabel": "#{{rank}}, {{title}}, {{artist}}, average {{average}}, {{count}} reviews"
+    "rowReviewLabel": "#{{rank}}, {{title}}, {{artist}}, average {{average}}, {{count}} reviews",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "periodLabel": "Chart period",
+    "partial": "Based on {{count}} of {{total}} days (the chart started being saved recently)."
   },
   "search": {
     "placeholder": "Search people, songs, genres or posts",

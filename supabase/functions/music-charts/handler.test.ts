@@ -2,7 +2,7 @@
 // npm run test:functions
 import { LastfmKeyError, type ChartEntry } from '../_shared/links/charts.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
-import { createHandler, type Deps, type Snapshot } from './handler.ts';
+import { aggregateChart, createDailyHandler, createHandler, type Deps, type Snapshot } from './handler.ts';
 
 function assertEquals(actual: unknown, expected: unknown, msg = '') {
   const a = JSON.stringify(actual);
@@ -35,7 +35,9 @@ function setup(overrides: Partial<Deps> = {}, initial: Snapshot[] = []) {
     getUserId: async (h) => (h === 'Bearer ok' ? 'user-1' : null),
     rateLimit: async () => true,
     latestSnapshot: async () => [...snapshots].sort((a, b) => b.taken_on.localeCompare(a.taken_on))[0] ?? null,
-    previousSnapshot: async (today) => snapshots.filter((s) => s.taken_on < today).sort((a, b) => a.taken_on.localeCompare(b.taken_on))[0] ?? null,
+    ranking: async (from, to) => aggregateChart(snapshots.filter((s) => s.taken_on >= from && s.taken_on <= to)),
+    findEntry: async (key) =>
+      [...snapshots].sort((a, b) => b.taken_on.localeCompare(a.taken_on)).flatMap((s) => s.entries).find((e) => e.key === key) ?? null,
     saveSnapshot: async (taken_on, entries) => {
       const i = snapshots.findIndex((s) => s.taken_on === taken_on);
       const row = { taken_on, fetched_at: NOW.toISOString(), entries };
@@ -160,7 +162,8 @@ Deno.test('ranking vencido: mostra o guardado e atualiza por trás; formato anti
   const old: Snapshot = { taken_on: '2026-10-11', fetched_at: '2026-10-11T05:00:00Z', entries: [entry('z', 1)] };
   const { handler, calls } = setup({ background: (t) => void tasks.push(t) }, [old]);
   const body = await (await handler(post({ action: 'chart' }))).json();
-  assertEquals([body.stale, body.entries[0].key], [true, 'z']);
+  // Responde na hora com o guardado (stale); a conta da semana já pode incluir a foto nova.
+  assertEquals(body.stale, true);
   await Promise.all(tasks);
   assertEquals(calls.fetchChart, 1);
   assertEquals((await (await handler(post({ action: 'chart' }))).json()).entries[0].key, 'a');
@@ -170,4 +173,84 @@ Deno.test('ranking vencido: mostra o guardado e atualiza por trás; formato anti
   const second = setup({ background: (t) => void tasks.push(t) }, [legacy]);
   const fresh = await (await second.handler(post({ action: 'chart' }))).json();
   assertEquals([fresh.stale, fresh.entries[0].key, second.calls.fetchChart], [false, 'a', 1]);
+});
+
+const day = (taken_on: string, keys: string[]): Snapshot => ({ taken_on, fetched_at: `${taken_on}T10:00:00Z`, entries: keys.map((k, i) => entry(k, i + 1)) });
+
+Deno.test('pontos por posição: constância ganha de um dia só no topo; empate por dias e melhor posição', () => {
+  // x: 1º num dia só (50 pontos). y: 2º em dois dias (49 + 49 = 98). z: 3º em dois dias (96).
+  const r = aggregateChart([day('2026-10-01', ['x', 'y', 'z']), day('2026-10-02', ['w', 'y', 'z'])]);
+  assertEquals(
+    r.entries.map((e) => [e.key, e.position]),
+    [
+      ['y', 1],
+      ['z', 2],
+      ['w', 3],
+      ['x', 4],
+    ],
+  );
+  assertEquals(r.days, 2);
+  // Empate de pontos: quem ficou mais dias vem antes.
+  const tie = aggregateChart([day('2026-10-01', ['a']), day('2026-10-02', ['b', 'c']), day('2026-10-03', ['b'])].map((s) => s));
+  assertEquals(tie.entries[0].key, 'b');
+});
+
+Deno.test('mês = últimos 30 dias: o que ficou fora da janela não conta; subiu/caiu vs. os 30 dias antes', async () => {
+  const snaps = [day('2026-08-20', ['old']), day('2026-09-01', ['b', 'a']), day('2026-09-20', ['a', 'b']), day('2026-10-01', ['a', 'b'])];
+  const { handler } = setup({ fetchChart: async () => [entry('a', 1), entry('b', 2)] }, snaps);
+  const body = await (await handler(post({ action: 'chart', period: 'month' }))).json();
+  assertEquals(body.period, 'month');
+  // Janela 2026-09-12..2026-10-11: dias 09-20, 10-01 e 10-11 (o de hoje).
+  assertEquals(body.days, 3);
+  assertEquals(
+    body.entries.map((e: { key: string; move: string }) => [e.key, e.move]),
+    [
+      ['a', 'up'],
+      ['b', 'down'],
+    ],
+  );
+});
+
+Deno.test('ano = últimos 360 dias, sem subiu/caiu; período inválido: 400', async () => {
+  const { handler } = setup({}, [day('2025-10-10', ['velha']), day('2026-01-01', ['a'])]);
+  const body = await (await handler(post({ action: 'chart', period: 'year' }))).json();
+  assertEquals(body.entries.some((e: { key: string }) => e.key === 'velha'), false);
+  assertEquals(
+    body.entries.every((e: { move: unknown }) => e.move === null),
+    true,
+  );
+  assertEquals((await handler(post({ action: 'chart', period: 'decada' }))).status, 400);
+});
+
+Deno.test('link de música do mês que já saiu do ranking de hoje', async () => {
+  const { handler } = setup({}, [day('2026-10-01', ['sumiu']), { taken_on: '2026-10-11', fetched_at: NOW.toISOString(), entries: [entry('a', 1)] }]);
+  const r = await handler(post({ action: 'link', key: 'sumiu', platform: 'spotify' }));
+  assertEquals(r.status, 200);
+});
+
+Deno.test('foto diária: só com o segredo; não busca de novo se a de hoje é recente', async () => {
+  const SECRET = 'x'.repeat(40);
+  const snaps: Snapshot[] = [];
+  let fetched = 0;
+  const daily = createDailyHandler({
+    secret: SECRET,
+    now: () => NOW,
+    log: () => {},
+    latestSnapshot: async () => snaps.at(-1) ?? null,
+    saveSnapshot: async (taken_on, entries) => void snaps.push({ taken_on, fetched_at: NOW.toISOString(), entries }),
+    fetchChart: async () => {
+      fetched++;
+      return [entry('a', 1)];
+    },
+  });
+  const req = (secret?: string) => new Request('http://x/music-charts-daily', { method: 'POST', headers: secret ? { 'x-cron-secret': secret } : {} });
+  assertEquals((await daily(req())).status, 403);
+  assertEquals((await daily(req('errado'))).status, 403);
+  assertEquals((await daily(req(SECRET))).status, 200);
+  assertEquals([fetched, snaps.length, snaps[0]?.taken_on], [1, 1, '2026-10-11']);
+  assertEquals((await (await daily(req(SECRET))).json()).skipped, true);
+  assertEquals(fetched, 1);
+  // Sem segredo configurado (ou curto demais): ninguém entra.
+  const open = createDailyHandler({ secret: 'curto', latestSnapshot: async () => null, saveSnapshot: async () => {}, fetchChart: async () => [] });
+  assertEquals((await open(req('curto'))).status, 403);
 });

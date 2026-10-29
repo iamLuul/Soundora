@@ -1,11 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { PLATFORM_LABELS } from '@soundhora/core';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { chartTrackLink, fetchTopAlbums, fetchWorldChart, type ChartTrack } from '../lib/api';
+import { CHART_PERIOD_DAYS, chartTrackLink, fetchTopAlbums, fetchWorldChart, type ChartPeriod, type ChartTrack } from '../lib/api';
+import { ChartPeriodPicker } from './ChartPeriodPicker';
 import { formatError } from '../lib/errors';
 import { keys } from '../lib/queries';
 import { colors, fonts, glass, radius, space, text } from '../theme';
@@ -23,7 +23,9 @@ type TrendingView = 'global' | 'reviews';
 export function TrendingSection() {
   const { t } = useTranslation();
   const [view, setView] = useState<TrendingView>('global');
-  const chart = useQuery({ queryKey: keys.worldChart, queryFn: fetchWorldChart, staleTime: 10 * 60_000, enabled: view === 'global' });
+  const [period, setPeriod] = useState<ChartPeriod>('week');
+  const chart = useQuery({ queryKey: keys.worldChart(period), queryFn: () => fetchWorldChart(period), staleTime: 10 * 60_000, enabled: view === 'global' });
+  const days = chart.data?.days ?? null;
   const top = useQuery({ queryKey: ['top-albums'], queryFn: () => fetchTopAlbums(), staleTime: 60_000, enabled: view === 'reviews' });
   const { open, opening, message, platform, chooser } = useStreamingOpener((target, choice) => chartTrackLink(target.key, choice));
   const onPress = (item: ChartTrack) => open({ key: item.key, title: item.title, artist: item.artist });
@@ -74,11 +76,14 @@ export function TrendingSection() {
         <Text style={styles.sectionTitle} accessibilityRole="header">
           {t('trending.title')}
         </Text>
-        <View style={styles.weekChip}>
-          <Ionicons name="calendar-outline" size={12} color={colors.text} />
-          <Text style={styles.weekText}>{t('trending.thisWeek')}</Text>
-        </View>
+        <ChartPeriodPicker value={period} onChange={setPeriod} />
       </View>
+      {/* No começo, o mês e o ano ainda não têm todos os dias guardados: avisa com base em quantos. */}
+      {days !== null && days < CHART_PERIOD_DAYS[period] && period !== 'week' ? (
+        <Text testID="chart-partial" style={text.small}>
+          {t('trending.partial', { count: days, total: CHART_PERIOD_DAYS[period] })}
+        </Text>
+      ) : null}
       <Text style={text.small}>
         {platform ? t('trending.opensIn', { platform: PLATFORM_LABELS[platform] }) : t('trending.source')}
         {platform ? (
@@ -112,16 +117,6 @@ export function TrendingSection() {
 const styles = StyleSheet.create({
   trendingTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  weekChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.text,
-    paddingHorizontal: space.sm,
-    paddingVertical: 2,
-  },
   link: { color: colors.muted, fontFamily: fonts.semibold },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: {
@@ -135,7 +130,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.text, textAlign: 'center' },
-  weekText: { fontFamily: fonts.regular, fontSize: 10, color: colors.text },
   toggle: { flexDirection: 'row', alignSelf: 'flex-start', borderRadius: 999, ...glass.chip, padding: 3, marginBottom: space.sm },
   toggleItem: { paddingHorizontal: space.md, paddingVertical: 6, borderRadius: 999 },
   toggleActive: { backgroundColor: colors.primary },
