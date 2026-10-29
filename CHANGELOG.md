@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.51 · Arrastar entre telas mostra a vizinha; Mensagens entram e saem com o dedo
+
+- `0.51.0.10.26` · 29/10/2026 · Arrastar entre telas mostra a vizinha; Mensagens entram e saem com o dedo (7e59d99)
+
 ## 0.50 · Menus que sobem de baixo acompanham o dedo: puxou para baixo, fecham
 
 - `0.50.1.10.26` · 28/10/2026 · Vídeo da aba Seguindo não toca mais com o Para você aberto (1bd3e5f)
