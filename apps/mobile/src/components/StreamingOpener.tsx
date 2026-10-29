@@ -3,13 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { setStreamingPlatform } from '../lib/api';
 import { formatError } from '../lib/errors';
 import { keys, useStreamingPlatform } from '../lib/queries';
-import { colors, fonts, glass, radius, space, text } from '../theme';
+import { colors, fonts, space, text } from '../theme';
 import { StreamingPicker } from './StreamingPicker';
-import { SheetBackdrop } from './ui';
+import { BottomSheet } from './BottomSheet';
 
 /** Música para abrir: identifica o pedido e serve para a busca se o servidor não responder. */
 export interface OpenTarget {
@@ -81,31 +81,19 @@ export function useStreamingOpener(resolve: (target: OpenTarget, platform: Strea
   };
 
   const chooser = (
-    <Modal visible={!!pending} transparent animationType="fade" onRequestClose={() => setPending(null)}>
-      <SheetBackdrop style={styles.backdrop} onClose={() => setPending(null)} label={t('common.cancel')}>
-        <View style={styles.sheet}>
-          <Text style={styles.sheetTitle}>{t('streaming.title')}</Text>
-          <Text style={[text.small, { textAlign: 'center' }]}>{t('streaming.hint')}</Text>
-          <StreamingPicker value={null} onChange={choose} disabled={saving} />
-        </View>
-      </SheetBackdrop>
-    </Modal>
+    <BottomSheet visible={!!pending} onClose={() => setPending(null)} label={t('common.cancel')} style={styles.sheet}>
+      <View style={{ gap: space.md }}>
+        <Text style={styles.sheetTitle}>{t('streaming.title')}</Text>
+        <Text style={[text.small, { textAlign: 'center' }]}>{t('streaming.hint')}</Text>
+        <StreamingPicker value={null} onChange={choose} disabled={saving} />
+      </View>
+    </BottomSheet>
   );
 
   return { open, opening, message, platform: platform.data ?? null, chooser };
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet: {
-    ...glass.sheet,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: space.lg,
-    gap: space.md,
-    maxWidth: 640,
-    width: '100%',
-    alignSelf: 'center',
-  },
+  sheet: { padding: space.lg, maxWidth: 640 },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.text, textAlign: 'center' },
 });

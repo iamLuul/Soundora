@@ -1,10 +1,10 @@
 import { reportReasonSchema, type ReportReason } from '@soundhora/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { canCreateVibes } from '../lib/vibes-create';
-import { colors, fonts, glass, radius, space, text } from '../theme';
-import { SheetBackdrop } from './ui';
+import { colors, fonts, space, text } from '../theme';
+import { BottomSheet } from './BottomSheet';
 
 export type PostAction = { type: 'report'; reason: ReportReason } | { type: 'block' } | { type: 'delete' } | { type: 'vibe' } | { type: 'removeFromCommunity' };
 
@@ -47,34 +47,32 @@ export function PostActions({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
-      <SheetBackdrop style={styles.backdrop} onClose={close} label={t('common.cancel')}>
-        <View style={styles.sheet}>
-          {step === 'menu' ? (
-            <>
-              {allowVibe && canCreateVibes ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
-              {canModerate && !isMine ? <Option label={t('communities.removePost')} danger onPress={() => pick({ type: 'removeFromCommunity' })} /> : null}
-              {isMine ? (
-                <Option label={deleteLabel ?? t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
-              ) : (
-                <>
-                  <Option label={t('feed.report')} onPress={() => setStep('reasons')} />
-                  <Option label={t('feed.block', { username })} danger onPress={() => pick({ type: 'block' })} />
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <Text style={[text.label, { padding: space.md }]}>{t('report.title')}</Text>
-              {reportReasonSchema.options.map((reason) => (
-                <Option key={reason} label={t(`report.${reason}`)} onPress={() => pick({ type: 'report', reason })} />
-              ))}
-            </>
-          )}
-          <Option label={t('common.cancel')} onPress={close} />
-        </View>
-      </SheetBackdrop>
-    </Modal>
+    <BottomSheet visible={visible} onClose={close} label={t('common.cancel')}>
+      <View>
+        {step === 'menu' ? (
+          <>
+            {allowVibe && canCreateVibes ? <Option label={t('vibes.shareToVibes')} onPress={() => pick({ type: 'vibe' })} /> : null}
+            {canModerate && !isMine ? <Option label={t('communities.removePost')} danger onPress={() => pick({ type: 'removeFromCommunity' })} /> : null}
+            {isMine ? (
+              <Option label={deleteLabel ?? t('feed.delete')} danger onPress={() => pick({ type: 'delete' })} />
+            ) : (
+              <>
+                <Option label={t('feed.report')} onPress={() => setStep('reasons')} />
+                <Option label={t('feed.block', { username })} danger onPress={() => pick({ type: 'block' })} />
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={[text.label, { padding: space.md }]}>{t('report.title')}</Text>
+            {reportReasonSchema.options.map((reason) => (
+              <Option key={reason} label={t(`report.${reason}`)} onPress={() => pick({ type: 'report', reason })} />
+            ))}
+          </>
+        )}
+        <Option label={t('common.cancel')} onPress={close} />
+      </View>
+    </BottomSheet>
   );
 }
 
@@ -87,8 +85,6 @@ function Option({ label, onPress, danger }: { label: string; onPress: () => void
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { ...glass.sheet, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.sm, paddingBottom: space.xxl },
   option: { padding: space.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   optionText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },
 });

@@ -24,7 +24,7 @@ import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { Spinner } from '../../components/Spinner';
-import { SheetBackdrop } from '../../components/ui';
+import { BottomSheet } from '../../components/BottomSheet';
 import { webTouch } from '../../lib/touch';
 import { Verified } from '../../components/Verified';
 import { confirmAction, notify } from '../../lib/dialogs';
@@ -612,39 +612,37 @@ function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () 
   const { t } = useTranslation();
   const viewers = useQuery({ queryKey: ['vibe-viewers', vibeId], queryFn: () => fetchVibeViewers(vibeId!), enabled: !!vibeId });
   return (
-    <Modal visible={!!vibeId} transparent animationType="slide" onRequestClose={onClose}>
-      <SheetBackdrop style={styles.backdrop} onClose={onClose} label={t('common.close')}>
-        <View style={styles.sheet}>
-          <Text style={styles.sheetTitle}>{t('vibes.viewersTitle')}</Text>
-          {viewers.isLoading ? (
-            <PeopleSkeleton count={4} avatar={36} />
-          ) : (
-            <FlatList
-              data={viewers.data ?? []}
-              keyExtractor={(v) => v.username}
-              ListEmptyComponent={<Text style={styles.empty}>{t('vibes.noViewers')}</Text>}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={styles.viewerRow}
-                  accessibilityRole="link"
-                  onPress={() => {
-                    onClose();
-                    router.push(`/u/${item.username}`);
-                  }}
-                >
-                  <RingAvatar uri={item.avatar_url} name={item.display_name} size={36} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.viewerName}>{item.display_name}</Text>
-                    <Text style={styles.viewerHandle}>@{item.username}</Text>
-                  </View>
-                  <Text style={styles.time}>{relativeTime(item.viewed_at)}</Text>
-                </Pressable>
-              )}
-            />
-          )}
-        </View>
-      </SheetBackdrop>
-    </Modal>
+    <BottomSheet visible={!!vibeId} onClose={onClose} label={t('common.close')} style={styles.sheet}>
+      <View style={{ gap: space.md, flexShrink: 1 }}>
+        <Text style={styles.sheetTitle}>{t('vibes.viewersTitle')}</Text>
+        {viewers.isLoading ? (
+          <PeopleSkeleton count={4} avatar={36} />
+        ) : (
+          <FlatList
+            data={viewers.data ?? []}
+            keyExtractor={(v) => v.username}
+            ListEmptyComponent={<Text style={styles.empty}>{t('vibes.noViewers')}</Text>}
+            renderItem={({ item }) => (
+              <Pressable
+                style={styles.viewerRow}
+                accessibilityRole="link"
+                onPress={() => {
+                  onClose();
+                  router.push(`/u/${item.username}`);
+                }}
+              >
+                <RingAvatar uri={item.avatar_url} name={item.display_name} size={36} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.viewerName}>{item.display_name}</Text>
+                  <Text style={styles.viewerHandle}>@{item.username}</Text>
+                </View>
+                <Text style={styles.time}>{relativeTime(item.viewed_at)}</Text>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+    </BottomSheet>
   );
 }
 
@@ -685,7 +683,7 @@ const styles = StyleSheet.create({
   },
   viewersText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.text },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '60%', backgroundColor: colors.background, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: space.lg, gap: space.md },
+  sheet: { maxHeight: '60%', padding: space.lg },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text, textAlign: 'center' },
   empty: { fontFamily: fonts.regular, fontSize: 13, color: colors.textMuted, textAlign: 'center', padding: space.lg },
   viewerRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
