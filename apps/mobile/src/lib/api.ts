@@ -543,11 +543,25 @@ export async function trackLink(previewId: string, platform: StreamingChoice): P
   return data.url;
 }
 
-/** As mais tocadas no mundo (Last.fm), pelo servidor. */
-export async function fetchWorldChart(): Promise<{ updated_at: string; stale: boolean; entries: ChartTrack[] }> {
-  const { data, error } = await invokeFunction('music-charts', { body: { action: 'chart' } });
+/** Período do ranking mundial: sempre os últimos 7, 30 ou 360 dias. */
+export type ChartPeriod = 'week' | 'month' | 'year';
+export const CHART_PERIOD_DAYS: Record<ChartPeriod, number> = { week: 7, month: 30, year: 360 };
+
+export interface WorldChart {
+  period: ChartPeriod;
+  /** Em quantos dias do período houve foto do ranking (no começo, menos que o período). */
+  days: number;
+  updated_at: string;
+  stale: boolean;
+  entries: ChartTrack[];
+}
+
+/** As mais ouvidas no mundo (Last.fm) na semana, no mês ou no ano, pelo servidor. */
+export async function fetchWorldChart(period: ChartPeriod = 'week'): Promise<WorldChart> {
+  const { data, error } = await invokeFunction('music-charts', { body: { action: 'chart', period } });
   if (error) throw await functionError('music-charts', error, 'charts_unavailable');
-  return data as { updated_at: string; stale: boolean; entries: ChartTrack[] };
+  const chart = data as WorldChart;
+  return { ...chart, period: chart.period ?? period, days: chart.days ?? CHART_PERIOD_DAYS[period] };
 }
 
 /** Link da música do ranking na plataforma escolhida (exato, ou a busca dela na plataforma). */

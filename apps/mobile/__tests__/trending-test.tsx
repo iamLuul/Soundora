@@ -5,6 +5,13 @@ import type { ChartTrack } from '../src/lib/api';
 import i18n from '../src/lib/i18n';
 
 const mockOpenURL = jest.fn(async (_url: string) => true);
+const mockChart = jest.fn(async (period: string) => ({
+  period,
+  days: period === 'month' ? 12 : 7,
+  updated_at: '2026-10-11T12:00:00Z',
+  stale: false,
+  entries: mockEntries,
+}));
 const mockLink = jest.fn();
 const mockPlatform = jest.fn();
 const mockSetPlatform = jest.fn(async (_platform: string) => undefined);
@@ -14,18 +21,49 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('../src/lib/supabase', () => ({ supabase: {} }));
 jest.mock('../src/lib/api', () => ({
   ...jest.requireActual('../src/lib/api'),
-  fetchWorldChart: async () => ({ updated_at: '2026-10-11T12:00:00Z', stale: false, entries: mockEntries }),
+  fetchWorldChart: (period = 'week') => mockChart(period),
   chartTrackLink: (...a: unknown[]) => mockLink(...a),
   getStreamingPlatform: () => mockPlatform(),
   setStreamingPlatform: (p: string) => mockSetPlatform(p),
   fetchTopAlbums: async () => [
-    { rank: 1, album_id: 'a1', title: 'Discovery', artist: 'Daft Punk', image_url: null, url: 'https://www.deezer.com/album/1', platform: 'deezer', year: 2001, review_count: 12, average: 9.4 },
-    { rank: 2, album_id: 'a2', title: 'Homework', artist: 'Daft Punk', image_url: null, url: 'https://www.deezer.com/album/2', platform: 'deezer', year: 1997, review_count: 1, average: 10 },
+    {
+      rank: 1,
+      album_id: 'a1',
+      title: 'Discovery',
+      artist: 'Daft Punk',
+      image_url: null,
+      url: 'https://www.deezer.com/album/1',
+      platform: 'deezer',
+      year: 2001,
+      review_count: 12,
+      average: 9.4,
+    },
+    {
+      rank: 2,
+      album_id: 'a2',
+      title: 'Homework',
+      artist: 'Daft Punk',
+      image_url: null,
+      url: 'https://www.deezer.com/album/2',
+      platform: 'deezer',
+      year: 1997,
+      review_count: 1,
+      average: 10,
+    },
   ],
 }));
 
 const mockEntries: ChartTrack[] = [
-  { position: 1, key: 'sabrina|espresso', title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n Sweet', image_url: null, move: 'new', previous_position: null },
+  {
+    position: 1,
+    key: 'sabrina|espresso',
+    title: 'Espresso',
+    artist: 'Sabrina Carpenter',
+    album: 'Short n Sweet',
+    image_url: null,
+    move: 'new',
+    previous_position: null,
+  },
   { position: 2, key: 'kendrick|not like us', title: 'Not Like Us', artist: 'Kendrick Lamar', album: null, image_url: null, move: 'up', previous_position: 5 },
 ];
 
@@ -96,4 +134,22 @@ test('Top Reviews: álbuns com a média ao lado; tocar abre o álbum', async () 
   // Volta para o Top Global.
   await fireEvent.press(screen.getByTestId('trending-view-global'));
   expect(await screen.findByText('Espresso')).toBeTruthy();
+});
+
+describe('período do ranking', () => {
+  test('Semana, Mês e Ano: pede o período escolhido; avisa quando ainda há menos dias guardados', async () => {
+    await wrap();
+    await waitFor(() => expect(screen.getByText('Espresso')).toBeTruthy());
+    expect(mockChart).toHaveBeenLastCalledWith('week');
+    expect(screen.getByTestId('chart-period-week').props.accessibilityState.selected).toBe(true);
+    expect(screen.queryByTestId('chart-partial')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('chart-period-month'));
+    await waitFor(() => expect(mockChart).toHaveBeenLastCalledWith('month'));
+    await waitFor(() => expect(screen.getByTestId('chart-partial')).toBeTruthy());
+    expect(screen.getByText(/12 de 30 dias/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('chart-period-year'));
+    await waitFor(() => expect(mockChart).toHaveBeenLastCalledWith('year'));
+  });
 });

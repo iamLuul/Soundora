@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { router, usePathname, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { chartTrackLink, fetchWorldChart, type ChartTrack } from '../../lib/api';
+import { chartTrackLink, fetchWorldChart, type ChartPeriod, type ChartTrack } from '../../lib/api';
+import { ChartPeriodPicker } from '../ChartPeriodPicker';
 import { keys } from '../../lib/queries';
 import { colors, fonts, space, text } from '../../theme';
 import { DiscoverLiked } from '../DiscoverLiked';
@@ -32,19 +32,19 @@ export function RightPanel() {
   return (
     // Largura fixa por fora: na web o ScrollView cresce para ocupar o espaço que sobra.
     <View style={styles.panel}>
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      role="complementary"
-      aria-label={t('desktop.panel')}
-    >
-      {discover ? null : <PanelSearch />}
-      <SuggestedAccounts panel testID="panel-suggested" />
-      {discover ? <DiscoverLiked panel /> : <MostListened />}
-      <SupportCard />
-      <Footer />
-    </ScrollView>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        role="complementary"
+        aria-label={t('desktop.panel')}
+      >
+        {discover ? null : <PanelSearch />}
+        <SuggestedAccounts panel testID="panel-suggested" />
+        {discover ? <DiscoverLiked panel /> : <MostListened />}
+        <SupportCard />
+        <Footer />
+      </ScrollView>
     </View>
   );
 }
@@ -59,13 +59,16 @@ function PanelSearch() {
     router.navigate({ pathname: '/discover', params: { section: 'search', q } });
     setQuery('');
   };
-  return <SearchField testID="panel-search" value={query} onChangeText={setQuery} onSubmitEditing={submit} placeholder={t('search.placeholder')} maxLength={100} />;
+  return (
+    <SearchField testID="panel-search" value={query} onChangeText={setQuery} onSubmitEditing={submit} placeholder={t('search.placeholder')} maxLength={100} />
+  );
 }
 
-/** Figma: Most Listened Songs — as 10 primeiras do ranking da semana; abre na plataforma da pessoa. */
+/** Figma: Most Listened Songs — as 10 primeiras do ranking (semana, mês ou ano); abre na plataforma da pessoa. */
 function MostListened() {
   const { t } = useTranslation();
-  const chart = useQuery({ queryKey: keys.worldChart, queryFn: fetchWorldChart, staleTime: 10 * 60_000 });
+  const [period, setPeriod] = useState<ChartPeriod>('week');
+  const chart = useQuery({ queryKey: keys.worldChart(period), queryFn: () => fetchWorldChart(period), staleTime: 10 * 60_000 });
   const { open, opening, message, chooser } = useStreamingOpener((target, choice) => chartTrackLink(target.key, choice));
   const onPress = (item: ChartTrack) => open({ key: item.key, title: item.title, artist: item.artist });
   const items = (Array.isArray(chart.data) ? [] : (chart.data?.entries ?? [])).slice(0, CHART_ROWS);
@@ -76,10 +79,7 @@ function MostListened() {
         <Text style={styles.title} accessibilityRole="header">
           {t('desktop.mostListened')}
         </Text>
-        <View style={styles.week}>
-          <Ionicons name="calendar-outline" size={12} color={colors.text} />
-          <Text style={styles.weekText}>{t('trending.thisWeek')}</Text>
-        </View>
+        <ChartPeriodPicker value={period} onChange={setPeriod} testID="panel-period" />
       </View>
       {chart.isLoading ? (
         <TrackListSkeleton count={5} rank />
@@ -121,8 +121,6 @@ const styles = StyleSheet.create({
   content: { gap: space.xl, paddingTop: 40, paddingBottom: space.xxl, paddingLeft: space.xl },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.xs },
   title: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  week: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  weekText: { fontFamily: fonts.regular, fontSize: 11, color: colors.text },
   footer: { flexDirection: 'row', flexWrap: 'wrap', columnGap: space.md, rowGap: space.xs },
   footerText: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted },
 });

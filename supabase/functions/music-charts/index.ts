@@ -45,26 +45,27 @@ Deno.serve(
       if (error) throw error;
       return data as Snapshot | null;
     },
-    async previousSnapshot(today) {
-      const weekAgo = new Date(new Date(`${today}T00:00:00Z`).getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
-      const old = await admin
+    async ranking(from, to) {
+      // A conta é feita no banco (public.music_chart_ranking), sem trazer 360 dias de fotos.
+      const [rows, count] = await Promise.all([
+        admin.rpc('music_chart_ranking', { p_from: from, p_to: to }),
+        admin.from('music_chart_snapshots').select('taken_on', { count: 'exact', head: true }).gte('taken_on', from).lte('taken_on', to),
+      ]);
+      if (rows.error) throw rows.error;
+      if (count.error) throw count.error;
+      const entries = ((rows.data ?? []) as { entry: ChartEntry }[]).map((r, i) => ({ ...r.entry, position: i + 1 }));
+      return { entries, days: count.count ?? 0 };
+    },
+    async findEntry(key) {
+      const { data, error } = await admin
         .from('music_chart_snapshots')
-        .select(COLUMNS)
-        .lte('taken_on', weekAgo)
+        .select('entries')
+        .contains('entries', [{ key }])
         .order('taken_on', { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (old.error) throw old.error;
-      if (old.data) return old.data as Snapshot;
-      const first = await admin
-        .from('music_chart_snapshots')
-        .select(COLUMNS)
-        .lt('taken_on', today)
-        .order('taken_on', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (first.error) throw first.error;
-      return first.data as Snapshot | null;
+      if (error) throw error;
+      return ((data?.entries ?? []) as ChartEntry[]).find((e) => e.key === key) ?? null;
     },
     async saveSnapshot(takenOn, entries: ChartEntry[]) {
       const { error } = await admin.from('music_chart_snapshots').upsert({ taken_on: takenOn, fetched_at: new Date().toISOString(), entries });

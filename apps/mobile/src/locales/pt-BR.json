@@ -347,7 +347,12 @@
     "reviewCount_one": "{{count}} review",
     "reviewCount_other": "{{count}} reviews",
     "averageLabel": "Média {{average}} de 10",
-    "rowReviewLabel": "{{rank}}º, {{title}}, {{artist}}, média {{average}}, {{count}} reviews"
+    "rowReviewLabel": "{{rank}}º, {{title}}, {{artist}}, média {{average}}, {{count}} reviews",
+    "week": "Semana",
+    "month": "Mês",
+    "year": "Ano",
+    "periodLabel": "Período do ranking",
+    "partial": "Com base em {{count}} de {{total}} dias (o ranking começou a ser guardado há pouco)."
   },
   "search": {
     "placeholder": "Busque pessoas, músicas, gêneros ou posts",

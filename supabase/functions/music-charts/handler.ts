@@ -1,13 +1,65 @@
 // Lógica da Edge Function music-charts, separada do Deno.serve para poder ser testada
 // com Supabase e APIs simulados (handler.test.ts).
 //
-// { action: 'chart' }                       → as 50 mais tocadas no mundo (Last.fm), com capa e se subiu/caiu
+// { action: 'chart', period? }              → as 50 mais ouvidas no mundo (Last.fm) na semana (7 dias),
+//                                              no mês (30 dias) ou no ano (360 dias), com capa e se subiu/caiu
+//
+// Cada período é uma conta sobre as fotos diárias do ranking do Last.fm (uma por dia, guardadas
+// por 360 dias): em cada dia, a 1ª colocada ganha 50 pontos, a 50ª ganha 1 e quem não estava,
+// 0. Vence quem somar mais pontos; empate: mais dias no ranking, depois a melhor posição.
+// Os pontos não aparecem no app, só a ordem. Subiu/caiu compara com o período anterior do
+// mesmo tamanho (no ano não há: só guardamos 360 dias).
 // { action: 'link', key, platform }         → link da música na plataforma da pessoa (ou a busca nela)
 import { readJsonLimited } from '../_shared/body.ts';
 import { isChartSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry, type TrackMeta } from '../_shared/links/charts.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
+
+export type ChartPeriod = 'week' | 'month' | 'year';
+/** Dias de cada período (sempre os últimos N dias, para o ranking ficar estável). */
+export const PERIOD_DAYS: Record<ChartPeriod, number> = { week: 7, month: 30, year: 360 };
+const isPeriod = (v: unknown): v is ChartPeriod => v === 'week' || v === 'month' || v === 'year';
+
+/** Ranking de um período: as músicas na ordem e em quantos dias do período houve foto. */
+export interface PeriodRanking {
+  entries: ChartEntry[];
+  days: number;
+}
+
+/**
+ * A mesma conta do banco (public.music_chart_ranking), para os testes e como referência:
+ * pontos por posição em cada dia (51 − posição), desempate por dias no ranking e melhor posição.
+ */
+export function aggregateChart(snapshots: Snapshot[], size = 50): PeriodRanking {
+  const byKey = new Map<string, { points: number; days: number; best: number; entry: ChartEntry; last: string }>();
+  for (const snap of snapshots) {
+    for (const e of snap.entries) {
+      const cur = byKey.get(e.key);
+      const points = Math.max(0, 51 - e.position);
+      if (!cur) byKey.set(e.key, { points, days: 1, best: e.position, entry: e, last: snap.taken_on });
+      else {
+        cur.points += points;
+        cur.days += 1;
+        cur.best = Math.min(cur.best, e.position);
+        if (snap.taken_on > cur.last) {
+          cur.entry = e;
+          cur.last = snap.taken_on;
+        }
+      }
+    }
+  }
+  const ranked = [...byKey.entries()]
+    .sort(([ka, a], [kb, b]) => b.points - a.points || b.days - a.days || a.best - b.best || ka.localeCompare(kb))
+    .slice(0, size)
+    .map(([, v], i) => ({ ...v.entry, position: i + 1 }));
+  return { entries: ranked, days: snapshots.length };
+}
+
+/** "2026-10-11" menos n dias. */
+export function shiftDay(day: string, n: number): string {
+  return new Date(new Date(`${day}T00:00:00Z`).getTime() - n * 86_400_000).toISOString().slice(0, 10);
+}
 /** O ranking muda pouco: busca de novo no Last.fm a cada 3 h. */
 export const CHART_TTL_MS = 3 * 3600_000;
 /** Links por plataforma valem 30 dias. */
@@ -33,8 +85,10 @@ export interface Deps {
   rateLimit(userId: string, action: keyof typeof RATE): Promise<boolean>;
   /** Ranking mais recente guardado. */
   latestSnapshot(): Promise<Snapshot | null>;
-  /** Ranking para comparar com o de hoje: o mais novo com ao menos 7 dias; senão, o mais antigo antes de hoje. */
-  previousSnapshot(today: string): Promise<Snapshot | null>;
+  /** Ranking somado das fotos diárias entre `from` e `to` (inclusive; datas AAAA-MM-DD). */
+  ranking(from: string, to: string): Promise<PeriodRanking>;
+  /** A música mais recente com esta chave nas fotos guardadas (para o link de uma música do mês/ano). */
+  findEntry(key: string): Promise<ChartEntry | null>;
   saveSnapshot(takenOn: string, entries: ChartEntry[]): Promise<void>;
   /** Baixa o ranking (Last.fm + Deezer). LastfmKeyError = chave ausente ou recusada. */
   fetchChart(): Promise<ChartEntry[] | null>;
@@ -105,12 +159,18 @@ export function createHandler(deps: Deps) {
     return latest ? { snapshot: latest, stale: true } : 'unavailable';
   }
 
-  async function chart(): Promise<Response> {
+  async function chart(period: ChartPeriod): Promise<Response> {
     const current = await currentChart();
     if (current === 'unavailable') return json({ error: 'charts_unavailable' }, 503);
     const { snapshot, stale } = current;
-    const previous = await deps.previousSnapshot(snapshot.taken_on);
-    const entries = rankWithMoves(snapshot.entries, previous?.entries ?? null).map((e) => ({
+    const days = PERIOD_DAYS[period];
+    const to = snapshot.taken_on;
+    const from = shiftDay(to, days - 1);
+    const now_ = await deps.ranking(from, to);
+    // Período anterior do mesmo tamanho (no ano não: só guardamos 360 dias).
+    const before = period === 'year' ? null : await deps.ranking(shiftDay(from, days), shiftDay(from, 1));
+    const list = now_.entries.length ? now_.entries : snapshot.entries;
+    const entries = rankWithMoves(list, before && before.days > 0 ? before.entries : null).map((e) => ({
       position: e.position,
       key: e.key,
       title: e.title,
@@ -120,7 +180,7 @@ export function createHandler(deps: Deps) {
       move: e.move,
       previous_position: e.previousPosition,
     }));
-    return json({ updated_at: snapshot.fetched_at, stale, entries });
+    return json({ period, days: Math.max(1, now_.days), updated_at: snapshot.fetched_at, stale, entries });
   }
 
   async function link(body: { key?: unknown; platform?: unknown }): Promise<Response> {
@@ -128,7 +188,8 @@ export function createHandler(deps: Deps) {
     const platform = body.platform;
     // Só músicas do ranking: ninguém usa a função para consultar o song.link à vontade.
     const latest = await deps.latestSnapshot();
-    const entry = latest?.entries.find((e) => e.key === body.key);
+    // Música do ranking de hoje ou de algum dia guardado (o mês e o ano têm músicas que já saíram).
+    const entry = latest?.entries.find((e) => e.key === body.key) ?? (await deps.findEntry(body.key));
     if (!entry) return json({ error: 'not_found' }, 404);
     const search = platformSearchUrl(platform, entry.title, entry.artist);
 
@@ -179,15 +240,56 @@ export function createHandler(deps: Deps) {
 
     const read = await readJsonLimited(req, MAX_BODY_BYTES);
     if (!read.ok) return json({ error: read.error }, read.error === 'payload_too_large' ? 413 : 400);
-    const body = (read.value ?? {}) as { action?: unknown; key?: unknown; platform?: unknown };
+    const body = (read.value ?? {}) as { action?: unknown; key?: unknown; platform?: unknown; period?: unknown };
     if (body.action !== 'chart' && body.action !== 'link') return json({ error: 'invalid_request' }, 400);
+    const period = body.period ?? 'week';
+    if (!isPeriod(period)) return json({ error: 'invalid_request' }, 400);
 
     try {
       if (!(await deps.rateLimit(userId, body.action))) return json({ error: 'rate_limited', retry_after: 60 }, 429);
-      return body.action === 'chart' ? await chart() : await link(body);
+      return body.action === 'chart' ? await chart(period) : await link(body);
     } catch (err) {
       log('music-charts: erro', err);
       return json({ error: 'internal', ...(deps.debug ? { detail: describe(err) } : {}) }, 500);
     }
   };
+}
+
+/**
+ * Foto diária do ranking (Edge Function music-charts-daily, chamada pela tarefa agendada do
+ * banco uma vez por dia). Só aceita quem tem o segredo da tarefa (cabeçalho x-cron-secret);
+ * se a foto de hoje já foi tirada há pouco (alguém abriu o Trending), não busca de novo.
+ */
+export function createDailyHandler(deps: Pick<Deps, 'latestSnapshot' | 'saveSnapshot' | 'fetchChart' | 'now' | 'log'> & { secret: string | undefined }) {
+  const log = deps.log ?? console.error;
+  const now = deps.now ?? (() => new Date());
+  return async (req: Request): Promise<Response> => {
+    await req.body?.cancel().catch(() => {});
+    if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'method_not_allowed' }), { status: 405 });
+    const given = req.headers.get('x-cron-secret') ?? '';
+    if (!deps.secret || deps.secret.length < 32 || !safeEqual(given, deps.secret)) return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
+    try {
+      const today = now().toISOString().slice(0, 10);
+      const latest = await deps.latestSnapshot();
+      if (latest?.taken_on === today && now().getTime() - new Date(latest.fetched_at).getTime() < CHART_TTL_MS) {
+        return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 });
+      }
+      const entries = await deps.fetchChart();
+      if (!entries?.length) return new Response(JSON.stringify({ error: 'charts_unavailable' }), { status: 503 });
+      await deps.saveSnapshot(today, entries);
+      return new Response(JSON.stringify({ ok: true, taken_on: today }), { status: 200 });
+    } catch (err) {
+      log('music-charts-daily: falha', err);
+      return new Response(JSON.stringify({ error: 'internal' }), { status: 500 });
+    }
+  };
+}
+
+/** Compara sem vazar pelo tempo de resposta onde as strings diferem. */
+function safeEqual(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a);
+  const y = new TextEncoder().encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
 }

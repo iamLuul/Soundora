@@ -110,6 +110,11 @@ verify_jwt = true
 [functions.music-charts]
 verify_jwt = true
 
+# Foto diária do ranking, chamada só pela tarefa agendada do banco (pg_cron). Sem login de
+# pessoa: a função confere o segredo CHARTS_CRON_SECRET no cabeçalho x-cron-secret.
+[functions.music-charts-daily]
+verify_jwt = false
+
 # Descobrir (sugestões pelo Last.fm + Deezer): exige login (e a função confere o usuário de novo).
 [functions.discover]
 verify_jwt = true
