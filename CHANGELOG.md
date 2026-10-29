@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.52 · Trending: mais ouvidas da semana, do mês e do ano (últimos 7, 30 e 360 dias)
+
+- `0.52.0.10.26` · 29/10/2026 · Trending: mais ouvidas da semana, do mês e do ano (últimos 7, 30 e 360 dias) (0d50dde)
+
 ## 0.51 · Arrastar entre telas mostra a vizinha; Mensagens entram e saem com o dedo
 
 - `0.51.0.10.26` · 29/10/2026 · Arrastar entre telas mostra a vizinha; Mensagens entram e saem com o dedo (7e59d99)
