@@ -236,7 +236,13 @@
     "nextMedia": "Próxima",
     "mute": "Desativar o som do vídeo",
     "unmute": "Ativar o som do vídeo",
-    "pauseVideo": "Pausar o vídeo"
+    "pauseVideo": "Pausar o vídeo",
+    "showControls": "Mostrar os controles do vídeo",
+    "hideControls": "Esconder os controles do vídeo",
+    "back10": "Voltar 10 segundos",
+    "forward10": "Avançar 10 segundos",
+    "seek": "Posição do vídeo",
+    "fullscreen": "Ver em tela cheia"
   },
   "profile": {
     "followers": "Seguidores",

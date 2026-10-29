@@ -236,7 +236,13 @@
     "nextMedia": "Next",
     "mute": "Mute video",
     "unmute": "Unmute video",
-    "pauseVideo": "Pause video"
+    "pauseVideo": "Pause video",
+    "showControls": "Show video controls",
+    "hideControls": "Hide video controls",
+    "back10": "Back 10 seconds",
+    "forward10": "Forward 10 seconds",
+    "seek": "Video position",
+    "fullscreen": "Full screen"
   },
   "profile": {
     "followers": "Followers",
