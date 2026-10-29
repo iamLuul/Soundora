@@ -11,6 +11,7 @@ import { SuggestedAccounts } from '../../components/SuggestedAccounts';
 import { SuspendedBanner } from '../../components/SuspendedBanner';
 import { renewFeed, useFeed, useFollowingFeed, useReviewsForYou, useSuggestedAccounts } from '../../lib/queries';
 import { markSeen } from '../../lib/seen-posts';
+import { FeedActiveContext } from '../../lib/feed-video';
 import { useHomeReturn } from '../../lib/tab-focus';
 import { colors, space, text } from '../../theme';
 import { formatError } from '../../lib/errors';
@@ -65,14 +66,21 @@ export default function FeedScreen() {
         steps={[{ icon: 'megaphone-outline', title: t('ads.introTitle'), body: t('ads.introBody') }]}
       />
       {/* As duas ficam montadas: trocar de aba não perde a rolagem nem busca de novo. */}
+      {/* Só a aba aberta toca vídeo (as outras continuam montadas, escondidas). */}
       <View style={{ flex: 1, display: tab === 'feed' ? 'flex' : 'none' }}>
-        <ForYou adsEvery={ads.feedEvery} />
+        <FeedActiveContext.Provider value={tab === 'feed'}>
+          <ForYou adsEvery={ads.feedEvery} />
+        </FeedActiveContext.Provider>
       </View>
       <View style={{ flex: 1, display: tab === 'following' ? 'flex' : 'none' }}>
-        <Following active={tab === 'following'} adsEvery={ads.feedEvery} />
+        <FeedActiveContext.Provider value={tab === 'following'}>
+          <Following active={tab === 'following'} adsEvery={ads.feedEvery} />
+        </FeedActiveContext.Provider>
       </View>
       <View style={{ flex: 1, display: tab === 'communities' ? 'flex' : 'none' }}>
-        <CommunitiesFeed active={tab === 'communities'} />
+        <FeedActiveContext.Provider value={tab === 'communities'}>
+          <CommunitiesFeed active={tab === 'communities'} />
+        </FeedActiveContext.Provider>
       </View>
     </View>
   );

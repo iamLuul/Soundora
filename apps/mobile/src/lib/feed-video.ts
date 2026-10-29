@@ -71,6 +71,17 @@ export function usePostVisible(postId: string | undefined): boolean {
   return useSyncExternalStore(subscribe, get, get);
 }
 
+/**
+ * A parte da tela onde a lista está aparece agora? Telas com abas internas que ficam todas
+ * montadas (Início: Para você, Seguindo, Comunidades) marcam as escondidas com false: o vídeo
+ * delas não toca, mesmo que o post esteja "na tela" da própria lista.
+ */
+export const FeedActiveContext = createContext(true);
+
+export function useFeedActive(): boolean {
+  return useContext(FeedActiveContext);
+}
+
 /** "0:07", "1:23": quanto falta (ou a duração). */
 export function formatClock(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));

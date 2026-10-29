@@ -12,7 +12,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
 import { display } from '../lib/display';
-import { formatClock, useFeedMuted, usePostVisible } from '../lib/feed-video';
+import { formatClock, useFeedActive, useFeedMuted, usePostVisible } from '../lib/feed-video';
 import { colors, fonts, gradients } from '../theme';
 import { MediaViewer, type ViewerItem } from './MediaViewer';
 import { lockSwipe, swallowNextClick } from './SwipeTabs';
@@ -115,7 +115,9 @@ function PostVideo({ uri, postId }: { uri: string; postId?: string }) {
   const onScreen = usePostVisible(postId);
   const focused = useIsFocused();
   const appActive = useAppActive();
-  const visible = onScreen && focused && appActive;
+  // Aba interna escondida (ex.: Seguindo, com o Para você aberto) também não toca.
+  const active = useFeedActive();
+  const visible = onScreen && focused && appActive && active;
   // Já apareceu uma vez (ou a pessoa tocou no play): o player existe daí em diante.
   const [started, setStarted] = useState(false);
   const autoplay = !display.reduceMotion;

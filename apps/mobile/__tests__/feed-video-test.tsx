@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { PostMedia } from '../src/components/PostMedia';
-import { formatClock, resetFeedMuted, VisiblePosts, VisiblePostsContext } from '../src/lib/feed-video';
+import { FeedActiveContext, formatClock, resetFeedMuted, VisiblePosts, VisiblePostsContext } from '../src/lib/feed-video';
 import i18n from '../src/lib/i18n';
 
 const mockPlayers: { play: jest.Mock; pause: jest.Mock; muted: boolean; loop: boolean }[] = [];
@@ -108,4 +108,23 @@ test('tocar no vídeo mostra os controles: play/pause, voltar/avançar 10 s, lin
 
   // O mock começa parado: o botão do meio é "play"; tocar nele marca como pausado pela pessoa ou continua.
   expect(screen.getByLabelText('Assistir ao vídeo')).toBeTruthy();
+});
+
+test('aba interna escondida (Seguindo com o Para você aberto): o vídeo dela não toca', async () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const tree = (active: boolean) => (
+    <QueryClientProvider client={qc}>
+      <FeedActiveContext.Provider value={active}>
+        <PostMedia media={video} postId="p1" />
+      </FeedActiveContext.Provider>
+    </QueryClientProvider>
+  );
+  const view = await render(tree(true));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  const p = mockPlayers[0]!;
+  expect(p.play).toHaveBeenCalled();
+  await view.rerender(tree(false));
+  expect(p.pause).toHaveBeenCalled();
 });
