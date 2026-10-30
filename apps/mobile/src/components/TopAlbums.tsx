@@ -76,7 +76,10 @@ export function TopAlbumList({
         keyExtractor={(i) => i.album_id}
         ListHeaderComponent={header}
         renderItem={({ item }) => <TopAlbumRow item={item} onPress={onPress} />}
-        contentContainerStyle={{ paddingBottom: space.xxl + tabInset }}
+        // A lista vai até a beirada da coluna (a barra de rolagem do computador fica no vão entre os
+        // ícones e a linha lateral); o conteúdo continua no mesmo lugar.
+        style={{ marginRight: -space.md }}
+        contentContainerStyle={{ paddingBottom: space.xxl + tabInset, paddingRight: space.md }}
         ListEmptyComponent={
           loading ? (
             <TrackListSkeleton count={8} rank />
