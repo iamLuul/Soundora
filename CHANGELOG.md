@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.52 · Trending: mais ouvidas da semana, do mês e do ano (últimos 7, 30 e 360 dias)
 
+- `0.52.2.10.26` · 29/10/2026 · Computador: abas não se sobrepõem mais (Descobrir aparecia por cima) (ae113d0)
 - `0.52.1.10.26` · 29/10/2026 · Computador: menu da conta fecha clicando fora; vídeo com controles no mouse e do tamanho do post (4f2bf78)
 - `0.52.0.10.26` · 29/10/2026 · Trending: mais ouvidas da semana, do mês e do ano (últimos 7, 30 e 360 dias) (0d50dde)
 
