@@ -294,11 +294,16 @@ export function SwipeTabs({
     }
   };
 
+  // As telas têm fundo transparente (o brilho do fundo aparece atrás) e todas as abas continuam
+  // montadas umas sobre as outras. Fora do carrossel (computador, e o "+" no celular), a aba que
+  // não está aberta some de vez; no carrossel ela fica fora da tela, ao lado (para o arrasto).
+  const hidden = !active && (desktop || !(SWIPE_TABS as readonly string[]).includes(route));
+
   // O gesto precisa de uma View nativa de verdade (a tela em si é um componente, sem view própria).
   return (
     <GestureDetector gesture={pan}>
       <View
-        style={{ flex: 1 }}
+        style={[{ flex: 1 }, hidden && { display: 'none' }]}
         collapsable={false}
         onLayout={focused ? onLayout : undefined}
         // As abas fechadas continuam montadas, fora da tela: o leitor de tela não deve chegar nelas.
