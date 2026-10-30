@@ -28,10 +28,15 @@ export default function Root({ children }: PropsWithChildren) {
         <ScrollViewStyleReset />
         {/* overscroll-behavior: puxar a lista para baixo não recarrega a página (o app atualiza os dados).
             Campos de texto sem o contorno azul do navegador ao clicar (o cursor piscando já mostra
-            onde se escreve); botões e links continuam com o contorno ao navegar pelo teclado. */}
+            onde se escreve); botões e links continuam com o contorno ao navegar pelo teclado.
+            Barras de rolagem: finas, no tom do app, e só aparecem com o mouse sobre a área que rola
+            (a roda do mouse e o arrasto funcionam sempre). */}
         <style
           dangerouslySetInnerHTML={{
-            __html: 'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}input:focus,textarea:focus,[contenteditable]:focus{outline:none;}',
+            __html:
+              'html,body{overscroll-behavior-y:none;}body{background-color:#3A374C;}input:focus,textarea:focus,[contenteditable]:focus{outline:none;}' +
+              '*{scrollbar-width:thin;scrollbar-color:transparent transparent;}' +
+              '*:hover{scrollbar-color:rgba(194,190,221,0.35) transparent;}',
           }}
         />
         {/* Esqueleto de abertura: o de celular ou o de desktop, pela largura (antes do JavaScript). */}
