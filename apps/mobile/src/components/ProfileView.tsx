@@ -356,25 +356,6 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
           <Text style={styles.handle} numberOfLines={1}>
             @{p.username}
           </Text>
-          {p.is_me ? (
-            <Pill testID="edit-profile" label={t('profile.edit')} onPress={() => router.push('/settings/profile')} />
-          ) : (
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <Pill
-                testID="follow-button"
-                accessibilityHint={p.i_follow ? t('profile.unfollow') : p.requested ? t('profile.cancelRequest') : undefined}
-                label={p.i_follow ? t('profile.followingButton') : p.requested ? t('profile.requested') : t('profile.follow')}
-                variant={p.i_follow || p.requested ? 'outline' : 'primary'}
-                onPress={toggleFollow}
-              />
-              <Pill
-                testID="message-button"
-                label={t('messages.messageButton')}
-                variant="outline"
-                onPress={() => void openConversationWith(p).catch((err) => notify(formatError(t, err)))}
-              />
-            </View>
-          )}
         </View>
 
         <View style={styles.side} pointerEvents="box-none">
@@ -386,6 +367,29 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
             onPress={p.locked ? undefined : () => router.push({ pathname: '/liked/[username]', params: { username: p.username, id: p.id } })}
           />
         </View>
+      </View>
+
+      {/* Seguir e Mensagem numa linha própria, embaixo: não aperta os cartões dos lados. */}
+      <View style={styles.actionsRow}>
+        {p.is_me ? (
+          <Pill testID="edit-profile" label={t('profile.edit')} onPress={() => router.push('/settings/profile')} />
+        ) : (
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <Pill
+              testID="follow-button"
+              accessibilityHint={p.i_follow ? t('profile.unfollow') : p.requested ? t('profile.cancelRequest') : undefined}
+              label={p.i_follow ? t('profile.followingButton') : p.requested ? t('profile.requested') : t('profile.follow')}
+              variant={p.i_follow || p.requested ? 'outline' : 'primary'}
+              onPress={toggleFollow}
+            />
+            <Pill
+              testID="message-button"
+              label={t('messages.messageButton')}
+              variant="outline"
+              onPress={() => void openConversationWith(p).catch((err) => notify(formatError(t, err)))}
+            />
+          </View>
+        )}
       </View>
 
       <ProfileGenres userId={p.id} />
@@ -500,6 +504,8 @@ const styles = StyleSheet.create({
   },
   side: { flex: 1, gap: L.gap, paddingTop: L.overlap + 20 },
   center: { alignItems: 'center', minWidth: ringSize, maxWidth: 150 },
+  // Os botões ficam juntos no meio; o Pill já traz o espaço de cima.
+  actionsRow: { flexDirection: 'row', justifyContent: 'center', marginTop: -space.lg },
   avatarRing: {
     width: ringSize,
     height: ringSize,
