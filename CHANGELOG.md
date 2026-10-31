@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.57 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador
+
+- `0.57.0.10.26` · 31/10/2026 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador (976c76d)
+
 ## 0.56 · Perfil: compartilhar, silenciar e denunciar no menu ⋮
 
 - `0.56.3.10.26` · 31/10/2026 · Troca de icon (3da44ea)
