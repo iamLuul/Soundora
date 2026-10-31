@@ -33,9 +33,18 @@ export function useFeedMuted(): [boolean, (next: boolean) => void] {
   return [value, muted.set];
 }
 
+/** Volume (0 a 1) dos vídeos, um só para o app (a barra do computador). */
+const volume = store(1);
+
+export function useFeedVolume(): [number, (next: number) => void] {
+  const value = useSyncExternalStore(volume.subscribe, volume.get, volume.get);
+  return [value, volume.set];
+}
+
 /** Só para os testes. */
 export function resetFeedMuted() {
   muted.set(true);
+  volume.set(1);
 }
 
 /**

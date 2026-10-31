@@ -247,7 +247,9 @@
     "commentOptions": "Opções do comentário",
     "shareComment": "Compartilhar comentário",
     "reportComment": "Denunciar comentário",
-    "commentShareText": "Comentário de @{{username}} no Soundhora:\n\n“{{body}}”\n\n{{link}}"
+    "commentShareText": "Comentário de @{{username}} no Soundhora:\n\n“{{body}}”\n\n{{link}}",
+    "volume": "Volume do vídeo",
+    "exitFullscreen": "Sair da tela cheia"
   },
   "profile": {
     "followers": "Seguidores",

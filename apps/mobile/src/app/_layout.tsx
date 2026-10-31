@@ -22,6 +22,10 @@ import { Backdrop } from '../components/Backdrop';
 import { DesktopShell } from '../components/desktop/DesktopShell';
 import { BootSkeleton } from '../components/desktop/DesktopSkeleton';
 import { ToastHost } from '../components/Toast';
+import { lockPortrait } from '../lib/orientation';
+
+// O app é em pé (só o vídeo em tela cheia deita: lib/orientation).
+lockPortrait();
 
 SplashScreen.preventAutoHideAsync();
 

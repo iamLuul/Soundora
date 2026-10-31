@@ -3,16 +3,19 @@ import { Image } from 'expo-image';
 import { useEvent } from 'expo';
 import { useIsFocused } from 'expo-router';
 import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
-import { useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Modal, Platform, Pressable, StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
 import { display } from '../lib/display';
-import { formatClock, useFeedActive, useFeedMuted, usePlaybackTurn, usePostVisible } from '../lib/feed-video';
+import { formatClock, useFeedActive, useFeedMuted, useFeedVolume, usePlaybackTurn, usePostVisible } from '../lib/feed-video';
+import { lockPortrait, videoFullscreenOrientation } from '../lib/orientation';
 import { colors, fonts, gradients } from '../theme';
 import { MediaViewer, type ViewerItem } from './MediaViewer';
 import { lockSwipe, swallowNextClick } from './SwipeTabs';
@@ -41,7 +44,7 @@ export function PostMedia({ media, postId }: { media: Media[]; postId?: string }
     const uri = urls.data?.[first.path];
     return (
       <View style={[styles.box, { aspectRatio: ratio(first) }]}>
-        {uri ? <PostVideo uri={uri} postId={postId} /> : <Spinner color={colors.muted} style={{ flex: 1 }} />}
+        {uri ? <PostVideo uri={uri} postId={postId} landscape={first.width > first.height} /> : <Spinner color={colors.muted} style={{ flex: 1 }} />}
       </View>
     );
   }
@@ -110,7 +113,7 @@ function useAppActive(): boolean {
  * mesmo; tocar no vídeo pausa e continua. Só baixa quando aparece na tela pela primeira vez.
  * Com "reduzir movimento" ligado, não toca sozinho: espera a pessoa tocar no play.
  */
-function PostVideo({ uri, postId }: { uri: string; postId?: string }) {
+function PostVideo({ uri, postId, landscape }: { uri: string; postId?: string; landscape: boolean }) {
   const { t } = useTranslation();
   const onScreen = usePostVisible(postId);
   const focused = useIsFocused();
@@ -137,22 +140,30 @@ function PostVideo({ uri, postId }: { uri: string; postId?: string }) {
       </Pressable>
     );
   }
-  return <PlayingVideo uri={uri} visible={visible} />;
+  return <PlayingVideo uri={uri} visible={visible} landscape={landscape} />;
 }
 
 /** Computador com mouse (passar o mouse por cima existe): os controles seguem o mouse. */
 const hoverMode = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
 
-function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
+/** Tela cheia do navegador no próprio player (os controles continuam os do Soundhora). */
+const webFullscreen = Platform.OS === 'web' && typeof document !== 'undefined' && typeof document.documentElement?.requestFullscreen === 'function';
+
+function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boolean; landscape: boolean }) {
   const { t } = useTranslation();
   const [muted, setMuted] = useFeedMuted();
+  const [volume, setVolume] = useFeedVolume();
   // Pausado pela pessoa: não volta a tocar sozinho até ela tocar de novo.
   const [userPaused, setUserPaused] = useState(false);
-  // Controles (play/pause, avançar/voltar, linha do tempo, tela cheia): aparecem ao tocar no vídeo.
+  // Controles (play/pause, avançar/voltar, linha do tempo, volume, tela cheia): aparecem ao tocar
+  // no vídeo (celular) ou com o mouse em cima (computador).
   const [controls, setControls] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   // Arrastando a linha do tempo: a posição que o dedo mostra (segundos).
   const [scrub, setScrub] = useState<number | null>(null);
+  // Arrastando a barra de volume: os controles não somem.
+  const [adjusting, setAdjusting] = useState(false);
+  const rootRef = useRef<ViewInstance>(null);
   const videoRef = useRef<VideoView>(null);
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
@@ -189,7 +200,45 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
     },
     [player],
   );
-  useEffect(() => applySound(player, muted), [player, muted]);
+  useEffect(() => applySound(player, muted, volume), [player, muted, volume]);
+
+  // Tela cheia do navegador: Esc (ou o botão) sai e a tela acompanha.
+  useEffect(() => {
+    if (!webFullscreen) return;
+    const onChange = () => setFullscreen(!!document.fullscreenElement && document.fullscreenElement === (rootRef.current as unknown as Element));
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const enterFullscreen = () => {
+    if (webFullscreen) {
+      void (rootRef.current as unknown as HTMLElement | null)?.requestFullscreen?.().catch(() => undefined);
+    } else if (Platform.OS === 'web') {
+      // Navegador sem tela cheia de elemento (Safari do iPhone): a do próprio vídeo.
+      void videoRef.current?.enterFullscreen();
+    } else {
+      setFullscreen(true);
+      videoFullscreenOrientation(landscape);
+    }
+  };
+  const exitFullscreen = () => {
+    if (webFullscreen) {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    } else {
+      setFullscreen(false);
+      lockPortrait();
+    }
+  };
+  // Saiu da tela (fechou o post) em tela cheia: o celular volta a ficar em pé.
+  const wasFullscreen = useRef(false);
+  useEffect(() => {
+    wasFullscreen.current = fullscreen;
+  }, [fullscreen]);
+  useEffect(
+    () => () => {
+      if (wasFullscreen.current) lockPortrait();
+    },
+    [],
+  );
 
   // Computador (mouse): os controles aparecem com o mouse em cima do vídeo e somem quando ele
   // sai ou fica parado por 3 s. Toque (celular): aparecem ao tocar e somem 3 s depois, tocando.
@@ -205,11 +254,11 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   // O que "renova" os 3 s: o mouse mexendo (computador) ou o vídeo andando (toque).
   const activity = hoverMode ? mouseTick : time.currentTime;
   useEffect(() => {
-    if (!controls || scrub !== null) return;
+    if (!controls || scrub !== null || adjusting) return;
     if (!hoverMode && !isPlaying) return;
     const id = setTimeout(() => setControls(false), 3000);
     return () => clearTimeout(id);
-  }, [controls, isPlaying, scrub, activity]);
+  }, [controls, isPlaying, scrub, adjusting, activity]);
 
   const duration = player.duration || 0;
   const now = scrub ?? time.currentTime;
@@ -230,19 +279,24 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
     player.play();
   };
   const skip = (delta: number) => seekTo(player, Math.min(Math.max(0, time.currentTime + delta), Math.max(0, duration - 0.1)));
+  // Volume: arrastar até o fim de baixo deixa mudo; subir liga o som.
+  const changeVolume = (v: number) => {
+    setVolume(v);
+    if (v <= 0.01 && !muted) setMuted(true);
+    else if (v > 0.01 && muted) setMuted(false);
+  };
 
-  return (
-    <View style={StyleSheet.absoluteFill} {...(hoverMode ? { onPointerMove: onMouseMove, onPointerLeave: () => scrub === null && setControls(false) } : null)}>
+  // O player inteiro (vídeo + controles): o mesmo no post e em tela cheia.
+  const content = (
+    <>
       <VideoView
         ref={videoRef}
         player={player}
         // Na web, o <video> não estica com left/right: largura e altura de 100% para ocupar o post todo.
         style={styles.videoFill}
-        contentFit="cover"
-        // Em tela cheia, os controles do sistema; na timeline, os do Soundhora.
-        nativeControls={fullscreen}
-        onFullscreenEnter={() => setFullscreen(true)}
-        onFullscreenExit={() => setFullscreen(false)}
+        contentFit={fullscreen ? 'contain' : 'cover'}
+        // Os controles são sempre os do Soundhora (também em tela cheia).
+        nativeControls={false}
       />
       {/* Toque: mostra ou esconde os controles. Mouse: clique pausa e continua (os controles vêm com o mouse). */}
       <Pressable
@@ -275,7 +329,7 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
 
       {controls && duration > 0 ? (
         // A linha do tempo sobe do pé do vídeo: arraste (ou toque) para voltar e avançar.
-        <Animated.View entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(150)} style={styles.bar}>
+        <Animated.View entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(150)} style={[styles.bar, fullscreen && styles.barFullscreen]}>
           <Scrubber
             progress={progress}
             duration={duration}
@@ -293,14 +347,22 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
               {formatClock(now)} / {formatClock(duration)}
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <SpeakerButton muted={muted} onToggle={() => setMuted(!muted)} inline />
+              <View>
+                {/* Computador: a barra de volume (em pé) aparece em cima do alto-falante com o mouse no vídeo. */}
+                {hoverMode ? (
+                  <View style={styles.volumeWrap}>
+                    <VolumeSlider value={muted ? 0 : volume} label={t('post.volume')} onChange={changeVolume} onAdjusting={setAdjusting} />
+                  </View>
+                ) : null}
+                <SpeakerButton muted={muted} onToggle={() => (muted && volume <= 0.01 ? changeVolume(1) : setMuted(!muted))} inline />
+              </View>
               <RoundButton
                 testID="post-video-fullscreen"
-                label={t('post.fullscreen')}
-                icon="expand"
+                label={fullscreen ? t('post.exitFullscreen') : t('post.fullscreen')}
+                icon={fullscreen ? 'contract' : 'expand'}
                 size={32}
                 iconSize={16}
-                onPress={() => void videoRef.current?.enterFullscreen()}
+                onPress={fullscreen ? exitFullscreen : enterFullscreen}
               />
             </View>
           </View>
@@ -308,17 +370,100 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
       ) : (
         <>
           {duration > 0 ? (
-            <View style={styles.clock} pointerEvents="none">
+            <View style={[styles.clock, fullscreen && styles.cornerFullscreen]} pointerEvents="none">
               <Text style={styles.clockText}>{formatClock(duration - time.currentTime)}</Text>
             </View>
           ) : null}
-          <SpeakerButton muted={muted} onToggle={() => setMuted(!muted)} />
+          <SpeakerButton muted={muted} onToggle={() => setMuted(!muted)} style={fullscreen ? styles.cornerFullscreen : undefined} />
           <View style={styles.track} pointerEvents="none">
             <View style={[styles.fill, { width: `${progress * 100}%` }]} />
           </View>
         </>
       )}
+    </>
+  );
+
+  const hover = hoverMode ? { onPointerMove: onMouseMove, onPointerLeave: () => scrub === null && !adjusting && setControls(false) } : null;
+  // Celular: a tela cheia é uma tela por cima de tudo, com o mesmo player (o do post fica vazio).
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        {fullscreen ? <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} /> : content}
+        <Modal visible={fullscreen} animationType="fade" supportedOrientations={['portrait', 'landscape']} statusBarTranslucent onRequestClose={exitFullscreen}>
+          <StatusBar hidden />
+          {fullscreen ? <SafeFrame>{content}</SafeFrame> : null}
+        </Modal>
+      </View>
+    );
+  }
+  return (
+    <View ref={rootRef} style={[StyleSheet.absoluteFill, fullscreen && styles.fullscreen]} {...hover}>
+      {content}
     </View>
+  );
+}
+
+/** Tela cheia do celular: fundo preto e o player longe do entalhe e da barra de gestos. */
+function SafeFrame({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.fullscreen, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <View style={{ flex: 1 }}>{children}</View>
+    </View>
+  );
+}
+
+/**
+ * Volume em pé (computador): arrastar para cima aumenta; tocar num ponto vai direto para lá.
+ * Leitor de tela: ajustável (±10%).
+ */
+function VolumeSlider({
+  value,
+  label,
+  onChange,
+  onAdjusting,
+}: {
+  value: number;
+  label: string;
+  onChange: (v: number) => void;
+  onAdjusting: (on: boolean) => void;
+}) {
+  const [height, setHeight] = useState(0);
+  // y conta a partir do topo da caixa; a trilha começa depois do respiro de cima.
+  const at = (y: number) => (height > 0 ? Math.round(Math.min(1, Math.max(0, 1 - (y - VOLUME_PAD) / height)) * 100) / 100 : value);
+  const pan = Gesture.Pan()
+    .runOnJS(true)
+    .minDistance(0)
+    .onBegin((e) => {
+      lockSwipe(true);
+      onAdjusting(true);
+      onChange(at(e.y));
+    })
+    .onUpdate((e) => onChange(at(e.y)))
+    .onFinalize(() => {
+      lockSwipe(false);
+      onAdjusting(false);
+      // Web: soltar o mouse vira um clique no post (que abriria ele): esse clique é ignorado.
+      if (Platform.OS === 'web') swallowNextClick();
+    });
+  return (
+    <GestureDetector gesture={pan}>
+      <View
+        testID="post-video-volume"
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100), text: `${Math.round(value * 100)}%` }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => onChange(Math.min(1, Math.max(0, value + (e.nativeEvent.actionName === 'increment' ? 0.1 : -0.1))))}
+        style={styles.volumeHit}
+      >
+        <View style={styles.volumeTrack} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+          <View style={[styles.volumeFill, { height: `${value * 100}%` }]} />
+        </View>
+        <View style={[styles.volumeThumb, { bottom: VOLUME_PAD + Math.max(0, value * height - 6) }]} />
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -353,7 +498,7 @@ function RoundButton({
 }
 
 /** Alto-falante: liga e desliga o som (vale para todos os vídeos da timeline). */
-function SpeakerButton({ muted, onToggle, inline = false }: { muted: boolean; onToggle: () => void; inline?: boolean }) {
+function SpeakerButton({ muted, onToggle, inline = false, style }: { muted: boolean; onToggle: () => void; inline?: boolean; style?: object }) {
   const { t } = useTranslation();
   return (
     <Pressable
@@ -363,7 +508,7 @@ function SpeakerButton({ muted, onToggle, inline = false }: { muted: boolean; on
       accessibilityState={{ checked: !muted }}
       onPress={onToggle}
       hitSlop={10}
-      style={({ pressed }) => [styles.round, styles.speakerSize, !inline && styles.speaker, pressed && { transform: [{ scale: 0.9 }] }]}
+      style={({ pressed }) => [styles.round, styles.speakerSize, !inline && styles.speaker, !inline && style, pressed && { transform: [{ scale: 0.9 }] }]}
     >
       <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={16} color={colors.text} />
     </Pressable>
@@ -433,10 +578,14 @@ function seekTo(player: VideoPlayer, seconds: number) {
 }
 
 /** Com som, pausa a música de outro app enquanto o vídeo fala; mudo, deixa tocar junto. */
-function applySound(player: VideoPlayer, muted: boolean) {
+function applySound(player: VideoPlayer, muted: boolean, volume: number) {
   player.muted = muted;
+  player.volume = volume;
   player.audioMixingMode = muted ? 'mixWithOthers' : 'doNotMix';
 }
+
+/** Respiro de cima e de baixo da barra de volume. */
+const VOLUME_PAD = 10;
 
 const GLASS_DARK = Platform.select({
   web: { backgroundColor: 'rgba(30, 27, 46, 0.55)', backdropFilter: 'blur(10px)' } as object,
@@ -491,6 +640,33 @@ const styles = StyleSheet.create({
     backgroundImage: 'linear-gradient(180deg, rgba(15, 12, 30, 0) 0%, rgba(15, 12, 30, 0.75) 100%)',
   },
   barRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Tela cheia: fundo preto, vídeo inteiro (contain) e os controles mais afastados da borda.
+  fullscreen: { flex: 1, backgroundColor: '#000' },
+  barFullscreen: { paddingHorizontal: 24, paddingBottom: 20 },
+  cornerFullscreen: { bottom: 24 },
+  // Barra de volume em pé, sobre o alto-falante: vidro escuro como os botões.
+  // Acima da linha do tempo (não cobre o fim dela).
+  volumeWrap: { position: 'absolute', bottom: 72, left: 0, right: 0, alignItems: 'center' },
+  volumeHit: {
+    width: 32,
+    height: 104,
+    paddingVertical: VOLUME_PAD,
+    borderRadius: 16,
+    ...GLASS_DARK,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+  },
+  volumeTrack: { flex: 1, width: 4, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.25)', overflow: 'hidden', justifyContent: 'flex-end' },
+  volumeFill: { width: 4, backgroundColor: colors.primary, backgroundImage: 'linear-gradient(0deg, #685EFF 0%, #8A80FF 100%)' },
+  volumeThumb: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0 0 0 3px rgba(104, 94, 255, 0.55)',
+  },
   barTime: { fontFamily: fonts.semibold, fontSize: 12, color: colors.text, fontVariant: ['tabular-nums'] },
   scrubHit: { height: 24, justifyContent: 'center' },
   scrubTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.25)', overflow: 'hidden' },

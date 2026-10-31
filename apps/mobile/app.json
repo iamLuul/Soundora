@@ -2,7 +2,7 @@
   "expo": {
     "name": "Soundhora",
     "slug": "soundhora",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "soundhora",
     "userInterfaceStyle": "dark",

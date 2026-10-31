@@ -4,6 +4,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { PostMedia } from '../src/components/PostMedia';
 import { FeedActiveContext, formatClock, resetFeedMuted, VisiblePosts, VisiblePostsContext } from '../src/lib/feed-video';
 import i18n from '../src/lib/i18n';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+const metrics = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
 const mockPlayers: { play: jest.Mock; pause: jest.Mock; muted: boolean; loop: boolean }[] = [];
 jest.mock('expo-video', () => ({
@@ -41,7 +44,11 @@ async function renderVideo(visible?: VisiblePosts) {
       <PostMedia media={video} postId="p1" />
     </QueryClientProvider>
   );
-  await render(visible ? <VisiblePostsContext.Provider value={visible}>{tree}</VisiblePostsContext.Provider> : tree);
+  await render(
+    <SafeAreaProvider initialMetrics={metrics}>
+      {visible ? <VisiblePostsContext.Provider value={visible}>{tree}</VisiblePostsContext.Provider> : tree}
+    </SafeAreaProvider>,
+  );
   await act(async () => {
     await new Promise((r) => setTimeout(r, 0));
   });
@@ -166,4 +173,14 @@ test('um vídeo por vez: o que entrou depois toca, o anterior pausa e volta quan
     await new Promise((r) => setTimeout(r, 0));
   });
   expect(first.play).toHaveBeenCalled();
+});
+
+test('tela cheia no celular: os mesmos controles do Soundhora (não os do sistema) e o botão de sair', async () => {
+  await renderVideo();
+  await fireEvent.press(screen.getByTestId('post-video-toggle'));
+  await fireEvent.press(screen.getByTestId('post-video-fullscreen'));
+  // Na tela cheia: a mesma linha do tempo, os mesmos botões.
+  expect(screen.getByTestId('post-video-seek')).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Sair da tela cheia'));
+  expect(screen.getByLabelText('Ver em tela cheia')).toBeTruthy();
 });
