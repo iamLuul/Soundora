@@ -6,7 +6,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { blockUser, fetchProfileSummary, setFollowing, type ProfileImageKind } from '../lib/api';
+import { reportReasonSchema } from '@soundhora/core';
+import { blockUser, fetchProfileSummary, isUserMuted, report, setFollowing, setUserMuted, type ProfileImageKind } from '../lib/api';
+import { profileLink, shareText } from '../lib/share';
 import { useAuth } from '../lib/auth';
 import { bannerUrl } from '../lib/avatar';
 import { errorStatus, formatError } from '../lib/errors';
@@ -137,6 +139,9 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  // Denunciar o perfil: segundo menu, com o motivo.
+  const [reportOpen, setReportOpen] = useState(false);
+  const muted = useQuery({ queryKey: ['muted', p.id], queryFn: () => isUserMuted(p.id), enabled: !p.is_me });
   const [uploading, setUploading] = useState<ProfileImageKind | null>(null);
 
   const vibes = useVibesOf(p.id);
@@ -180,8 +185,43 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
     }
   };
 
+  const shareProfile = async () => {
+    const result = await shareText(t('profile.shareText', { username: p.username, link: profileLink(p.username) }));
+    if (result === 'copied') showToast(t('toast.shareCopied'));
+  };
+  const share: SheetOption = { key: 'share', label: t('profile.share'), icon: 'share-outline', onPress: () => void shareProfile() };
+
+  const toggleMute = async () => {
+    const next = !muted.data;
+    try {
+      await setUserMuted(p.id, next);
+      qc.setQueryData(['muted', p.id], next);
+      showToast(t(next ? 'toast.muted' : 'toast.unmuted', { username: p.username }));
+      // Os feeds passam a deixar a pessoa de fora (ou a mostrar de novo).
+      for (const queryKey of [keys.feed, keys.followingFeed, keys.vibesTray, ['reviews'], keys.reviewsForYou, ['muted-accounts']])
+        void qc.invalidateQueries({ queryKey });
+    } catch (err) {
+      notify(formatError(t, err));
+    }
+  };
+
+  const reportReasons: SheetOption[] = reportReasonSchema.options.map((reason) => ({
+    key: `report-${reason}`,
+    label: t(`report.${reason}`),
+    icon: 'flag-outline',
+    onPress: async () => {
+      try {
+        await report('profile', p.id, reason);
+        showToast(t('feed.reported'));
+      } catch (err) {
+        notify(formatError(t, err));
+      }
+    },
+  }));
+
   const options: SheetOption[] = p.is_me
     ? [
+        share,
         { key: 'edit', label: t('profile.edit'), icon: 'create-outline', onPress: () => router.push('/settings/profile') },
         { key: 'photo', label: t('profile.changePhoto'), icon: 'person-circle-outline', onPress: () => changeImage('avatar') },
         { key: 'banner', label: t('profile.changeBanner'), icon: 'image-outline', onPress: () => changeImage('banner') },
@@ -195,6 +235,15 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         },
       ]
     : [
+        share,
+        {
+          key: 'mute',
+          label: t(muted.data ? 'profile.unmute' : 'profile.mute', { username: p.username }),
+          icon: muted.data ? 'volume-high-outline' : 'volume-mute-outline',
+          onPress: () => void toggleMute(),
+        },
+        // Espera o menu fechar antes de abrir o dos motivos (no iOS, um modal não abre enquanto outro sai).
+        { key: 'report', label: t('profile.report'), icon: 'flag-outline', onPress: () => setTimeout(() => setReportOpen(true), 350) },
         {
           key: 'block',
           label: t('feed.block', { username: p.username }),
@@ -353,6 +402,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
       <FavoriteSongs userId={p.id} isMe={p.is_me} />
 
       <OptionsSheet visible={menuOpen} title={`@${p.username}`} options={options} onClose={() => setMenuOpen(false)} />
+      {p.is_me ? null : <OptionsSheet visible={reportOpen} title={t('report.title')} options={reportReasons} onClose={() => setReportOpen(false)} />}
       {p.is_me ? <AccountSwitcher visible={switcherOpen} onClose={() => setSwitcherOpen(false)} /> : null}
     </View>
   );

@@ -115,6 +115,7 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
         <Stack.Screen name="settings/password" options={{ title: '' }} />
         <Stack.Screen name="settings/streaming" options={{ title: '' }} />
         <Stack.Screen name="settings/blocked" options={{ title: '' }} />
+        <Stack.Screen name="settings/muted-accounts" options={{ title: '' }} />
         <Stack.Screen name="settings/favorites" options={{ title: '' }} />
         <Stack.Screen name="settings/delete-account" options={{ title: '' }} />
         <Stack.Screen name="settings/account" options={{ title: '' }} />

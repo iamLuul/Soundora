@@ -280,7 +280,12 @@
     "privateTitle": "This account is private",
     "privateBody": "Follow to see their posts, reviews and vibes.",
     "privateRequested": "Request sent. When they accept, their content shows up here.",
-    "privateBadge": "Private account"
+    "privateBadge": "Private account",
+    "share": "Share profile",
+    "shareText": "Check out @{{username}} on Soundhora:\n{{link}}",
+    "mute": "Mute @{{username}}",
+    "unmute": "Unmute @{{username}}",
+    "report": "Report profile"
   },
   "report": {
     "title": "Why are you reporting this?",
@@ -501,7 +506,9 @@
     "systemNote": "The text size set on your phone also applies here, on top of this one.",
     "version": "Version",
     "notifMessages": "Messages",
-    "notifMessagesHint": "Only the phone alert: messages keep arriving in the app."
+    "notifMessagesHint": "Only the phone alert: messages keep arriving in the app.",
+    "mutedAccounts": "Muted accounts",
+    "mutedAccountsHint": "People you muted"
   },
   "notifications": {
     "title": "Notifications",
@@ -826,7 +833,9 @@
     "requestAccepted": "@{{username}} now follows you.",
     "requestDeclined": "Request from @{{username}} declined.",
     "saved": "Saved.",
-    "shareCopied": "Copied. Paste it wherever you want to share."
+    "shareCopied": "Copied. Paste it wherever you want to share.",
+    "muted": "@{{username}} was muted. Their posts, reviews and vibes won't show up in your feeds anymore.",
+    "unmuted": "@{{username}} is no longer muted."
   },
   "legal": {
     "terms": "Terms of Use",
@@ -1114,5 +1123,11 @@
     "open": "Open account @{{username}}",
     "cancelAdd": "Back to @{{username}}",
     "longPressHint": "Hold to switch accounts"
+  },
+  "mutedAccounts": {
+    "title": "Muted accounts",
+    "empty": "You haven't muted anyone.",
+    "hint": "Posts, reviews and vibes from people you mute don't show up in your feeds, and they don't send you notifications. They aren't told, and their profile still opens if you visit it.",
+    "unmute": "Unmute"
   }
 }

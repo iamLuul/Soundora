@@ -25,3 +25,8 @@ export async function shareText(message: string): Promise<'shared' | 'copied' | 
 export function postLink(postId: string): string {
   return Linking.createURL(`/post/${postId}`);
 }
+
+/** Link do perfil. */
+export function profileLink(username: string): string {
+  return Linking.createURL(`/u/${username}`);
+}

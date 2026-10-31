@@ -80,6 +80,13 @@ export default function PrivacySettingsScreen() {
           onPress={() => router.push('/settings/blocked')}
         />
         <SettingsRow
+          testID="settings-muted-accounts"
+          icon="eye-off-outline"
+          label={t('settings.mutedAccounts')}
+          value={t('settings.mutedAccountsHint')}
+          onPress={() => router.push('/settings/muted-accounts')}
+        />
+        <SettingsRow
           testID="settings-muted"
           icon="volume-mute-outline"
           label={t('settings.muted')}

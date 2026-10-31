@@ -437,6 +437,25 @@ export async function unblockUser(blockedId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Silenciar: as publicações da pessoa somem dos meus feeds e ela não me notifica (sem saber). */
+export async function setUserMuted(userId: string, muted: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_user_muted', { p_user: userId, p_muted: muted });
+  if (error) throw error;
+}
+
+/** Eu silenciei esta pessoa? (só a minha lista é visível) */
+export async function isUserMuted(userId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('muted_users').select('muted_id').eq('muted_id', userId).maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+
+export async function fetchMutedProfiles(): Promise<PersonCard[]> {
+  const { data, error } = await supabase.rpc('my_muted_profiles');
+  if (error) throw error;
+  return data as PersonCard[];
+}
+
 export async function report(targetType: 'post' | 'comment' | 'profile' | 'vibe' | 'review', targetId: string, reason: ReportReason): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from('reports').insert({ reporter_id: userId, target_type: targetType, target_id: targetId, reason });

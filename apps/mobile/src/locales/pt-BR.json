@@ -280,7 +280,12 @@
     "privateTitle": "Esta conta é privada",
     "privateBody": "Siga para ver os posts, reviews e vibes.",
     "privateRequested": "Pedido enviado. Quando a pessoa aceitar, o conteúdo aparece aqui.",
-    "privateBadge": "Conta privada"
+    "privateBadge": "Conta privada",
+    "share": "Compartilhar perfil",
+    "shareText": "Conheça @{{username}} no Soundhora:\n{{link}}",
+    "mute": "Silenciar @{{username}}",
+    "unmute": "Deixar de silenciar @{{username}}",
+    "report": "Denunciar perfil"
   },
   "report": {
     "title": "Por que você está denunciando?",
@@ -501,7 +506,9 @@
     "systemNote": "O tamanho de texto escolhido no celular também vale aqui, somado a este.",
     "version": "Versão",
     "notifMessages": "Mensagens",
-    "notifMessagesHint": "Só o aviso no celular: as mensagens continuam chegando no app."
+    "notifMessagesHint": "Só o aviso no celular: as mensagens continuam chegando no app.",
+    "mutedAccounts": "Contas silenciadas",
+    "mutedAccountsHint": "Quem você silenciou"
   },
   "notifications": {
     "title": "Notificações",
@@ -826,7 +833,9 @@
     "requestAccepted": "@{{username}} agora segue você.",
     "requestDeclined": "Pedido de @{{username}} recusado.",
     "saved": "Salvo.",
-    "shareCopied": "Copiado. É só colar onde quiser compartilhar."
+    "shareCopied": "Copiado. É só colar onde quiser compartilhar.",
+    "muted": "@{{username}} foi silenciado. Os posts, reviews e vibes dessa pessoa não aparecem mais nos seus feeds.",
+    "unmuted": "@{{username}} não está mais silenciado."
   },
   "legal": {
     "terms": "Termos de Uso",
@@ -1114,5 +1123,11 @@
     "open": "Abrir a conta @{{username}}",
     "cancelAdd": "Voltar para @{{username}}",
     "longPressHint": "Segure para trocar de conta"
+  },
+  "mutedAccounts": {
+    "title": "Contas silenciadas",
+    "empty": "Você não silenciou ninguém.",
+    "hint": "Os posts, reviews e vibes de quem você silencia não aparecem nos seus feeds, e essa pessoa não te manda notificações. Ela não fica sabendo e o perfil dela continua abrindo se você entrar nele.",
+    "unmute": "Deixar de silenciar"
   }
 }
