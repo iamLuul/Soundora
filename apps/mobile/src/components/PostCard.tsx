@@ -234,7 +234,6 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     backgroundColor: colors.primary,
     backgroundImage: gradients.primary,
-    boxShadow: '0 4px 12px rgba(104, 94, 255, 0.3)',
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 28,

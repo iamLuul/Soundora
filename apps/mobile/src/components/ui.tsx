@@ -368,11 +368,10 @@ const styles = StyleSheet.create({
     marginLeft: 14,
   },
   buttonRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  // Degradê roxo com um brilho embaixo (o botão "flutua" sobre o vidro).
+  // Degradê roxo, sem brilho em volta.
   primary: {
     backgroundColor: colors.primary,
     backgroundImage: gradients.primary,
-    boxShadow: "0 6px 18px rgba(104, 94, 255, 0.32)",
   },
   secondary: { backgroundColor: colors.text },
   ghost: { ...glass.chip },

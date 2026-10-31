@@ -497,7 +497,6 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     backgroundColor: colors.primary,
     backgroundImage: gradients.primary,
-    boxShadow: '0 4px 14px rgba(104, 94, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },

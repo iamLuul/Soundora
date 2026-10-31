@@ -109,17 +109,16 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text, marginTop: space.xs },
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
   reason: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, textAlign: 'center', minHeight: 28, marginTop: 2 },
-  // Mesmo botão roxo do perfil (degradê e um brilho curto, sem a sombra escura).
+  // Mesmo botão roxo do perfil (só o degradê, sem brilho).
   button: {
     alignSelf: 'stretch',
     height: 30,
     borderRadius: 15,
     backgroundColor: colors.primary,
     backgroundImage: gradients.primary,
-    boxShadow: '0 4px 12px rgba(104, 94, 255, 0.28)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonFollowing: { backgroundColor: 'transparent', backgroundImage: 'none', boxShadow: 'none', borderWidth: 1, borderColor: 'rgba(138, 128, 255, 0.7)' },
+  buttonFollowing: { backgroundColor: 'transparent', backgroundImage: 'none', borderWidth: 1, borderColor: 'rgba(138, 128, 255, 0.7)' },
   buttonText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
 });

@@ -236,11 +236,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: colors.primary,
     backgroundImage: gradients.primary,
-    boxShadow: '0 8px 22px rgba(104, 94, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  postHover: { boxShadow: '0 10px 28px rgba(104, 94, 255, 0.5)' },
+  // Mouse em cima: o roxo clareia um pouco (sem brilho em volta).
+  postHover: { filter: 'brightness(1.1)' },
   postText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
   account: {
     flexDirection: 'row',
