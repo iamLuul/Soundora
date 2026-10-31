@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.56 · Perfil: compartilhar, silenciar e denunciar no menu ⋮
 
+- `0.56.2.10.26` · 31/10/2026 · Vídeo: um por vez; o da timeline pausa ao abrir o post e volta depois (9b7cda2)
 - `0.56.1.10.26` · 31/10/2026 · Perfil: Seguir/Mensagem numa linha própria, sem cobrir os cartões (476fb90)
 - `0.56.0.10.26` · 31/10/2026 · Perfil: compartilhar, silenciar e denunciar no menu ⋮ (27a2381)
 
