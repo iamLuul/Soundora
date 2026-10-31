@@ -120,6 +120,33 @@ describe('reviews de álbuns', () => {
   });
 });
 
+describe('reviews na aba Seguindo', () => {
+  it('só de quem eu sigo e as minhas, mais novas primeiro, com páginas; sem quem tem bloqueio; só logado', async () => {
+    const eu = await createUser(db, 'rvf_eu');
+    const sigo = await createUser(db, 'rvf_sigo');
+    const naoSigo = await createUser(db, 'rvf_nao');
+    const bloq = await createUser(db, 'rvf_bloq');
+    for (const f of [sigo, bloq]) await db.sql(`insert into public.follows (follower_id, followee_id) values ($1, $2)`, [eu, f]);
+    const ids: string[] = [];
+    for (const author of [sigo, eu, sigo, naoSigo, bloq]) {
+      const [r] = await review(author, await album());
+      ids.push(r!.id);
+    }
+    await db.sql(`insert into public.blocks (blocker_id, blocked_id) values ($1, $2)`, [bloq, eu]);
+    const all = await db.as<{ id: string; author_username: string; album_title: string }>(eu, `select * from public.reviews_following()`);
+    // Mais novas primeiro: a 3ª (sigo), a 2ª (eu), a 1ª (sigo).
+    expect(all.map((x) => x.id)).toEqual([ids[2], ids[1], ids[0]]);
+    expect(all[0]).toMatchObject({ author_username: 'rvf_sigo', album_title: 'Álbum' });
+
+    const page1 = await db.as<{ id: string; created_at: Date }>(eu, `select id, created_at from public.reviews_following(null, null, 2)`);
+    expect(page1.map((x) => x.id)).toEqual([ids[2], ids[1]]);
+    const page2 = await db.as<{ id: string }>(eu, `select id from public.reviews_following($1, $2, 2)`, [page1[1]!.created_at, page1[1]!.id]);
+    expect(page2.map((x) => x.id)).toEqual([ids[0]]);
+
+    await expect(db.anon(`select * from public.reviews_following()`)).rejects.toThrow(/permission denied/);
+  });
+});
+
 describe('Top Reviews (álbuns com maior média)', () => {
   type Top = { rank: number; album_id: string; title: string; review_count: number; average: string; year: number | null };
   const top = (as: string, album?: string) =>

@@ -330,7 +330,7 @@ export function useFollow() {
       qc.setQueryData(keys.requestedIds, requested);
     },
     onSettled: () => {
-      for (const queryKey of [keys.followingFeed, keys.vibesTray, ['profile'], ['people'], ['following']]) void qc.invalidateQueries({ queryKey });
+      for (const queryKey of [keys.followingFeed, ['reviews', 'following'], keys.vibesTray, ['profile'], ['people'], ['following']]) void qc.invalidateQueries({ queryKey });
     },
   });
 }

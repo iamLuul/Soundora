@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 import { useTranslation } from 'react-i18next';
 import { FlatList, Text, type ListViewToken } from 'react-native';
 import { VisiblePosts, VisiblePostsContext } from '../lib/feed-video';
-import { blockUser, deletePost, removeCommunityPost, report } from '../lib/api';
+import { type AlbumReview, blockUser, deletePost, deleteReview, removeCommunityPost, report } from '../lib/api';
+import { removeReviewFromCache, reviewKeys, useToggleReviewLike } from '../lib/reviews';
+import { ReviewCard } from './ReviewCard';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
 import { useFollow, useFollowingIds, useToggleLike } from '../lib/queries';
@@ -24,8 +26,13 @@ import { AdPostCard } from './ads/AdPostCard';
 import { withAds } from '../lib/ads';
 import { useTabBarInset } from './TabBar';
 
-/** Linha da lista: um post, o bloco extra no meio (ex.: contas sugeridas), uma faixa (ex.: reviews) ou um post anunciado. */
-type Row = { kind: 'post'; item: FeedItem } | { kind: 'extra' } | { kind: 'strip'; index: number } | { kind: 'ad'; slot: number };
+/** Linha da lista: um post, uma review, o bloco extra no meio (ex.: contas sugeridas), uma faixa (ex.: reviews) ou um post anunciado. */
+type Row =
+  | { kind: 'post'; item: FeedItem }
+  | { kind: 'review'; item: AlbumReview }
+  | { kind: 'extra' }
+  | { kind: 'strip'; index: number }
+  | { kind: 'ad'; slot: number };
 
 /** Lista de posts com curtir, comentários e o menu de denúncia/bloqueio. */
 export function PostList({
@@ -46,7 +53,10 @@ export function PostList({
   scrollTopKey,
   modOf,
   hideCommunity = false,
+  reviews,
 }: {
+  /** Reviews misturadas aos posts pela data (aba Seguindo). Já vêm só as que podem aparecer. */
+  reviews?: AlbumReview[];
   /** Comunidades que eu modero: os posts delas ganham "Remover da comunidade". */
   modOf?: Set<string>;
   /** Na página da comunidade, o cartão "post da comunidade X" é repetitivo. */
@@ -85,7 +95,13 @@ export function PostList({
   // Só mostra o botão depois de saber quem eu sigo (senão ele piscaria em quem já sigo).
   const canFollow = (p: FeedItem) => followable && !!followingIds.data && p.author_id !== me && !followingIds.data.has(p.author_id);
   const posts = uniqueBy(items, (i) => i.id, 'posts');
-  const rows: Row[] = withAds(posts, adsEvery).map((r) => (r.kind === 'item' ? { kind: 'post', item: r.item } : r));
+  const entries: Row[] = posts.map((item) => ({ kind: 'post', item }));
+  if (reviews?.length) {
+    const time = (r: Row) => (r.kind === 'post' || r.kind === 'review' ? new Date(r.item.created_at).getTime() : 0);
+    entries.push(...uniqueBy(reviews, (r) => r.id, 'reviews').map((item) => ({ kind: 'review' as const, item })));
+    entries.sort((a, b) => time(b) - time(a));
+  }
+  const rows: Row[] = withAds(entries, adsEvery).map((r) => (r.kind === 'item' ? r.item : r));
   // O bloco extra entra logo depois do post número `after` (contando só posts, não anúncios).
   if (interstitial && posts.length) {
     const after = Math.min(interstitial.after, posts.length);
@@ -139,6 +155,34 @@ export function PostList({
   const qc = useQueryClient();
   const toggleLike = useToggleLike();
   const [menuFor, setMenuFor] = useState<FeedItem | null>(null);
+  const toggleReviewLike = useToggleReviewLike();
+  const [reviewMenu, setReviewMenu] = useState<AlbumReview | null>(null);
+
+  const handleReviewAction = async (action: PostAction) => {
+    const item = reviewMenu;
+    setReviewMenu(null);
+    if (!item) return;
+    try {
+      if (action.type === 'report') {
+        await report('review', item.id, action.reason);
+        showToast(t('feed.reported'));
+      } else if (action.type === 'block') {
+        await blockUser(item.author_id);
+        showToast(t('feed.blocked', { username: item.author_username }));
+        await qc.invalidateQueries();
+      } else if (action.type === 'delete') {
+        if (!(await confirmAction(t('confirm.deleteReview'), t('confirm.delete'), t('common.cancel')))) return;
+        await deleteReview(item.id);
+        showToast(t('toast.reviewDeleted'));
+        removeReviewFromCache(qc, item.id);
+        void qc.invalidateQueries({ queryKey: reviewKeys.all });
+        void qc.invalidateQueries({ queryKey: ['top-albums'] });
+        void qc.invalidateQueries({ queryKey: ['album-summary'] });
+      }
+    } catch (err) {
+      notify(formatError(t, err));
+    }
+  };
 
   const handleAction = async (action: PostAction) => {
     const item = menuFor;
@@ -193,7 +237,15 @@ export function PostList({
           data={rows}
           viewabilityConfigCallbackPairs={viewabilityPairs}
           keyExtractor={(row) =>
-            row.kind === 'post' ? row.item.id : row.kind === 'ad' ? `ad-${row.slot}` : row.kind === 'strip' ? `strip-${row.index}` : 'extra'
+            row.kind === 'post'
+              ? row.item.id
+              : row.kind === 'review'
+                ? `review-${row.item.id}`
+                : row.kind === 'ad'
+                  ? `ad-${row.slot}`
+                  : row.kind === 'strip'
+                    ? `strip-${row.index}`
+                    : 'extra'
           }
           ListHeaderComponent={header}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl + tabInset }}
@@ -201,6 +253,15 @@ export function PostList({
             if (row.kind === 'extra') return interstitial?.element ?? null;
             if (row.kind === 'strip') return strips?.elements[row.index] ?? null;
             if (row.kind === 'ad') return <AdPostCard slot={row.slot} />;
+            if (row.kind === 'review')
+              return (
+                <ReviewCard
+                  review={row.item}
+                  onToggleLike={(r) => toggleReviewLike.mutate(r)}
+                  onMore={setReviewMenu}
+                  onOpenAlbum={(r) => router.push(`/album/${r.album_id}`)}
+                />
+              );
             const item = row.item;
             return (
               <PostCard
@@ -237,6 +298,15 @@ export function PostList({
         allowVibe={!menuFor?.community?.closed}
         onClose={() => setMenuFor(null)}
         onAction={handleAction}
+      />
+      <PostActions
+        visible={!!reviewMenu}
+        username={reviewMenu?.author_username ?? ''}
+        isMine={!!reviewMenu && reviewMenu.author_id === me}
+        allowVibe={false}
+        deleteLabel={t('reviews.delete')}
+        onClose={() => setReviewMenu(null)}
+        onAction={(a) => void handleReviewAction(a)}
       />
     </VisiblePostsContext.Provider>
   );

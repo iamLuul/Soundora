@@ -10,6 +10,8 @@ import { ReviewStrip, reviewStrips } from '../../components/ReviewStrip';
 import { SuggestedAccounts } from '../../components/SuggestedAccounts';
 import { SuspendedBanner } from '../../components/SuspendedBanner';
 import { renewFeed, useFeed, useFollowingFeed, useReviewsForYou, useSuggestedAccounts } from '../../lib/queries';
+import { useFollowingReviews } from '../../lib/reviews';
+import { mixByDate } from '../../lib/feed-mix';
 import { markSeen } from '../../lib/seen-posts';
 import { FeedActiveContext } from '../../lib/feed-video';
 import { useHomeReturn } from '../../lib/tab-focus';
@@ -148,17 +150,30 @@ function Following({ active, adsEvery }: { active: boolean; adsEvery: number }) 
   const [opened, setOpened] = useState(active);
   if (active && !opened) setOpened(true);
   const feed = useFollowingFeed(opened);
+  // Reviews de quem eu sigo, misturadas aos posts pela data (lib/feed-mix).
+  const reviews = useFollowingReviews(opened);
   const suggested = useSuggestedAccounts(opened);
-  const items = feed.data?.pages.flat() ?? [];
+  const mix = mixByDate(
+    { items: feed.data?.pages.flat() ?? [], hasMore: !!feed.hasNextPage },
+    // Reviews falharam: os posts aparecem do mesmo jeito.
+    { items: reviews.data?.pages.flat() ?? [], hasMore: !!reviews.hasNextPage },
+  );
+  const items = mix.entries.flatMap((e) => (e.kind === 'post' ? [e.item] : []));
+  const reviewItems = mix.entries.flatMap((e) => (e.kind === 'review' ? [e.item] : []));
   const hasSuggestions = (suggested.data?.length ?? 0) > 0;
+  const loadMore = () => {
+    if (mix.loadPosts && !feed.isFetchingNextPage) void feed.fetchNextPage();
+    if (mix.loadReviews && !reviews.isFetchingNextPage) void reviews.fetchNextPage();
+  };
   return (
     <PostList
       header={<FollowingRow />}
       items={items}
-      loading={feed.isLoading || !opened}
-      onRefresh={() => feed.refetch()}
-      onEndReached={() => feed.hasNextPage && !feed.isFetchingNextPage && feed.fetchNextPage()}
-      loadingMore={feed.isFetchingNextPage}
+      reviews={reviewItems}
+      loading={feed.isLoading || reviews.isLoading || !opened}
+      onRefresh={() => Promise.all([feed.refetch(), reviews.refetch()])}
+      onEndReached={loadMore}
+      loadingMore={feed.isFetchingNextPage || reviews.isFetchingNextPage}
       emptyText={t('feed.followingEmptyNoSuggestions')}
       adsEvery={adsEvery}
       errorText={feed.isError ? formatError(t, feed.error) : null}

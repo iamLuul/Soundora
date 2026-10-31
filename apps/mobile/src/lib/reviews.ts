@@ -1,12 +1,14 @@
 // Reviews de álbuns: lista (com páginas) e curtir com resposta imediata na tela.
 import { type InfiniteData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { type AlbumReview, fetchReviews, REVIEWS_PAGE, type ReviewCursor, setReviewLiked } from './api';
+import { type AlbumReview, fetchFollowingReviews, fetchReviews, REVIEWS_PAGE, type ReviewCursor, setReviewLiked } from './api';
 
 export type ReviewFilter = { author?: string; album?: string };
 
 export const reviewKeys = {
   all: ['reviews'] as const,
   list: (f: ReviewFilter = {}) => ['reviews', f.author ?? '', f.album ?? ''] as const,
+  /** Dentro de "reviews": curtir e apagar já atualizam esta lista também. */
+  following: ['reviews', 'following'] as const,
 };
 
 export function useReviews(filter: ReviewFilter = {}, enabled = true) {
@@ -14,6 +16,20 @@ export function useReviews(filter: ReviewFilter = {}, enabled = true) {
     queryKey: reviewKeys.list(filter),
     enabled,
     queryFn: ({ pageParam }) => fetchReviews(pageParam, filter),
+    initialPageParam: null as ReviewCursor | null,
+    getNextPageParam: (last) => {
+      const tail = last[last.length - 1];
+      return last.length === REVIEWS_PAGE && tail ? { createdAt: tail.created_at, id: tail.id } : undefined;
+    },
+  });
+}
+
+/** Aba Seguindo: reviews de quem eu sigo, com páginas por data. */
+export function useFollowingReviews(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: reviewKeys.following,
+    enabled,
+    queryFn: ({ pageParam }) => fetchFollowingReviews(pageParam),
     initialPageParam: null as ReviewCursor | null,
     getNextPageParam: (last) => {
       const tail = last[last.length - 1];

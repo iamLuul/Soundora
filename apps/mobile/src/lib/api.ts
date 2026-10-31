@@ -750,6 +750,17 @@ export async function fetchReviews(before: ReviewCursor | null, filter: { author
   return ((data ?? []) as AlbumReview[]).map((r) => ({ ...r, rating: Number(r.rating) }));
 }
 
+/** Aba Seguindo: reviews de quem eu sigo (e as minhas), da mais nova à mais velha. */
+export async function fetchFollowingReviews(before: ReviewCursor | null): Promise<AlbumReview[]> {
+  const { data, error } = await supabase.rpc('reviews_following', {
+    p_before: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: REVIEWS_PAGE,
+  });
+  if (error) throw error;
+  return ((data ?? []) as AlbumReview[]).map((r) => ({ ...r, rating: Number(r.rating) }));
+}
+
 export async function setReviewLiked(reviewId: string, liked: boolean): Promise<void> {
   const userId = await currentUserId();
   const { error } = liked
