@@ -11,6 +11,8 @@ import { ErrorText, keyboardBehavior, useKeyboardVisible } from '../../component
 import { addComment, blockUser, deletePost, fetchComments, removeCommunityPost, report, setCommentLiked } from '../../lib/api';
 import type { CommentRow } from '../../lib/types';
 import { CommentItem, RepliesToggle } from '../../components/CommentItem';
+import { CommentActions, type CommentAction } from '../../components/CommentActions';
+import { postLink, shareText } from '../../lib/share';
 import { buildCommentRows } from '../../lib/comment-thread';
 import { useAuth } from '../../lib/auth';
 import { errorStatus, formatError } from '../../lib/errors';
@@ -41,6 +43,8 @@ export default function PostScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Comentário com o menu "…" aberto.
+  const [commentMenu, setCommentMenu] = useState<CommentRow | null>(null);
   // Respondendo a um comentário: o principal (onde a resposta fica) e o @ de quem é respondido.
   const [replyTo, setReplyTo] = useState<{ rootId: string; username: string } | null>(null);
   const input = useRef<TextInputInstance>(null);
@@ -95,6 +99,23 @@ export default function PostScreen() {
       setError(formatError(t, err));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleCommentAction = async (action: CommentAction) => {
+    const c = commentMenu;
+    setCommentMenu(null);
+    if (!c) return;
+    try {
+      if (action.type === 'share') {
+        const result = await shareText(t('post.commentShareText', { username: c.author_username, body: c.body, link: postLink(id) }));
+        if (result === 'copied') showToast(t('toast.shareCopied'));
+      } else {
+        await report('comment', c.id, action.reason);
+        showToast(t('feed.reported'));
+      }
+    } catch (err) {
+      notify(formatError(t, err));
     }
   };
 
@@ -184,7 +205,7 @@ export default function PostScreen() {
             row.kind === 'toggle' ? (
               <RepliesToggle rootId={row.rootId} hidden={row.hidden} expanded={row.expanded} onPress={() => toggleThread(row.rootId)} />
             ) : (
-              <CommentItem item={row.item} onToggleLike={toggleCommentLike} onReply={startReply} continues={row.continues} />
+              <CommentItem item={row.item} onToggleLike={toggleCommentLike} onReply={startReply} onMore={setCommentMenu} continues={row.continues} />
             )
           }
         />
@@ -251,6 +272,12 @@ export default function PostScreen() {
           onAction={handleAction}
         />
       ) : null}
+      <CommentActions
+        visible={!!commentMenu}
+        isMine={!!commentMenu && commentMenu.author_id === session?.user.id}
+        onClose={() => setCommentMenu(null)}
+        onAction={(a) => void handleCommentAction(a)}
+      />
     </KeyboardAvoidingView>
   );
 }
