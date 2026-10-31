@@ -243,7 +243,11 @@
     "back10": "Back 10 seconds",
     "forward10": "Forward 10 seconds",
     "seek": "Video position",
-    "fullscreen": "Full screen"
+    "fullscreen": "Full screen",
+    "commentOptions": "Comment options",
+    "shareComment": "Share comment",
+    "reportComment": "Report comment",
+    "commentShareText": "Comment by @{{username}} on Soundhora:\n\n“{{body}}”\n\n{{link}}"
   },
   "profile": {
     "followers": "Followers",
@@ -821,7 +825,8 @@
     "followRequested": "Follow request sent.",
     "requestAccepted": "@{{username}} now follows you.",
     "requestDeclined": "Request from @{{username}} declined.",
-    "saved": "Saved."
+    "saved": "Saved.",
+    "shareCopied": "Copied. Paste it wherever you want to share."
   },
   "legal": {
     "terms": "Terms of Use",

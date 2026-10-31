@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.54 · Comentários: nome e @ abrem o perfil; menu … com compartilhar e denunciar
+
+- `0.54.0.10.26` · 31/10/2026 · Comentários: nome e @ abrem o perfil; menu … com compartilhar e denunciar (66069a1)
+
 ## 0.53 · Mídia mais leve: fotos em WebP e vídeo da web refeito em 720p antes de enviar
 
 - `0.53.0.10.26` · 31/10/2026 · Mídia mais leve: fotos em WebP e vídeo da web refeito em 720p antes de enviar (f65aea0)

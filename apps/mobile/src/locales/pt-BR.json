@@ -243,7 +243,11 @@
     "back10": "Voltar 10 segundos",
     "forward10": "Avançar 10 segundos",
     "seek": "Posição do vídeo",
-    "fullscreen": "Ver em tela cheia"
+    "fullscreen": "Ver em tela cheia",
+    "commentOptions": "Opções do comentário",
+    "shareComment": "Compartilhar comentário",
+    "reportComment": "Denunciar comentário",
+    "commentShareText": "Comentário de @{{username}} no Soundhora:\n\n“{{body}}”\n\n{{link}}"
   },
   "profile": {
     "followers": "Seguidores",
@@ -821,7 +825,8 @@
     "followRequested": "Pedido para seguir enviado.",
     "requestAccepted": "@{{username}} agora segue você.",
     "requestDeclined": "Pedido de @{{username}} recusado.",
-    "saved": "Salvo."
+    "saved": "Salvo.",
+    "shareCopied": "Copiado. É só colar onde quiser compartilhar."
   },
   "legal": {
     "terms": "Termos de Uso",

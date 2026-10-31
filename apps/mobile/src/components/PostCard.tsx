@@ -1,6 +1,8 @@
 import { Link, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { shareText } from '../lib/share';
+import { showToast } from './Toast';
 import { exactTime, relativeTime } from '../lib/i18n';
 import { genreLabel, useGenres } from '../lib/queries';
 import type { FeedItem } from '../lib/types';
@@ -47,7 +49,8 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
   const share = () => {
     const music = item.preview_url ? `${item.preview_title}${item.preview_artist ? ` · ${item.preview_artist}` : ''}\n${item.preview_url}` : '';
     const message = [item.body, music].filter(Boolean).join('\n\n') || `@${item.author_username}`;
-    Share.share({ message }).catch(() => undefined);
+    // No computador sem o menu de compartilhar do sistema, copia o texto e avisa.
+    void shareText(message).then((r) => r === 'copied' && showToast(t('toast.shareCopied')));
   };
 
   return (
