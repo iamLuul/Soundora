@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.57 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador
 
+- `0.57.1.10.26` · 31/10/2026 · Contas para seguir: borda que some de verdade, cartão e botões com mais contraste (eb1882f)
 - `0.57.0.10.26` · 31/10/2026 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador (976c76d)
 
 ## 0.56 · Perfil: compartilhar, silenciar e denunciar no menu ⋮

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SuggestedAccount } from '../lib/api';
 import { genreLabel, useFollow, useFollowingIds, useGenres, useRequestedIds, useSuggestedAccounts } from '../lib/queries';
-import { colors, fonts, glass, space } from '../theme';
+import { colors, fonts, glass, gradients, space } from '../theme';
 import { Carousel } from './Carousel';
 import { RingAvatar } from './figma';
 import { Verified } from './Verified';
@@ -94,12 +94,32 @@ const styles = StyleSheet.create({
   row: { gap: space.md, paddingHorizontal: space.lg },
   wrapPanel: { gap: space.md },
   cardPanel: { width: 132 },
-  card: { width: 148, ...glass.card, borderRadius: 18, padding: space.md, gap: space.sm, alignItems: 'center' },
+  // Vidro um pouco mais marcado que o padrão: o cartão se destaca sobre o brilho roxo/rosa do fundo.
+  card: {
+    width: 148,
+    ...glass.card,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: 18,
+    padding: space.md,
+    gap: space.sm,
+    alignItems: 'center',
+  },
   who: { alignItems: 'center', gap: 2, alignSelf: 'stretch' },
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text, marginTop: space.xs },
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
   reason: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, textAlign: 'center', minHeight: 28, marginTop: 2 },
-  button: { alignSelf: 'stretch', height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  buttonFollowing: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.surface },
+  // Mesmo botão roxo do perfil (degradê e um brilho curto, sem a sombra escura).
+  button: {
+    alignSelf: 'stretch',
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primary,
+    backgroundImage: gradients.primary,
+    boxShadow: '0 4px 12px rgba(104, 94, 255, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonFollowing: { backgroundColor: 'transparent', backgroundImage: 'none', boxShadow: 'none', borderWidth: 1, borderColor: 'rgba(138, 128, 255, 0.7)' },
   buttonText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
 });

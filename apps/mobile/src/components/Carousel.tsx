@@ -11,7 +11,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 // ScrollView do gesture-handler: rolar o carrossel não troca de aba.
 import { ScrollView } from 'react-native-gesture-handler';
 import { colors } from '../theme';
@@ -39,9 +38,14 @@ export function Carousel({
 }) {
   const ref = useRef<ScrollViewInstance>(null);
   const scroll = useScrollArrows(ref);
+  // Borda que some aos poucos onde há mais para ver. Na web é uma máscara (o próprio conteúdo
+  // fica transparente), então combina com qualquer fundo, inclusive o brilho roxo/rosa. No celular
+  // o cartão cortado na borda já mostra que dá para deslizar.
+  const mask = WEB && (scroll.canLeft || scroll.canRight) ? fadeMask(scroll.canLeft, scroll.canRight) : null;
   return (
     <View>
       <ScrollView
+        style={mask}
         ref={ref}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -53,8 +57,6 @@ export function Carousel({
       >
         {children}
       </ScrollView>
-      {scroll.canLeft ? <EdgeFade side="left" /> : null}
-      {scroll.canRight ? <EdgeFade side="right" /> : null}
       {WEB && scroll.canLeft ? <ArrowButton testID={`${arrowTestID}-prev`} side="left" label={previousLabel} onPress={() => scroll.page(-1)} /> : null}
       {WEB && scroll.canRight ? <ArrowButton testID={`${arrowTestID}-next`} side="right" label={nextLabel} onPress={() => scroll.page(1)} /> : null}
     </View>
@@ -81,22 +83,10 @@ function useScrollArrows(ref: RefObject<ScrollViewInstance | null>) {
   };
 }
 
-/** Degradê do fundo da tela por cima da borda do carrossel (não pega toques). */
-function EdgeFade({ side }: { side: 'left' | 'right' }) {
-  const id = `fade-${side}`;
-  return (
-    <View pointerEvents="none" style={[styles.fade, side === 'left' ? { left: 0 } : { right: 0 }]}>
-      <Svg width={FADE} height="100%">
-        <Defs>
-          <LinearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={colors.background} stopOpacity={side === 'left' ? 1 : 0} />
-            <Stop offset="1" stopColor={colors.background} stopOpacity={side === 'left' ? 0 : 1} />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width={FADE} height="100%" fill={`url(#${id})`} />
-      </Svg>
-    </View>
-  );
+/** Máscara da web: transparente na borda que tem mais conteúdo, opaca no resto. */
+function fadeMask(left: boolean, right: boolean): ViewStyle {
+  const image = `linear-gradient(to right, ${left ? 'transparent 0' : '#000 0'}, #000 ${left ? FADE : 0}px, #000 calc(100% - ${right ? FADE : 0}px), ${right ? 'transparent 100%' : '#000 100%'})`;
+  return { maskImage: image, WebkitMaskImage: image } as ViewStyle;
 }
 
 function ArrowButton({ testID, side, label, onPress }: { testID: string; side: 'left' | 'right'; label: string; onPress: () => void }) {
@@ -118,7 +108,6 @@ function ArrowButton({ testID, side, label, onPress }: { testID: string; side: '
 }
 
 const styles = StyleSheet.create({
-  fade: { position: 'absolute', top: 0, bottom: 0, width: FADE },
   arrow: {
     position: 'absolute',
     top: '50%',
@@ -126,9 +115,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.surface,
+    // Vidro escuro, como os botões do player: legível sobre o cartão e sobre o fundo.
+    backgroundColor: 'rgba(30, 27, 46, 0.72)',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    boxShadow: '0 4px 14px rgba(10, 6, 30, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
