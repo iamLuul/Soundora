@@ -4,7 +4,7 @@
 //   tocam com som (como no Instagram); desligou, todos ficam mudos.
 // - Na tela: a lista de posts avisa quais aparecem (pelo menos 60% do post visível). Fora de
 //   uma lista (o post aberto), o vídeo conta como visível.
-import { createContext, useCallback, useContext, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useSyncExternalStore } from 'react';
 
 type Listener = () => void;
 
@@ -36,6 +36,46 @@ export function useFeedMuted(): [boolean, (next: boolean) => void] {
 /** Só para os testes. */
 export function resetFeedMuted() {
   muted.set(true);
+}
+
+/**
+ * Um vídeo tocando por vez no app. Cada vídeo que quer tocar entra na fila; só o último que entrou
+ * toca. Ex.: o vídeo da timeline tocando e a pessoa abre o post: o do post entra depois e o da
+ * timeline pausa; ao voltar, o do post sai e o da timeline continua.
+ */
+const wantPlay = store<readonly string[]>([]);
+
+export function claimPlayback(id: string) {
+  const list = wantPlay.get();
+  if (list[list.length - 1] !== id) wantPlay.set([...list.filter((x) => x !== id), id]);
+}
+
+export function releasePlayback(id: string) {
+  const list = wantPlay.get();
+  if (list.includes(id)) wantPlay.set(list.filter((x) => x !== id));
+}
+
+/** É a vez deste vídeo tocar? */
+export function useIsPlaybackOwner(id: string): boolean {
+  const get = () => {
+    const list = wantPlay.get();
+    return list[list.length - 1] === id;
+  };
+  return useSyncExternalStore(wantPlay.subscribe, get, get);
+}
+
+/**
+ * Entra na fila enquanto `wants` (e sai ao parar ou sumir da tela). Devolve se é a vez dele.
+ * `claim` põe este vídeo no fim da fila de novo (ex.: a pessoa apertou play nele).
+ */
+export function usePlaybackTurn(wants: boolean): { mine: boolean; claim: () => void } {
+  const id = useId();
+  useEffect(() => {
+    if (wants) claimPlayback(id);
+    else releasePlayback(id);
+  }, [id, wants]);
+  useEffect(() => () => releasePlayback(id), [id]);
+  return { mine: useIsPlaybackOwner(id), claim: () => claimPlayback(id) };
 }
 
 /** Quais posts de uma lista estão na tela agora. */

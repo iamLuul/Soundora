@@ -139,3 +139,31 @@ test('parou sozinho no fim (sem repetir): o play recomeça do início', async ()
   expect(p.currentTime).toBe(0);
   expect(p.play).toHaveBeenCalled();
 });
+
+test('um vídeo por vez: o que entrou depois toca, o anterior pausa e volta quando o outro sai', async () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const tree = (both: boolean) => (
+    <QueryClientProvider client={qc}>
+      <PostMedia media={video} postId="p1" />
+      {both ? <PostMedia media={[{ ...video[0]!, path: 'u/w.mp4' }]} postId="p2" /> : null}
+    </QueryClientProvider>
+  );
+  const view = await render(tree(false));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  const first = mockPlayers[0]!;
+  expect(first.play).toHaveBeenCalled();
+  await view.rerender(tree(true));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  expect(mockPlayers[1]!.play).toHaveBeenCalled();
+  expect(first.pause).toHaveBeenCalled();
+  first.play.mockClear();
+  await view.rerender(tree(false));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  expect(first.play).toHaveBeenCalled();
+});

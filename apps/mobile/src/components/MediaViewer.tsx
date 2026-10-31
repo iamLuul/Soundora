@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { usePlaybackTurn } from '../lib/feed-video';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -174,10 +175,13 @@ function ViewerVideo({ uri, active }: { uri: string; active: boolean }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
   });
+  // Um vídeo por vez: o da timeline pausa enquanto este toca.
+  const turn = usePlaybackTurn(active);
+  const play = active && turn.mine;
   useEffect(() => {
-    if (active) player.play();
+    if (play) player.play();
     else player.pause();
-  }, [active, player]);
+  }, [play, player]);
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />;
 }
 

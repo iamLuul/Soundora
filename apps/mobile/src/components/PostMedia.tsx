@@ -12,7 +12,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
 import { display } from '../lib/display';
-import { formatClock, useFeedActive, useFeedMuted, usePostVisible } from '../lib/feed-video';
+import { formatClock, useFeedActive, useFeedMuted, usePlaybackTurn, usePostVisible } from '../lib/feed-video';
 import { colors, fonts, gradients } from '../theme';
 import { MediaViewer, type ViewerItem } from './MediaViewer';
 import { lockSwipe, swallowNextClick } from './SwipeTabs';
@@ -169,11 +169,26 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   const isPlaying = playingEvent || player.playing;
 
   // Em tela cheia continua tocando mesmo que o post saia da lista.
-  const shouldPlay = (visible || fullscreen) && !userPaused;
+  const wants = (visible || fullscreen) && !userPaused;
+  // Um vídeo por vez: abriu o post deste vídeo (ou outro vídeo), este pausa até voltar a vez dele.
+  const turn = usePlaybackTurn(wants);
+  const shouldPlay = wants && turn.mine;
   useEffect(() => {
     if (shouldPlay) player.play();
     else player.pause();
   }, [player, shouldPlay]);
+  // A tela da timeline fica "congelada" por baixo quando outra abre por cima (no computador ela
+  // nem perde o foco): os efeitos dela param, mas o <video> continua na página. Parou: pausa.
+  useEffect(
+    () => () => {
+      try {
+        player.pause();
+      } catch {
+        // Ao sair de vez, o player já pode ter sido liberado.
+      }
+    },
+    [player],
+  );
   useEffect(() => applySound(player, muted), [player, muted]);
 
   // Computador (mouse): os controles aparecem com o mouse em cima do vídeo e somem quando ele
@@ -211,6 +226,7 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
     }
     if (duration > 0 && player.currentTime >= duration - 0.25) seekTo(player, 0);
     setUserPaused(false);
+    turn.claim();
     player.play();
   };
   const skip = (delta: number) => seekTo(player, Math.min(Math.max(0, time.currentTime + delta), Math.max(0, duration - 0.1)));
