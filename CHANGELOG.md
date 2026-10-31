@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.54 · Comentários: nome e @ abrem o perfil; menu … com compartilhar e denunciar
 
+- `0.54.1.10.26` · 31/10/2026 · Comentários: … ao lado do Responder (045954b)
 - `0.54.0.10.26` · 31/10/2026 · Comentários: nome e @ abrem o perfil; menu … com compartilhar e denunciar (66069a1)
 
 ## 0.53 · Mídia mais leve: fotos em WebP e vídeo da web refeito em 720p antes de enviar
