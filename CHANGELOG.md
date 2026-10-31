@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.55 · Seguindo: reviews de quem eu sigo misturadas aos posts pela data
 
+- `0.55.1.10.26` · 31/10/2026 · Perfil: botão de opções mais abaixo e margens certas na conta privada (66b3f44)
 - `0.55.0.10.26` · 31/10/2026 · Seguindo: reviews de quem eu sigo misturadas aos posts pela data (d077540)
 
 ## 0.54 · Comentários: nome e @ abrem o perfil; menu … com compartilhar e denunciar
