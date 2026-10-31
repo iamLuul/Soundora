@@ -63,23 +63,24 @@ export function CommentItem({
           <Pressable testID={`comment-reply-${item.id}`} accessibilityRole="button" onPress={() => onReply(item)} hitSlop={8} style={webTouch(8)}>
             <Text style={styles.action}>{t('post.reply')}</Text>
           </Pressable>
+          {/* Menu "…" (compartilhar, denunciar), ao lado do Responder. */}
+          {onMore ? (
+            <Pressable
+              testID={`comment-more-${item.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={t('post.commentOptions')}
+              onPress={() => onMore(item)}
+              hitSlop={8}
+              style={[styles.more, webTouch(8)]}
+            >
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
-      <View style={styles.side}>
-        {onMore ? (
-          <Pressable
-            testID={`comment-more-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={t('post.commentOptions')}
-            onPress={() => onMore(item)}
-            hitSlop={10}
-            style={[styles.more, webTouch(10, { top: 2 })]}
-          >
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-          </Pressable>
-        ) : null}
+      <View>
         <Pressable
           testID={`comment-like-${item.id}`}
           accessibilityRole="button"
@@ -110,10 +111,9 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   handle: { fontFamily: fonts.regular, fontSize: 11, color: colors.handle },
   body: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.text },
-  actions: { flexDirection: 'row', gap: space.lg },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   action: { fontFamily: fonts.semibold, fontSize: 11, color: colors.textMuted },
-  side: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
-  more: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 18, paddingHorizontal: 2 },
+  more: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 2 },
   dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.textMuted },
   like: { alignItems: 'center', gap: 2, paddingTop: 2, minWidth: 24 },
   count: { fontFamily: fonts.regular, fontSize: 10, color: colors.textMuted },
