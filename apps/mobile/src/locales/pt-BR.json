@@ -207,6 +207,7 @@
     "genreNotFound": "Nenhum gênero com esse nome.",
     "uploading": "Enviando {{current}} de {{total}}…",
     "uploadingOne": "Enviando…",
+    "optimizingVideo": "Otimizando o vídeo… {{percent}}%",
     "publishing": "Publicando…",
     "removeMedia": "Remover esta mídia",
     "removeMusic": "Remover a música",

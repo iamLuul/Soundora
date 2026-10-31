@@ -46,7 +46,7 @@ import {
 } from "../../lib/api";
 import { AppError, formatError } from "../../lib/errors";
 import { convertPostPhoto } from "../../lib/image-convert";
-import { readLocalFile } from "../../lib/local-file";
+import { prepareVideo } from "../../lib/video-prepare";
 import { keys, useMyCommunities } from "../../lib/queries";
 import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import type { LinkPreviewRow } from "../../lib/types";
@@ -267,11 +267,13 @@ export default function ComposeScreen() {
             m.durationMs > VIBE_VIDEO_MAX.seconds * 1000 + 500
           )
             throw new AppError("video_too_long");
-          if (m.fileSize && m.fileSize > VIBE_VIDEO_MAX.bytes)
-            throw new AppError("video_too_large");
-          bytes = await readLocalFile(m.uri);
-          if (bytes.byteLength > VIBE_VIDEO_MAX.bytes)
-            throw new AppError("video_too_large");
+          // Na web o vídeo é refeito em 720p antes (bem menor); no celular vai como está.
+          bytes = await prepareVideo(m.uri, m.fileSize, (f) =>
+            setPublishing(
+              t("compose.optimizingVideo", { percent: Math.round(f * 100) }),
+            ),
+          );
+          setPublishing(t("compose.uploadingOne"));
         }
         const up = await uploadMedia("post", m.type, bytes);
         uploaded.push({

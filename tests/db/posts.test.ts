@@ -18,7 +18,7 @@ interface Item {
 }
 
 /** Simula o arquivo que a Edge Function media-upload gravou no bucket. */
-async function stored(owner: string, ext: 'jpg' | 'mp4') {
+async function stored(owner: string, ext: 'jpg' | 'webp' | 'mp4' | 'png') {
   const name = `${owner}/${crypto.randomUUID()}.${ext}`;
   await db.sql(`insert into storage.objects (bucket_id, name) values ('post-media', $1)`, [name]);
   return name;
@@ -79,6 +79,14 @@ describe('publicar', () => {
     const other = await stored(max, 'jpg');
     await expect(create(lia, '', null, [], [{ path: other, kind: 'photo', width: 10, height: 10 }])).rejects.toThrow(/invalid_media/);
     await expect(create(lia, '', null, [], [{ path: `${lia}/${crypto.randomUUID()}.jpg`, kind: 'photo', width: 10, height: 10 }])).rejects.toThrow(/invalid_media/);
+  });
+
+  it('foto em WebP (o formato que o app manda agora) é aceita; PNG não', async () => {
+    const webp = await stored(lia, 'webp');
+    const id = await create(lia, '', null, [], [{ path: webp, kind: 'photo', width: 10, height: 10 }]);
+    expect((await detail(max, id))!.media.map((m) => m.path)).toEqual([webp]);
+    const png = await stored(lia, 'png');
+    await expect(create(lia, '', null, [], [{ path: png, kind: 'photo', width: 10, height: 10 }])).rejects.toThrow(/check constraint/);
   });
 
   it('post vazio ou texto longo demais: recusado', async () => {

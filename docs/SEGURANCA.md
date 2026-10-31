@@ -43,7 +43,7 @@ Se a chave secreta vazar: no painel, em **Project Settings → API Keys**, crie 
 
 ## Arquivos (foto e banner do perfil)
 
-Antes de enviar, o app converte a imagem no próprio aparelho (`apps/mobile/src/lib/image-convert.ts` e `.web.ts`): recorta no centro, deixa no tamanho exato (foto 512 × 512, banner 1500 × 500), recodifica como JPEG sem metadados (EXIF e GPS saem) e reduz a qualidade até caber no limite. Qualquer foto da galeria funciona, inclusive HEIC no celular e PNG de 50 MB, e só esse JPEG pequeno sai do aparelho. O servidor não confia nisso e confere tudo de novo.
+Antes de enviar, o app converte a imagem no próprio aparelho (`apps/mobile/src/lib/image-convert.ts` e `.web.ts`): recorta no centro, deixa no tamanho exato (foto 512 × 512, banner 1500 × 500), recodifica como WebP sem metadados (EXIF e GPS saem; JPEG só no navegador que não gera WebP) e reduz a qualidade até caber no limite. Qualquer foto da galeria funciona, inclusive HEIC no celular e PNG de 50 MB, e só esse arquivo pequeno sai do aparelho. O servidor não confia nisso e confere tudo de novo.
 
 O app não escreve no Storage. A foto e o banner passam pela Edge Function `profile-image`, que confere, nesta ordem:
 
@@ -62,8 +62,8 @@ Os buckets `avatars` e `banners` são públicos para leitura: a imagem abre pela
 
 A mídia das Vibes e dos posts passa pela Edge Function `media-upload` (`?for=vibe|post`), com as mesmas etapas: login antes de ler o arquivo, 100 envios por dia, tamanho com corte no meio da leitura e conferência dos bytes.
 
-- **Foto:** o app converte no aparelho (imagem inteira, até 1080 × 1920, JPEG sem metadados). O servidor aceita só JPEG de até 3 MB e 1080 × 1920 pixels.
-- **Vídeo:** MP4 ou MOV de até 30 MB e 30 segundos. A função lê a estrutura do arquivo, sem decodificar: tipo real pela assinatura (`ftyp`), duração (`mvhd`), uma trilha de vídeo com tamanho até 4096 px, e as caixas cobrindo o arquivo exatamente (nada colado no fim, como um ZIP).
+- **Foto:** o app converte no aparelho (imagem inteira, até 1080 × 1920, WebP sem metadados; JPEG no navegador que não gera WebP). O servidor aceita só WebP (não animado) ou JPEG de até 3 MB e 1080 × 1920 pixels e grava com a extensão do tipo real.
+- **Vídeo:** MP4 ou MOV de até 30 MB e 30 segundos. Na web, o navegador refaz o vídeo antes de enviar (MP4 H.264 de até 720p, índice no começo); no iPhone o seletor já entrega em 720p. A função lê a estrutura do arquivo, sem decodificar: tipo real pela assinatura (`ftyp`), duração (`mvhd`), uma trilha de vídeo com tamanho até 4096 px, e as caixas cobrindo o arquivo exatamente (nada colado no fim, como um ZIP).
 - **Posts:** até 4 fotos ou 1 vídeo. O arquivo vai para o bucket privado `post-media` e só abre com URL assinada para quem não tem bloqueio com o autor. `post_create` confere que cada arquivo é da pessoa, está no bucket e não foi usado em outro post.
 - **Bucket privado `vibes`:** ninguém lista, ninguém grava pelo app. Só abre com URL assinada de 1 hora, e só se a vibe estiver ativa (24 h) e sem bloqueio entre quem vê e o autor (policy do Storage com `vibe_media_visible`).
 - **Criar a vibe** (`vibe_create`) confere que o arquivo está na pasta da própria pessoa, existe no bucket e não foi usado em outra vibe. Post compartilhado de alguém com bloqueio é recusado.

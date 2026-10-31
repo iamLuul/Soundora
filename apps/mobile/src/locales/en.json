@@ -207,6 +207,7 @@
     "genreNotFound": "No genre with that name.",
     "uploading": "Uploading {{current}} of {{total}}…",
     "uploadingOne": "Uploading…",
+    "optimizingVideo": "Optimizing video… {{percent}}%",
     "publishing": "Posting…",
     "removeMedia": "Remove this media",
     "removeMusic": "Remove the song",

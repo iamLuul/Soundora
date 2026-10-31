@@ -72,6 +72,18 @@ Deno.test('foto JPEG: grava no bucket com nome gerado e faz a faxina', async () 
   assertEquals(removed, [['user-1/velho-vibe.jpg']]);
 });
 
+Deno.test('foto WebP (o que o app manda agora): grava como .webp com o tipo certo', async () => {
+  for (const webp of [fixtures.webpLossy, fixtures.webpLossless]) {
+    const { d, uploads } = deps();
+    const res = await createHandler(d)(post('photo', webp));
+    assertEquals(res.status, 200);
+    assertEquals(await res.json(), { path: `user-1/${ID}.webp`, width: 64, height: 64 });
+    assertEquals(uploads, [{ target: 'vibe', path: `user-1/${ID}.webp`, type: 'image/webp', size: webp.byteLength }]);
+  }
+  const { d } = deps();
+  assertEquals((await (await createHandler(d)(post('photo', fixtures.webpAnimated))).json()).error, 'unsupported_image');
+});
+
 Deno.test('vídeo: grava como MP4 e devolve a duração', async () => {
   const { d, uploads } = deps();
   const res = await createHandler(d)(post('video', videos.mov));

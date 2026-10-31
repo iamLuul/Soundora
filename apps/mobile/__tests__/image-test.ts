@@ -1,4 +1,4 @@
-import { PROFILE_IMAGE_OUTPUT, planProfileImage } from '../src/lib/image-plan';
+import { PROFILE_IMAGE_OUTPUT, imageContentType, planProfileImage } from '../src/lib/image-plan';
 
 describe('conversão da foto e do banner no aparelho', () => {
   test.each([
@@ -29,5 +29,13 @@ describe('conversão da foto e do banner no aparelho', () => {
   test('tamanho final cabe nos limites do servidor (profile-image)', () => {
     expect(PROFILE_IMAGE_OUTPUT.avatar).toMatchObject({ width: 512, height: 512, maxBytes: 1024 * 1024 });
     expect(PROFILE_IMAGE_OUTPUT.banner).toMatchObject({ width: 1500, height: 500, maxBytes: 2 * 1024 * 1024 });
+  });
+});
+
+describe('tipo do arquivo pelo começo dos bytes (Content-Type do envio)', () => {
+  test('WebP e JPEG', () => {
+    const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20]);
+    expect(imageContentType(webp)).toBe('image/webp');
+    expect(imageContentType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe('image/jpeg');
   });
 });

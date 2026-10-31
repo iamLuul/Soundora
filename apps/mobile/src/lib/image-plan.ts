@@ -9,8 +9,27 @@ export const PROFILE_IMAGE_OUTPUT: Record<ProfileImageKind, { width: number; hei
   banner: { width: 1500, height: 500, maxBytes: 2 * 1024 * 1024 },
 };
 
-/** Qualidades do JPEG tentadas em ordem, até o arquivo caber no limite. */
+/**
+ * Qualidades tentadas em ordem, até o arquivo caber no limite. As fotos saem em WebP (bem menores
+ * que JPEG na mesma qualidade); JPEG só no navegador que não gera WebP (Safari antigo).
+ */
+export const WEBP_QUALITIES = [0.8, 0.7, 0.58, 0.45];
 export const JPEG_QUALITIES = [0.85, 0.72, 0.6, 0.45];
+
+/** Tipo do arquivo pelos primeiros bytes (o que vai no Content-Type do envio). */
+export function imageContentType(bytes: Uint8Array): 'image/webp' | 'image/jpeg' {
+  const isWebp =
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50;
+  return isWebp ? 'image/webp' : 'image/jpeg';
+}
 
 export interface ImagePlan {
   /** Recorte central, em pixels da imagem original. */

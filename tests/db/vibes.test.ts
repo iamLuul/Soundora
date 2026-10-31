@@ -25,7 +25,7 @@ interface VibeRow {
 }
 
 /** Simula o arquivo que a Edge Function media-upload gravou no bucket. */
-async function stored(owner: string, ext: 'jpg' | 'mp4', hoursAgo = 0) {
+async function stored(owner: string, ext: 'jpg' | 'webp' | 'mp4' | 'png', hoursAgo = 0) {
   const name = `${owner}/${crypto.randomUUID()}.${ext}`;
   await db.sql(`insert into storage.objects (bucket_id, name, created_at) values ('vibes', $1, now() - make_interval(hours => $2))`, [name, hoursAgo]);
   return name;
@@ -88,6 +88,12 @@ describe('criar vibes', () => {
     const mine = await stored(ana, 'jpg');
     await create(ana, { kind: 'photo', media: mine });
     await expect(create(ana, { kind: 'photo', media: mine })).rejects.toThrow(/invalid_media/);
+  });
+
+  it('foto em WebP (o formato que o app manda agora) é aceita; PNG não', async () => {
+    await create(ana, { kind: 'photo', media: await stored(ana, 'webp') });
+    await expect(create(ana, { kind: 'photo', media: await stored(ana, 'png') })).rejects.toThrow(/check constraint/);
+    await expect(create(ana, { kind: 'video', media: await stored(ana, 'webp'), duration: 1000 })).rejects.toThrow(/check constraint/);
   });
 
   it('não dá para compartilhar post de quem tem bloqueio comigo', async () => {

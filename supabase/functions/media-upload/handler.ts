@@ -1,7 +1,7 @@
 // Lógica da Edge Function media-upload (foto e vídeo das Vibes e dos posts), separada do
 // Deno.serve para poder ser testada com o Supabase simulado (handler.test.ts).
 //
-//   POST /media-upload?for=vibe|post&type=photo   corpo = JPEG (o app já converte)
+//   POST /media-upload?for=vibe|post&type=photo   corpo = WebP ou JPEG (o app já converte)
 //   POST /media-upload?for=vibe|post&type=video   corpo = MP4/MOV de até 30 s e 30 MB
 //
 // Ordem das checagens, da mais barata para a mais cara:
@@ -12,7 +12,7 @@
 // Só então grava no bucket privado ("vibes" ou "post-media"). Quem cria a vibe ou o post é o
 // app (vibe_create / post_create), que confere que o arquivo é da pessoa e existe no bucket.
 import { readLimited } from '../_shared/body.ts';
-import { inspectImage, type ImageLimits } from '../profile-image/image.ts';
+import { CONTENT_TYPES, EXTENSIONS, inspectImage, type ImageLimits } from '../profile-image/image.ts';
 import { inspectVideo, VIDEO_LIMITS } from './video.ts';
 
 export const corsHeaders = {
@@ -108,10 +108,11 @@ export function createHandler(deps: Deps) {
       if (type === 'photo') {
         const image = inspectImage(bytes, PHOTO_LIMITS);
         if (!image.ok) return json({ error: image.error }, image.error === 'unsupported_image' ? 415 : 422);
-        if (image.type !== 'jpeg') return json({ error: 'unsupported_image' }, 415);
+        // WebP (o app converte para ele) ou JPEG (navegador que não gera WebP). PNG não: é bem maior.
+        if (image.type !== 'webp' && image.type !== 'jpeg') return json({ error: 'unsupported_image' }, 415);
         // Nome gerado aqui: nada do arquivo original chega ao Storage.
-        const path = `${userId}/${newId()}.jpg`;
-        await deps.upload(target, path, bytes, 'image/jpeg');
+        const path = `${userId}/${newId()}.${EXTENSIONS[image.type]}`;
+        await deps.upload(target, path, bytes, CONTENT_TYPES[image.type]);
         result = { path, width: image.width, height: image.height };
       } else {
         const video = inspectVideo(bytes);

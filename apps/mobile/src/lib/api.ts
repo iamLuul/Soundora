@@ -2,6 +2,7 @@ import { commentSchema, displayNameSchema, isStreamingChoice, passwordSchema, po
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { AppError } from './errors';
 import { convertProfileImage } from './image-convert';
+import { imageContentType } from './image-plan';
 import { supabase } from './supabase';
 import type { AppConfig, CommentRow, DiscoverCard, FeedItem, LinkPreviewRow, LikedSong, PersonCard, Profile, ProfileSummary, TrackResult } from './types';
 
@@ -907,7 +908,7 @@ export type ProfileImageKind = 'avatar' | 'banner';
 
 /** Tamanho final de cada imagem: foto quadrada de 512 px, banner 3:1 com 1500 px. */
 /**
- * Converte no aparelho (recorte, tamanho exato, JPEG sem metadados: lib/image-convert) e
+ * Converte no aparelho (recorte, tamanho exato, WebP sem metadados: lib/image-convert) e
  * envia só o resultado para a Edge Function, que confere tudo de novo antes de gravar.
  */
 export async function uploadProfileImage(kind: ProfileImageKind, image: { uri: string; width: number; height: number }): Promise<string> {
@@ -918,7 +919,7 @@ export async function uploadProfileImage(kind: ProfileImageKind, image: { uri: s
 
   const { data, error } = await invokeFunction<{ path: string }>(`profile-image?kind=${kind}`, {
     body,
-    headers: { 'Content-Type': 'image/jpeg' },
+    headers: { 'Content-Type': imageContentType(bytes) },
   });
   if (error) throw await functionError('profile-image', error, 'generic');
   if (!data?.path) throw new AppError('generic');
@@ -1223,7 +1224,7 @@ export async function uploadMedia(target: 'vibe' | 'post', type: 'photo' | 'vide
   const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   const { data, error } = await invokeFunction<UploadedMedia>(`media-upload?for=${target}&type=${type}`, {
     body,
-    headers: { 'Content-Type': type === 'photo' ? 'image/jpeg' : 'video/mp4' },
+    headers: { 'Content-Type': type === 'photo' ? imageContentType(bytes) : 'video/mp4' },
   });
   if (error) throw await functionError('media-upload', error, 'generic');
   if (!data?.path) throw new AppError('generic');
@@ -1394,7 +1395,11 @@ export async function fetchDmMessages(id: string, before: number | null): Promis
 }
 
 /** Manda uma mensagem para alguém (to) ou numa conversa. vibeId: responder a vibe de quem recebe. */
-export async function sendDm(body: string, target: { to?: string; conversation?: string }, vibeId?: string): Promise<{ conversation_id: string; message_id: number }> {
+export async function sendDm(
+  body: string,
+  target: { to?: string; conversation?: string },
+  vibeId?: string,
+): Promise<{ conversation_id: string; message_id: number }> {
   const text = body.trim();
   if (!text) throw new AppError('invalid_request');
   if (text.length > DM_MAX) throw new AppError('invalid_request');

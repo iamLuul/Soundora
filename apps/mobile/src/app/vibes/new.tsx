@@ -18,7 +18,7 @@ import { DraggableText, type EditorItem, type TrashZone } from '../../components
 import { createVibe, uploadVibeMedia, VIBE_MAX_TEXTS, VIBE_STYLES, VIBE_VIDEO_MAX, type VibeKind, type VibeStyle, type VibeTextItem } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { confirmAction } from '../../lib/dialogs';
-import { readLocalFile } from '../../lib/local-file';
+import { prepareVideo } from '../../lib/video-prepare';
 import { AppError, formatError } from '../../lib/errors';
 import { convertVibePhoto } from '../../lib/image-convert';
 import { vibeCanvas } from '../../lib/vibe-canvas';
@@ -175,9 +175,8 @@ function NewVibe() {
         } else {
           // O servidor confere de novo; aqui só evita enviar 200 MB à toa.
           if (media.durationMs && media.durationMs > VIBE_VIDEO_MAX.seconds * 1000 + 500) throw new AppError('video_too_long');
-          if (media.fileSize && media.fileSize > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
-          bytes = await readLocalFile(media.uri);
-          if (bytes.byteLength > VIBE_VIDEO_MAX.bytes) throw new AppError('video_too_large');
+          // Na web o vídeo é refeito em 720p antes (bem menor); no celular vai como está.
+          bytes = await prepareVideo(media.uri, media.fileSize);
         }
         const uploaded = await uploadVibeMedia(media.type, bytes);
         await createVibe({ kind: media.type, mediaPath: uploaded.path, durationMs: uploaded.durationMs, textItems });

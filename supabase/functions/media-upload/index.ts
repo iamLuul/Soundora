@@ -34,7 +34,8 @@ Deno.serve(
       return data === true;
     },
     async upload(target, path, bytes, contentType) {
-      const { error } = await admin.storage.from(BUCKETS[target]).upload(path, bytes, { contentType, upsert: false, cacheControl: '3600' });
+      // Nome único por arquivo (nunca é sobrescrito): o navegador e a CDN guardam por 1 ano.
+      const { error } = await admin.storage.from(BUCKETS[target]).upload(path, bytes, { contentType, upsert: false, cacheControl: '31536000' });
       if (error) throw error;
     },
     async garbage(target, userId) {
