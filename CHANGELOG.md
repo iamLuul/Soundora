@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.56 · Perfil: compartilhar, silenciar e denunciar no menu ⋮
+
+- `0.56.0.10.26` · 31/10/2026 · Perfil: compartilhar, silenciar e denunciar no menu ⋮ (27a2381)
+
 ## 0.55 · Seguindo: reviews de quem eu sigo misturadas aos posts pela data
 
 - `0.55.1.10.26` · 31/10/2026 · Perfil: botão de opções mais abaixo e margens certas na conta privada (66b3f44)
