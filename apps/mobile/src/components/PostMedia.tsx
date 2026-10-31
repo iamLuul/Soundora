@@ -200,8 +200,18 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   const now = scrub ?? time.currentTime;
   const progress = duration > 0 ? Math.min(1, Math.max(0, now / duration)) : 0;
   const loading = status === 'loading' || (status === 'idle' && shouldPlay && !isPlaying);
+  // Play/pause manda no player na hora (não só pelo efeito): o vídeo pode ter parado sozinho no
+  // fim (o "Repetir" desligado no menu do navegador) sem a pessoa ter pausado, e aí o efeito não
+  // roda de novo. Parou no fim: o play recomeça do início.
   const togglePlay = () => {
-    setUserPaused(player.playing);
+    if (player.playing) {
+      setUserPaused(true);
+      player.pause();
+      return;
+    }
+    if (duration > 0 && player.currentTime >= duration - 0.25) seekTo(player, 0);
+    setUserPaused(false);
+    player.play();
   };
   const skip = (delta: number) => seekTo(player, Math.min(Math.max(0, time.currentTime + delta), Math.max(0, duration - 0.1)));
 
@@ -258,6 +268,8 @@ function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
             onSeek={(sec) => {
               seekTo(player, sec);
               setScrub(null);
+              // Tinha parado no fim sozinho (não pausado pela pessoa): volta a tocar de onde soltou.
+              if (shouldPlay && !player.playing) player.play();
             }}
           />
           <View style={styles.barRow}>

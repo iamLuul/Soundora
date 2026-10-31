@@ -128,3 +128,14 @@ test('aba interna escondida (Seguindo com o Para você aberto): o vídeo dela n�
   await view.rerender(tree(false));
   expect(p.pause).toHaveBeenCalled();
 });
+
+test('parou sozinho no fim (sem repetir): o play recomeça do início', async () => {
+  await renderVideo();
+  const p = mockPlayers[0]! as unknown as { currentTime: number; play: jest.Mock; playing: boolean };
+  p.playing = false;
+  p.currentTime = 12;
+  p.play.mockClear();
+  await fireEvent.press(screen.getByTestId('post-video-play-pause'));
+  expect(p.currentTime).toBe(0);
+  expect(p.play).toHaveBeenCalled();
+});
