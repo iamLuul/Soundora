@@ -103,7 +103,7 @@ export function ProfileView({ username, underStatusBar = false }: { username: st
   // Conta privada que eu não sigo: o cabeçalho aparece, o conteúdo não.
   if (p.locked) {
     return (
-      <ScrollView contentContainerStyle={{ paddingBottom: space.xxl + tabInset }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl + tabInset }}>
         <ProfileHeader profile={p} underStatusBar={underStatusBar} />
         <View testID="profile-locked" style={styles.locked}>
           <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
@@ -240,9 +240,9 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
         accessibilityRole="button"
         accessibilityLabel={t('profile.options')}
         hitSlop={12}
-        style={[styles.menuButton, { top: topInset + space.sm }, webTouch(12)]}
+        style={[styles.menuButton, { top: topInset + space.lg }, webTouch(12)]}
       >
-        <Ionicons name="ellipsis-vertical" size={14} color={colors.text} />
+        <Ionicons name="ellipsis-vertical" size={16} color={colors.text} />
       </Pressable>
 
       {/* Foto no centro, sobre o banner, com os cartões de números dos lados */}
@@ -430,12 +430,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     backgroundImage: 'linear-gradient(135deg, rgba(104, 94, 255, 0.85) 0%, rgba(90, 85, 119, 1) 60%, rgba(253, 81, 99, 0.45) 120%)',
   },
+  // Um pouco abaixo do topo do banner, alinhado com a borda dos cartões de números.
   menuButton: {
     position: 'absolute',
-    right: 23,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    right: L.margin,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     ...glass.chip,
     alignItems: 'center',
     justifyContent: 'center',
