@@ -16,7 +16,8 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { colors } from '../theme';
 
 const WEB = Platform.OS === 'web';
-const FADE = 48;
+/** Largura da borda que some (px). Mais larga que a seta, para o cartão cortado sumir de verdade. */
+const FADE = 96;
 
 /**
  * Fileira que desliza para os lados (contas para seguir, reviews do Para você): degradê nas
@@ -85,7 +86,12 @@ function useScrollArrows(ref: RefObject<ScrollViewInstance | null>) {
 
 /** Máscara da web: transparente na borda que tem mais conteúdo, opaca no resto. */
 function fadeMask(left: boolean, right: boolean): ViewStyle {
-  const image = `linear-gradient(to right, ${left ? 'transparent 0' : '#000 0'}, #000 ${left ? FADE : 0}px, #000 calc(100% - ${right ? FADE : 0}px), ${right ? 'transparent 100%' : '#000 100%'})`;
+  // Some depressa perto da borda (a seta fica sobre o "quase nada") e devagar perto do meio.
+  const l = left ? `transparent 0, rgba(0,0,0,0.12) ${FADE * 0.35}px, rgba(0,0,0,0.55) ${FADE * 0.65}px, #000 ${FADE}px` : '#000 0';
+  const r = right
+    ? `#000 calc(100% - ${FADE}px), rgba(0,0,0,0.55) calc(100% - ${FADE * 0.65}px), rgba(0,0,0,0.12) calc(100% - ${FADE * 0.35}px), transparent 100%`
+    : '#000 100%';
+  const image = `linear-gradient(to right, ${l}, ${r})`;
   return { maskImage: image, WebkitMaskImage: image } as ViewStyle;
 }
 
