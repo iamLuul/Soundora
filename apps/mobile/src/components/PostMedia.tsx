@@ -240,6 +240,28 @@ function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boole
     [],
   );
 
+  // Barra de volume (computador): abre com o mouse no alto-falante e fecha um pouco depois que
+  // ele sai da área (alto-falante + barra), a não ser que volte antes.
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  const volumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openVolume = () => {
+    if (volumeTimer.current) clearTimeout(volumeTimer.current);
+    volumeTimer.current = null;
+    setVolumeOpen(true);
+  };
+  const closeVolumeSoon = () => {
+    if (volumeTimer.current) clearTimeout(volumeTimer.current);
+    volumeTimer.current = setTimeout(() => setVolumeOpen(false), VOLUME_CLOSE_DELAY);
+  };
+  useEffect(
+    () => () => {
+      if (volumeTimer.current) clearTimeout(volumeTimer.current);
+    },
+    [],
+  );
+  // Só com os controles na tela (o mouse saiu do vídeo: a barra some junto).
+  const showVolume = hoverMode && controls && (volumeOpen || adjusting);
+
   // Computador (mouse): os controles aparecem com o mouse em cima do vídeo e somem quando ele
   // sai ou fica parado por 3 s. Toque (celular): aparecem ao tocar e somem 3 s depois, tocando.
   const [mouseTick, setMouseTick] = useState(0);
@@ -254,11 +276,12 @@ function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boole
   // O que "renova" os 3 s: o mouse mexendo (computador) ou o vídeo andando (toque).
   const activity = hoverMode ? mouseTick : time.currentTime;
   useEffect(() => {
-    if (!controls || scrub !== null || adjusting) return;
+    // Arrastando a linha do tempo ou com a barra de volume aberta: os controles ficam.
+    if (!controls || scrub !== null || adjusting || volumeOpen) return;
     if (!hoverMode && !isPlaying) return;
     const id = setTimeout(() => setControls(false), 3000);
     return () => clearTimeout(id);
-  }, [controls, isPlaying, scrub, adjusting, activity]);
+  }, [controls, isPlaying, scrub, adjusting, volumeOpen, activity]);
 
   const duration = player.duration || 0;
   const now = scrub ?? time.currentTime;
@@ -347,11 +370,15 @@ function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boole
               {formatClock(now)} / {formatClock(duration)}
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <View>
-                {/* Computador: a barra de volume (em pé) aparece em cima do alto-falante com o mouse no vídeo. */}
-                {hoverMode ? (
+              {/* Computador: a barra de volume (em pé) aparece com o mouse no alto-falante. A barra e
+                  o alto-falante são uma área só: ir de um para o outro não fecha a barra, e sair dela
+                  espera um instante (dá tempo de voltar). */}
+              <View {...(hoverMode ? { onPointerEnter: openVolume, onPointerMove: openVolume, onPointerLeave: closeVolumeSoon } : null)}>
+                {showVolume ? (
                   <View style={styles.volumeWrap}>
                     <VolumeSlider value={muted ? 0 : volume} label={t('post.volume')} onChange={changeVolume} onAdjusting={setAdjusting} />
+                    {/* Ponte invisível até o alto-falante (o mouse passa por ela sem sair da área). */}
+                    <View style={styles.volumeBridge} />
                   </View>
                 ) : null}
                 <SpeakerButton muted={muted} onToggle={() => (muted && volume <= 0.01 ? changeVolume(1) : setMuted(!muted))} inline />
@@ -584,6 +611,9 @@ function applySound(player: VideoPlayer, muted: boolean, volume: number) {
   player.audioMixingMode = muted ? 'mixWithOthers' : 'doNotMix';
 }
 
+/** Quanto a barra de volume espera para fechar depois que o mouse sai dela (ms). */
+const VOLUME_CLOSE_DELAY = 450;
+
 /** Respiro de cima e de baixo da barra de volume. */
 const VOLUME_PAD = 10;
 
@@ -645,8 +675,9 @@ const styles = StyleSheet.create({
   barFullscreen: { paddingHorizontal: 24, paddingBottom: 20 },
   cornerFullscreen: { bottom: 24 },
   // Barra de volume em pé, sobre o alto-falante: vidro escuro como os botões.
-  // Acima da linha do tempo (não cobre o fim dela).
-  volumeWrap: { position: 'absolute', bottom: 72, left: 0, right: 0, alignItems: 'center' },
+  // Logo acima do alto-falante (só aparece com o mouse nele).
+  volumeWrap: { position: 'absolute', bottom: 32, left: 0, right: 0, alignItems: 'center', paddingBottom: 8 },
+  volumeBridge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 8 },
   volumeHit: {
     width: 32,
     height: 104,
