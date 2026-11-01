@@ -457,7 +457,10 @@ function VolumeSlider({
 }) {
   const [height, setHeight] = useState(0);
   // y conta a partir do topo da caixa; a trilha começa depois do respiro de cima.
-  const at = (y: number) => (height > 0 ? Math.round(Math.min(1, Math.max(0, 1 - (y - VOLUME_PAD) / height)) * 100) / 100 : value);
+  // A bolinha anda só onde cabe inteira (o centro vai de meia bolinha acima do fim de baixo até
+  // meia bolinha abaixo do fim de cima): nos dois extremos ela fica igual, dentro da cápsula.
+  const travel = Math.max(1, height - THUMB);
+  const at = (y: number) => (height > 0 ? Math.round(Math.min(1, Math.max(0, 1 - (y - VOLUME_PAD - THUMB / 2) / travel)) * 100) / 100 : value);
   const pan = Gesture.Pan()
     .runOnJS(true)
     .minDistance(0)
@@ -486,9 +489,9 @@ function VolumeSlider({
         style={styles.volumeHit}
       >
         <View style={styles.volumeTrack} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
-          <View style={[styles.volumeFill, { height: `${value * 100}%` }]} />
+          <View style={[styles.volumeFill, { height: THUMB / 2 + value * travel }]} />
         </View>
-        <View style={[styles.volumeThumb, { bottom: VOLUME_PAD + Math.max(0, value * height - 6) }]} />
+        <View style={[styles.volumeThumb, { bottom: VOLUME_PAD + value * travel }]} />
       </View>
     </GestureDetector>
   );
@@ -614,6 +617,9 @@ function applySound(player: VideoPlayer, muted: boolean, volume: number) {
 /** Quanto a barra de volume espera para fechar depois que o mouse sai dela (ms). */
 const VOLUME_CLOSE_DELAY = 450;
 
+/** Bolinha da barra de volume (px). */
+const THUMB = 12;
+
 /** Respiro de cima e de baixo da barra de volume. */
 const VOLUME_PAD = 10;
 
@@ -692,9 +698,9 @@ const styles = StyleSheet.create({
   volumeFill: { width: 4, backgroundColor: colors.primary, backgroundImage: 'linear-gradient(0deg, #685EFF 0%, #8A80FF 100%)' },
   volumeThumb: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: THUMB,
+    height: THUMB,
+    borderRadius: THUMB / 2,
     backgroundColor: '#FFFFFF',
     boxShadow: '0 0 0 3px rgba(104, 94, 255, 0.55)',
   },
