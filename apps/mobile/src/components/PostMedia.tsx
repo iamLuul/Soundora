@@ -15,7 +15,7 @@ import { signPostMedia } from '../lib/api';
 import type { PostMedia as Media } from '../lib/types';
 import { display } from '../lib/display';
 import { formatClock, useFeedActive, useFeedMuted, useFeedVolume, usePlaybackTurn, usePostVisible } from '../lib/feed-video';
-import { lockPortrait, videoFullscreenOrientation } from '../lib/orientation';
+import { followDeviceOrientation, lockPortrait } from '../lib/orientation';
 import { colors, fonts, gradients } from '../theme';
 import { MediaViewer, type ViewerItem } from './MediaViewer';
 import { lockSwipe, swallowNextClick } from './SwipeTabs';
@@ -44,7 +44,7 @@ export function PostMedia({ media, postId }: { media: Media[]; postId?: string }
     const uri = urls.data?.[first.path];
     return (
       <View style={[styles.box, { aspectRatio: ratio(first) }]}>
-        {uri ? <PostVideo uri={uri} postId={postId} landscape={first.width > first.height} /> : <Spinner color={colors.muted} style={{ flex: 1 }} />}
+        {uri ? <PostVideo uri={uri} postId={postId} /> : <Spinner color={colors.muted} style={{ flex: 1 }} />}
       </View>
     );
   }
@@ -113,7 +113,7 @@ function useAppActive(): boolean {
  * mesmo; tocar no vídeo pausa e continua. Só baixa quando aparece na tela pela primeira vez.
  * Com "reduzir movimento" ligado, não toca sozinho: espera a pessoa tocar no play.
  */
-function PostVideo({ uri, postId, landscape }: { uri: string; postId?: string; landscape: boolean }) {
+function PostVideo({ uri, postId }: { uri: string; postId?: string }) {
   const { t } = useTranslation();
   const onScreen = usePostVisible(postId);
   const focused = useIsFocused();
@@ -140,7 +140,7 @@ function PostVideo({ uri, postId, landscape }: { uri: string; postId?: string; l
       </Pressable>
     );
   }
-  return <PlayingVideo uri={uri} visible={visible} landscape={landscape} />;
+  return <PlayingVideo uri={uri} visible={visible} />;
 }
 
 /** Computador com mouse (passar o mouse por cima existe): os controles seguem o mouse. */
@@ -149,7 +149,7 @@ const hoverMode = Platform.OS === 'web' && typeof window !== 'undefined' && !!wi
 /** Tela cheia do navegador no próprio player (os controles continuam os do Soundhora). */
 const webFullscreen = Platform.OS === 'web' && typeof document !== 'undefined' && typeof document.documentElement?.requestFullscreen === 'function';
 
-function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boolean; landscape: boolean }) {
+function PlayingVideo({ uri, visible }: { uri: string; visible: boolean }) {
   const { t } = useTranslation();
   const [muted, setMuted] = useFeedMuted();
   const [volume, setVolume] = useFeedVolume();
@@ -217,7 +217,8 @@ function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boole
       void videoRef.current?.enterFullscreen();
     } else {
       setFullscreen(true);
-      videoFullscreenOrientation(landscape);
+      // A tela cheia abre na posição em que o celular está; girar o celular gira junto.
+      followDeviceOrientation();
     }
   };
   const exitFullscreen = () => {
@@ -416,7 +417,13 @@ function PlayingVideo({ uri, visible, landscape }: { uri: string; visible: boole
     return (
       <View style={StyleSheet.absoluteFill}>
         {fullscreen ? <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} /> : content}
-        <Modal visible={fullscreen} animationType="fade" supportedOrientations={['portrait', 'landscape']} statusBarTranslucent onRequestClose={exitFullscreen}>
+        <Modal
+          visible={fullscreen}
+          animationType="fade"
+          supportedOrientations={['portrait', 'landscape-left', 'landscape-right']}
+          statusBarTranslucent
+          onRequestClose={exitFullscreen}
+        >
           <StatusBar hidden />
           {fullscreen ? <SafeFrame>{content}</SafeFrame> : null}
         </Modal>
