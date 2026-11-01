@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.57 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador
 
+- `0.57.4.10.26` · 31/10/2026 · Vídeo: barra de volume só com o mouse no alto-falante, sem fechar no caminho (f564221)
 - `0.57.3.10.26` · 31/10/2026 · Carrossel: borda some mais (96 px, mais rápida perto da beirada) (23f1acf)
 - `0.57.2.10.26` · 31/10/2026 · Botões sem brilho roxo em volta (d842063)
 - `0.57.1.10.26` · 31/10/2026 · Contas para seguir: borda que some de verdade, cartão e botões com mais contraste (eb1882f)
