@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.58 · LGPD: aviso de cookies, tela Cookies e dados do aparelho e nova Política de Cookies
 
+- `0.58.1.11.26` · 06/11/2026 · Cookies: aviso só na web; no app a escolha é um passo da criação da conta (aa6140e)
 - `0.58.0.11.26` · 06/11/2026 · LGPD: aviso de cookies, tela Cookies e dados do aparelho e nova Política de Cookies (49ee8f4)
 
 ## 0.57 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador
