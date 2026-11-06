@@ -1,6 +1,7 @@
 // Cookies e dados do aparelho (LGPD): até escolher, só o necessário; o opcional só com o "sim";
 // desligar apaga; aviso com "aceitar" e "recusar" do mesmo jeito; escolha registrada na conta.
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import CookiesScreen from '../src/app/cookies';
 import { CookieConsent } from '../src/components/CookieConsent';
 import { allows, getConsent, resetConsentForTests, saveConsent, storedGet, storedSet } from '../src/lib/consent';
@@ -61,7 +62,21 @@ describe('regras de gravação', () => {
   });
 });
 
-describe('aviso da primeira visita', () => {
+describe('aviso da primeira visita (só na web)', () => {
+  const realOS = Platform.OS;
+  beforeEach(() => {
+    Platform.OS = 'web';
+  });
+  afterEach(() => {
+    Platform.OS = realOS;
+  });
+
+  test('no app do celular não aparece (a escolha é feita ao criar a conta e em Configurações)', async () => {
+    Platform.OS = 'android';
+    await render(<Banner />);
+    expect(screen.queryByTestId('cookie-consent')).toBeNull();
+  });
+
   test('aparece até escolher; "Só os necessários" fecha sem gravar nada opcional', async () => {
     await render(<Banner />);
     expect(screen.getByTestId('cookie-consent')).toBeTruthy();

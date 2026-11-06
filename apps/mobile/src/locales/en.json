@@ -80,7 +80,11 @@
     "passwordTitle": "Create a password",
     "passwordHint": "So you can also sign in with your email or @username and password.",
     "usernameCheckFailed": "Couldn't check right now. Try again in a moment.",
-    "signOut": "Sign out and use another account"
+    "signOut": "Sign out and use another account",
+    "cookiesBody": "Choose what Soundhora can store on this device. What it needs to work (like your login) always stays; the rest only with your permission.",
+    "cookiesNecessary": "Login, security and your choice. The app doesn't work without these.",
+    "cookiesLater": "You can change this at any time in Settings › Privacy › Cookies and device data.",
+    "cookiesSeeAll": "See everything that's stored"
   },
   "age": {
     "too_young": "You must be at least {{min}} years old to use Soundhora.",

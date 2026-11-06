@@ -3,7 +3,7 @@ import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, Text, View, type TextInputInstance } from 'react-native';
 import { PasswordField } from '../components/auth/PasswordField';
 import { BackHeader } from '../components/figma';
 import { GenrePicker } from '../components/GenrePicker';
@@ -12,13 +12,15 @@ import { Button, ErrorText, Screen, TextField } from '../components/ui';
 import { checkUsernameAvailable, completeOnboarding, getAppConfig } from '../lib/api';
 import { toIsoDate } from '../lib/date';
 import { accountGone, useAuth } from '../lib/auth';
+import { getConsent } from '../lib/consent';
+import { chooseConsent } from '../lib/consent-sync';
 import { setPassword as savePassword } from '../lib/auth-flows';
 import { errorMessageKey, formatError } from '../lib/errors';
 import { useGenres } from '../lib/queries';
 import { useUsernameStatus, validateUsernameFormat } from '../lib/username';
-import { colors, fonts, space, text } from '../theme';
+import { colors, fonts, glass, space, text } from '../theme';
 
-type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'platform' | 'terms';
+type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'platform' | 'cookies' | 'terms';
 
 export default function Onboarding() {
   const { t, i18n } = useTranslation();
@@ -27,9 +29,18 @@ export default function Onboarding() {
   // com e-mail/@usuário e senha. Quem criou a conta pelo e-mail já definiu a senha no cadastro.
   const provider = session?.user.app_metadata?.provider;
   const [needsPassword] = useState(() => !!provider && provider !== 'email');
-  const steps: Step[] = needsPassword
-    ? ['password', 'profile', 'birthdate', 'genres', 'platform', 'terms']
-    : ['profile', 'birthdate', 'genres', 'platform', 'terms'];
+  // Cookies e dados do aparelho (LGPD): no app do celular a escolha é feita aqui (a web pergunta no
+  // aviso da primeira visita; se a pessoa ainda não respondeu lá, pergunta aqui também).
+  const [asksCookies] = useState(() => Platform.OS !== 'web' || !getConsent());
+  const steps: Step[] = [
+    ...(needsPassword ? (['password'] as Step[]) : []),
+    'profile',
+    'birthdate',
+    'genres',
+    'platform',
+    ...(asksCookies ? (['cookies'] as Step[]) : []),
+    'terms',
+  ];
   const [index, setIndex] = useState(0);
   const step = steps[index]!;
   const [password, setPassword] = useState('');
@@ -49,6 +60,8 @@ export default function Onboarding() {
   const [genres, setGenres] = useState<string[]>([]);
   const [platform, setPlatform] = useState<StreamingChoice | null>(null);
   const [accepted, setAccepted] = useState(false);
+  // Opcionais começam desligados (privacidade por padrão): só liga quem quiser.
+  const [cookieChoice, setCookieChoice] = useState({ preferences: false, personalization: false });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -104,6 +117,8 @@ export default function Onboarding() {
     }
     if (step === 'genres' && genres.length < MIN_GENRES) return setError(t('errors.genres_too_few'));
     if (step === 'platform' && !platform) return setError(t('streaming.required'));
+    // A escolha vale já (fica registrada na conta assim que o cadastro termina).
+    if (step === 'cookies') chooseConsent(cookieChoice, null);
     setIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
@@ -298,6 +313,46 @@ export default function Onboarding() {
         </>
       )}
 
+      {step === 'cookies' && (
+        <>
+          <Text style={styles.title}>{t('cookies.title')}</Text>
+          <Text style={text.body}>{t('onboarding.cookiesBody')}</Text>
+          <View style={styles.cookieCard}>
+            <View style={styles.cookieRow}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.cookieName}>{t('cookies.cat_necessary')}</Text>
+                <Text style={styles.cookieNote}>{t('onboarding.cookiesNecessary')}</Text>
+              </View>
+              <Text style={styles.cookieAlways}>{t('cookies.alwaysOn')}</Text>
+            </View>
+            {(['preferences', 'personalization'] as const).map((c) => (
+              <View key={c} style={[styles.cookieRow, styles.cookieRowBorder]}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.cookieName}>{t(`cookies.cat_${c}`)}</Text>
+                  <Text style={styles.cookieNote}>{t(`cookies.cat_${c}_note`)}</Text>
+                </View>
+                <Switch
+                  testID={`onboarding-cookie-${c}`}
+                  value={cookieChoice[c]}
+                  onValueChange={(v) => setCookieChoice((x) => ({ ...x, [c]: v }))}
+                  trackColor={{ true: colors.primary, false: colors.surface }}
+                  accessibilityLabel={t(`cookies.cat_${c}`)}
+                />
+              </View>
+            ))}
+          </View>
+          <Text style={styles.hint}>{t('onboarding.cookiesLater')}</Text>
+          <View style={{ gap: space.sm }}>
+            <Text testID="read-cookie-details" style={styles.legalLink} accessibilityRole="link" onPress={() => router.push('/cookies')}>
+              {t('onboarding.cookiesSeeAll')}
+            </Text>
+            <Text testID="read-cookies" style={styles.legalLink} accessibilityRole="link" onPress={() => router.push('/legal/cookies')}>
+              {t('legal.cookies')}
+            </Text>
+          </View>
+        </>
+      )}
+
       {step === 'terms' && (
         <>
           <Text style={styles.title}>{t('onboarding.termsTitle')}</Text>
@@ -359,4 +414,10 @@ const styles = StyleSheet.create({
   footer: { alignItems: 'flex-end' },
   signOut: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted, textAlign: 'center', textDecorationLine: 'underline', marginTop: space.lg },
   legalLink: { fontFamily: fonts.semibold, fontSize: 14, color: colors.muted, textDecorationLine: 'underline' },
+  cookieCard: { ...glass.card, borderRadius: 18 },
+  cookieRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg },
+  cookieRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: glass.pressed },
+  cookieName: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
+  cookieNote: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: colors.textMuted },
+  cookieAlways: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted },
 });

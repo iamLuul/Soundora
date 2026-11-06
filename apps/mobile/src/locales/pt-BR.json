@@ -80,7 +80,11 @@
     "passwordTitle": "Crie uma senha",
     "passwordHint": "Assim você também pode entrar com o seu e-mail ou @usuário e a senha.",
     "usernameCheckFailed": "Não deu para verificar agora. Tente de novo em instantes.",
-    "signOut": "Sair e entrar com outra conta"
+    "signOut": "Sair e entrar com outra conta",
+    "cookiesBody": "Escolha o que o Soundhora pode guardar neste aparelho. O necessário para funcionar (como o seu login) fica sempre; o resto só com a sua permissão.",
+    "cookiesNecessary": "Login, segurança e a sua escolha. Sem eles o app não funciona.",
+    "cookiesLater": "Você pode mudar quando quiser em Configurações › Privacidade › Cookies e dados do aparelho.",
+    "cookiesSeeAll": "Ver tudo o que fica guardado"
   },
   "age": {
     "too_young": "Você precisa ter pelo menos {{min}} anos para usar o Soundhora.",

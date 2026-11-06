@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/auth';
 import { useConsent } from '../lib/consent';
@@ -12,7 +12,8 @@ import { tabBarSpace } from './TabBar';
 import { Button } from './ui';
 
 /**
- * Aviso de cookies na primeira abertura (web e app), até a pessoa escolher (LGPD).
+ * Aviso de cookies na primeira visita ao site, até a pessoa escolher (LGPD). Só na web: no app do
+ * celular a escolha é feita ao criar a conta (passo do onboarding) e em Configurações.
  * - "Aceitar todos" e "Só os necessários" têm o mesmo peso: recusar é tão fácil quanto aceitar.
  * - Até a escolha, vale "só os necessários" (nada opcional é gravado).
  * - "Escolher" abre a tela com cada categoria (a mesma de Configurações).
@@ -26,11 +27,11 @@ export function CookieConsent() {
   const insets = useSafeAreaInsets();
   const layout = useWebLayout();
   const path = usePathname();
-  // A escolha feita antes de entrar vai para a conta assim que a pessoa entra.
-  useConsentSync(userId);
+  // A escolha feita antes de entrar vai para a conta assim que ela existe de fato (com perfil).
+  useConsentSync(profile ? userId : null);
 
-  // Já escolheu, ou está na própria tela de escolher / lendo a política.
-  if (consent || path === '/cookies' || path.startsWith('/legal')) return null;
+  // App do celular, já escolheu, ou está na própria tela de escolher / lendo a política.
+  if (Platform.OS !== 'web' || consent || path === '/cookies' || path.startsWith('/legal')) return null;
 
   const mobile = layout === 'mobile';
   // No celular com o app aberto, fica acima da barra de abas flutuante.
