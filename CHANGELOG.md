@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.58 · LGPD: aviso de cookies, tela Cookies e dados do aparelho e nova Política de Cookies
+
+- `0.58.0.11.26` · 06/11/2026 · LGPD: aviso de cookies, tela Cookies e dados do aparelho e nova Política de Cookies (49ee8f4)
+
 ## 0.57 · Vídeo: tela cheia com os controles do Soundhora e volume em pé no computador
 
 - `0.57.6.10.26` · 31/10/2026 · Vídeo em tela cheia no celular: segue a posição do celular, sem girar sozinho (360a237)
