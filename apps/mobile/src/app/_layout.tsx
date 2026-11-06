@@ -22,6 +22,7 @@ import { Backdrop } from '../components/Backdrop';
 import { DesktopShell } from '../components/desktop/DesktopShell';
 import { BootSkeleton } from '../components/desktop/DesktopSkeleton';
 import { ToastHost } from '../components/Toast';
+import { CookieConsent } from '../components/CookieConsent';
 import { lockPortrait } from '../lib/orientation';
 
 // O app é em pé (só o vídeo em tela cheia deita: lib/orientation).
@@ -148,6 +149,8 @@ function Navigator({ signedIn, onboarded, me }: { signedIn: boolean; onboarded: 
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
       {/* Termos e privacidade abrem com ou sem login (o cadastro mostra os links). */}
       <Stack.Screen name="legal/[doc]" options={{ headerShown: false }} />
+      {/* Cookies e dados do aparelho (LGPD): com ou sem login (o aviso da primeira visita leva para cá). */}
+      <Stack.Screen name="cookies" options={{ title: '' }} />
       {/* Telas de erro e 404: com ou sem login. */}
       <Stack.Screen name="erro/[code]" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
@@ -179,6 +182,8 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="light" />
           <RootNavigator />
+          {/* Aviso de cookies até a pessoa escolher (web e app, com ou sem login). */}
+          <CookieConsent />
           <ToastHost />
         </AuthProvider>
       </QueryClientProvider>

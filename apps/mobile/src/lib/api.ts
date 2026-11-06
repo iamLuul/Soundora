@@ -437,6 +437,17 @@ export async function unblockUser(blockedId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Registra no servidor a escolha de cookies da pessoa logada (prova do consentimento, LGPD). */
+export async function recordCookieConsent(choice: { preferences: boolean; personalization: boolean; version: number }, platform: 'web' | 'android' | 'ios'): Promise<void> {
+  const { error } = await supabase.rpc('record_cookie_consent', {
+    p_preferences: choice.preferences,
+    p_personalization: choice.personalization,
+    p_version: choice.version,
+    p_platform: platform,
+  });
+  if (error) throw error;
+}
+
 /** Silenciar: as publicações da pessoa somem dos meus feeds e ela não me notifica (sem saber). */
 export async function setUserMuted(userId: string, muted: boolean): Promise<void> {
   const { error } = await supabase.rpc('set_user_muted', { p_user: userId, p_muted: muted });

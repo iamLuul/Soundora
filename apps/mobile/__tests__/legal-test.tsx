@@ -20,7 +20,7 @@ test('termos: título, data e as seções', async () => {
   mockDoc = 'terms';
   await render(<LegalScreen />);
   expect(screen.getByText('Termos de Uso')).toBeTruthy();
-  expect(screen.getByText(/Última atualização: 12 de outubro de 2026/)).toBeTruthy();
+  expect(screen.getByText(/Última atualização: 6 de novembro de 2026/)).toBeTruthy();
   expect(screen.getByText('2. Quem pode usar')).toBeTruthy();
 });
 
@@ -33,7 +33,17 @@ test('privacidade: diz que a data de nascimento não aparece e como excluir a co
 });
 
 test('os dois idiomas têm as mesmas seções', () => {
-  for (const doc of ['terms', 'privacy'] as const) {
+  for (const doc of ['terms', 'privacy', 'cookies'] as const) {
     expect(legalSections(doc, 'en').length).toBe(legalSections(doc, 'pt-BR').length);
   }
+});
+
+test('cookies: as categorias, que até escolher só o necessário é guardado e onde mudar', async () => {
+  mockDoc = 'cookies';
+  await render(<LegalScreen />);
+  expect(screen.getByText('2. Necessários (sempre ativos)')).toBeTruthy();
+  expect(screen.getByText('3. Preferências (opcional)')).toBeTruthy();
+  expect(screen.getByText('4. Personalização (opcional)')).toBeTruthy();
+  expect(screen.getByText(/Até você escolher, vale "Só os necessários"/)).toBeTruthy();
+  expect(screen.getAllByText(/Cookies e dados do aparelho/).length).toBeGreaterThan(0);
 });

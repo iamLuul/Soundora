@@ -102,6 +102,17 @@ export default function PrivacySettingsScreen() {
           last
         />
       </SettingsSection>
+
+      <SettingsSection>
+        <SettingsRow
+          testID="settings-cookies-data"
+          icon="shield-checkmark-outline"
+          label={t('cookies.title')}
+          value={t('cookies.settingsHint')}
+          onPress={() => router.push('/cookies')}
+          last
+        />
+      </SettingsSection>
     </SettingsScreen>
   );
 }

@@ -1,7 +1,8 @@
 // Acessibilidade (Configurações › Acessibilidade): tamanho do texto, dos ícones e menos
 // movimento. Fica guardado neste aparelho e vale desde a abertura do app (display-install.ts
-// aplica a escala nos estilos e ícones antes de qualquer tela carregar).
-import { deviceGet, deviceSet } from './device-storage';
+// aplica a escala nos estilos e ícones antes de qualquer tela carregar). É uma preferência
+// (lib/consent): sem o "sim" da pessoa, não é gravada e vale só até fechar o app.
+import { storedGet, storedSet } from './consent';
 
 export type TextSize = 'small' | 'default' | 'large' | 'xlarge';
 export type IconSize = 'default' | 'large' | 'xlarge';
@@ -33,11 +34,11 @@ export function parseDisplayPrefs(raw: string | null): DisplayPrefs {
 }
 
 export function readDisplayPrefs(): DisplayPrefs {
-  return parseDisplayPrefs(deviceGet(KEY));
+  return parseDisplayPrefs(storedGet('preferences', KEY));
 }
 
 export function saveDisplayPrefs(prefs: DisplayPrefs) {
-  deviceSet(KEY, JSON.stringify(prefs));
+  storedSet('preferences', KEY, JSON.stringify(prefs));
 }
 
 /** O que vale nesta abertura do app (mudar só vale depois de recarregar). */

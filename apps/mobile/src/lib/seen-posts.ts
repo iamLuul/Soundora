@@ -1,9 +1,10 @@
-import { deviceGet, deviceSet } from './device-storage';
+import { storedGet, storedSet } from './consent';
 
 /**
  * Posts do Para você que já apareceram na tela neste aparelho (os ~300 mais recentes, por 3
  * dias). Vão para o servidor ao abrir o feed, que os põe no fim: assim cada abertura mostra
  * primeiro o que a pessoa ainda não viu. Fica só no aparelho (não é histórico na conta).
+ * É personalização (lib/consent): sem o "sim" da pessoa, vale só enquanto o app está aberto.
  */
 const KEY = 'soundhora.seen-posts';
 const MAX = 300;
@@ -16,7 +17,7 @@ function load(): Map<string, number> {
   if (seen) return seen;
   seen = new Map();
   try {
-    const raw = deviceGet(KEY);
+    const raw = storedGet('personalization', KEY);
     const list = raw ? (JSON.parse(raw) as [string, number][]) : [];
     const cutoff = Date.now() - TTL;
     for (const [id, at] of list) if (typeof id === 'string' && typeof at === 'number' && at > cutoff) seen.set(id, at);
@@ -30,7 +31,7 @@ function save() {
   if (saveTimer) return;
   saveTimer = setTimeout(() => {
     saveTimer = null;
-    deviceSet(KEY, JSON.stringify([...load()].slice(-MAX)));
+    storedSet('personalization', KEY, JSON.stringify([...load()].slice(-MAX)));
   }, 2000);
 }
 

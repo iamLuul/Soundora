@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { CoachMarks, useFirstTimeTip } from '../src/components/CoachMarks';
 import i18n from '../src/lib/i18n';
 import { tipSeen } from '../src/lib/tips';
+import { resetConsentForTests, saveConsent } from '../src/lib/consent';
 
 const steps = [
   { icon: 'heart-outline' as const, title: 'Passo um', body: 'Primeiro' },
@@ -17,7 +18,12 @@ function Host() {
 beforeAll(async () => {
   await i18n.changeLanguage('pt-BR');
 });
-beforeEach(() => globalThis.localStorage?.removeItem('soundora.tip.vibe-view'));
+beforeEach(() => {
+  // Preferências aceitas: "já vi a dica" fica gravado no aparelho.
+  resetConsentForTests();
+  saveConsent({ preferences: true, personalization: false });
+  globalThis.localStorage?.removeItem('soundora.tip.vibe-view');
+});
 
 test('avança passo a passo e não aparece de novo depois de concluída', async () => {
   await render(<Host />);
@@ -42,4 +48,12 @@ test('pular fecha e marca como vista', async () => {
   await fireEvent.press(screen.getByTestId('coach-x-skip'));
   expect(screen.queryByTestId('coach-x')).toBeNull();
   expect(tipSeen('vibe-view')).toBe(true);
+});
+
+test('sem aceitar Preferências: a dica vista vale nesta abertura, mas nada é gravado no aparelho', async () => {
+  saveConsent({ preferences: false, personalization: false });
+  await render(<Host />);
+  await fireEvent.press(screen.getByTestId('coach-x-skip'));
+  expect(tipSeen('vibe-view')).toBe(true);
+  expect(globalThis.localStorage?.getItem('soundora.tip.vibe-view') ?? null).toBeNull();
 });

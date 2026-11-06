@@ -6,7 +6,7 @@
 
 /** E-mail de contato para privacidade e denúncias. null = ainda não definido (o texto avisa). */
 export const LEGAL_CONTACT: string | null = null;
-export const LEGAL_UPDATED_AT = '2026-10-12';
+export const LEGAL_UPDATED_AT = '2026-11-06';
 
 export type LegalDoc = 'terms' | 'privacy' | 'guardians' | 'cookies' | 'ads';
 export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'guardians', 'cookies', 'ads'];
@@ -102,6 +102,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
       title: '5. Seus direitos (LGPD)',
       paragraphs: [
         'Você pode ver e corrigir seus dados no próprio app (Editar perfil e Configurações).',
+        'Você controla o que fica guardado no seu aparelho e pode revogar o consentimento quando quiser em Configurações › Privacidade › Cookies e dados do aparelho (veja a Política de Cookies).',
         'Você pode excluir sua conta em Configurações › Excluir conta. Perfil, posts, comentários, reviews, curtidas, seguidores, bloqueios, foto e banner são apagados.',
         'Para outros pedidos (acesso, cópia dos dados, dúvidas), use o contato abaixo.',
       ],
@@ -139,24 +140,79 @@ const PT: Record<LegalDoc, LegalSection[]> = {
   ],
   cookies: [
     {
-      title: '1. O que guardamos no navegador',
+      title: '1. Resumo',
       paragraphs: [
-        'Na versão Web, o Soundhora guarda no seu navegador (armazenamento local) só o necessário para funcionar: a sessão de login, o idioma, as dicas que você já viu e as preferências de acessibilidade.',
-        'No celular, as mesmas informações ficam guardadas no próprio aparelho; a sessão de login fica criptografada.',
+        'Na versão Web, o Soundhora não usa cookies do navegador: o que precisamos guardar fica no armazenamento local do navegador (localStorage). No app do celular, fica no armazenamento do próprio app. Nesta política, "cookies" quer dizer tudo isso.',
+        'Guardamos só o necessário para o Soundhora funcionar e, se você permitir, suas preferências e a personalização do Para você. Você escolhe e muda isso quando quiser em Configurações › Privacidade › Cookies e dados do aparelho (ou em "Preferências de cookies", no rodapé do site).',
       ],
     },
     {
-      title: '2. O que não usamos',
+      title: '2. Necessários (sempre ativos)',
       paragraphs: [
-        'Na versão Web, não usamos cookies de publicidade, de rastreamento entre sites nem de análise de terceiros. No app do celular, os anúncios seguem a página Anúncios.',
-        'As prévias de música vêm da Deezer e as capas, de serviços de música. Ao tocar uma prévia, o navegador busca o arquivo nesses serviços, que seguem as próprias políticas.',
+        'Sem eles o Soundhora não funciona, por isso não dependem de consentimento: servem para prestar o serviço que você pediu e manter a conta segura (LGPD, art. 7º, V e IX).',
+        'Sessão de login: mantém você conectado. No celular, fica criptografada. Dura até você sair da conta.',
+        'Contas salvas: só se você adicionar outra conta neste aparelho, para trocar sem digitar a senha de novo. Dura até você remover a conta da lista ou sair.',
+        'Notificações (só no celular): o código do aparelho para receber os avisos, se você permitir notificações. Dura até você sair da conta.',
+        'Sua escolha de cookies: para não perguntar de novo. Dura até você mudar a escolha ou limpar os dados do site.',
       ],
     },
     {
-      title: '3. Como apagar',
-      paragraphs: ['Sair da conta apaga a sessão deste aparelho. Limpar os dados do site no navegador apaga todo o resto; você só precisa entrar de novo.'],
+      title: '3. Preferências (opcional)',
+      paragraphs: [
+        'Só com o seu consentimento (LGPD, art. 7º, I). Desligado, a escolha vale só até você fechar o app e nada é gravado.',
+        'Acessibilidade: tamanho do texto e dos ícones e a opção de reduzir movimento. Dura até você mudar ou apagar.',
+        'Dicas já vistas: para as dicas de primeira vez não aparecerem de novo. Dura até você apagar.',
+      ],
     },
-    { title: '4. Contato', paragraphs: [contactPt] },
+    {
+      title: '4. Personalização (opcional)',
+      paragraphs: [
+        'Só com o seu consentimento (LGPD, art. 7º, I).',
+        'Posts já vistos no Para você: os últimos posts que apareceram na sua tela, por 3 dias, para o feed mostrar primeiro o que é novo. A lista fica neste aparelho e vai junto só na hora de pedir o feed, para ordenar os posts; ela não é guardada na sua conta. Desligado, o feed funciona igual, mas pode repetir posts.',
+      ],
+    },
+    {
+      title: '5. Antes de você escolher',
+      paragraphs: [
+        'Na primeira vez que você abre o Soundhora, um aviso pergunta o que você permite. "Aceitar todos" e "Só os necessários" ficam lado a lado, com o mesmo destaque, e você pode continuar usando o app com o aviso aberto.',
+        'Até você escolher, vale "Só os necessários": nada opcional é gravado.',
+      ],
+    },
+    {
+      title: '6. Registro da sua escolha',
+      paragraphs: [
+        'Com login, guardamos na sua conta o que você escolheu, a versão desta política e a data, para comprovar o seu consentimento (LGPD, art. 8º, § 2º). Não guardamos endereço IP nem dados do navegador nesse registro, só se a escolha foi feita na Web, no Android ou no iPhone.',
+        'Esse registro é apagado junto com a conta.',
+      ],
+    },
+    {
+      title: '7. O que não usamos',
+      paragraphs: [
+        'Na versão Web, não usamos cookies de publicidade, rastreamento entre sites nem ferramentas de análise de terceiros.',
+        'No app do celular podem aparecer anúncios do Google AdMob, sempre não personalizados. O SDK do Google segue a página Anúncios e a política de privacidade do Google.',
+      ],
+    },
+    {
+      title: '8. Conteúdo de outros serviços e cache',
+      paragraphs: [
+        'As prévias de música vêm da Deezer e as capas, de serviços de música. Ao tocar uma prévia ou ver uma capa, o seu navegador ou aparelho busca o arquivo nesses serviços, que seguem as próprias políticas. Não enviamos a eles nenhum dado da sua conta.',
+        'Para carregar mais rápido, o navegador pode guardar no cache fotos e vídeos já abertos por até 1 ano. Limpar os dados do site no navegador apaga esse cache.',
+      ],
+    },
+    {
+      title: '9. Como mudar e apagar',
+      paragraphs: [
+        'Em Configurações › Privacidade › Cookies e dados do aparelho você vê tudo o que está guardado, liga e desliga cada categoria opcional e apaga as preferências e a personalização deste aparelho. Desligar uma categoria apaga na hora o que ela tinha guardado.',
+        'Sair da conta apaga a sessão deste aparelho. Limpar os dados do site no navegador apaga todo o resto; você só precisa entrar de novo.',
+      ],
+    },
+    {
+      title: '10. Seus direitos (LGPD)',
+      paragraphs: [
+        'Você pode revogar o consentimento a qualquer momento, de graça e do mesmo jeito simples com que deu. Também pode pedir confirmação, acesso, correção, portabilidade ou exclusão dos seus dados (LGPD, art. 18). Muita coisa você faz direto no app; para o resto, use o contato abaixo.',
+      ],
+    },
+    { title: '11. Contato', paragraphs: [contactPt] },
   ],
   ads: [
     {
@@ -274,6 +330,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
       title: '5. Your rights (LGPD)',
       paragraphs: [
         'You can see and correct your data in the app (Edit profile and Settings).',
+        'You control what is stored on your device and can withdraw consent at any time in Settings › Privacy › Cookies and device data (see the Cookie Policy).',
         'You can delete your account in Settings › Delete account. Profile, posts, comments, reviews, likes, followers, blocks, photo and banner are deleted.',
         'For other requests (access, a copy of your data, questions), use the contact below.',
       ],
@@ -311,26 +368,79 @@ const EN: Record<LegalDoc, LegalSection[]> = {
   ],
   cookies: [
     {
-      title: '1. What we store in your browser',
+      title: '1. Summary',
       paragraphs: [
-        'On the Web, Soundhora stores in your browser (local storage) only what it needs to work: your sign-in session, language, the tips you’ve seen and your accessibility preferences.',
-        'On your phone, the same information is stored on the device itself; the sign-in session is encrypted.',
+        'On the Web, Soundhora doesn’t use browser cookies: what we need to store stays in the browser’s local storage (localStorage). In the phone app, it stays in the app’s own storage. In this policy, "cookies" means all of that.',
+        'We store only what Soundhora needs to work and, if you allow it, your preferences and For you personalization. You choose and change this at any time in Settings › Privacy › Cookies and device data (or in "Cookie preferences" in the site footer).',
       ],
     },
     {
-      title: '2. What we don’t use',
+      title: '2. Necessary (always on)',
       paragraphs: [
-        'On the Web, we don’t use advertising cookies, cross-site tracking or third-party analytics. In the phone app, ads follow the Ads page.',
-        'Music previews come from Deezer and covers from music services. When you play a preview, your browser fetches the file from those services, which follow their own policies.',
+        'Soundhora doesn’t work without these, so they don’t depend on consent: they provide the service you asked for and keep your account secure (Brazilian LGPD, art. 7, V and IX).',
+        'Login session: keeps you logged in. On the phone, it’s encrypted. Lasts until you log out.',
+        'Saved accounts: only if you add another account on this device, so you can switch without typing the password again. Lasts until you remove the account from the list or log out.',
+        'Notifications (phone only): the device code to receive alerts, if you allow notifications. Lasts until you log out.',
+        'Your cookie choice: so we don’t ask again. Lasts until you change your choice or clear site data.',
       ],
     },
     {
-      title: '3. How to clear it',
+      title: '3. Preferences (optional)',
       paragraphs: [
-        'Signing out deletes the session from this device. Clearing the site data in your browser deletes everything else; you just need to sign in again.',
+        'Only with your consent (LGPD, art. 7, I). When off, the choice only lasts until you close the app and nothing is stored.',
+        'Accessibility: text and icon size and the reduce motion option. Lasts until you change or delete it.',
+        'Tips you’ve seen: so first-time tips don’t show up again. Lasts until you delete it.',
       ],
     },
-    { title: '4. Contact', paragraphs: [contactEn] },
+    {
+      title: '4. Personalization (optional)',
+      paragraphs: [
+        'Only with your consent (LGPD, art. 7, I).',
+        'Posts seen in For you: the latest posts that appeared on your screen, for 3 days, so the feed shows what’s new first. The list stays on this device and is only sent along when the feed is requested, to order the posts; it isn’t stored in your account. When off, the feed works the same but may repeat posts.',
+      ],
+    },
+    {
+      title: '5. Before you choose',
+      paragraphs: [
+        'The first time you open Soundhora, a notice asks what you allow. "Accept all" and "Only necessary" sit side by side with the same emphasis, and you can keep using the app with the notice open.',
+        'Until you choose, "Only necessary" applies: nothing optional is stored.',
+      ],
+    },
+    {
+      title: '6. Record of your choice',
+      paragraphs: [
+        'When you’re logged in, we store in your account what you chose, the version of this policy and the date, to prove your consent (LGPD, art. 8, § 2). We don’t store your IP address or browser data in this record, only whether the choice was made on the Web, Android or iPhone.',
+        'This record is deleted with the account.',
+      ],
+    },
+    {
+      title: '7. What we don’t use',
+      paragraphs: [
+        'On the Web, we don’t use advertising cookies, cross-site tracking or third-party analytics tools.',
+        'The phone app may show Google AdMob ads, always non-personalized. Google’s SDK follows the Ads page and Google’s privacy policy.',
+      ],
+    },
+    {
+      title: '8. Content from other services and cache',
+      paragraphs: [
+        'Music previews come from Deezer and covers from music services. When you play a preview or see a cover, your browser or device fetches the file from those services, which follow their own policies. We don’t send them any of your account data.',
+        'To load faster, your browser may cache photos and videos you’ve already opened for up to 1 year. Clearing the site data in your browser deletes this cache.',
+      ],
+    },
+    {
+      title: '9. How to change and delete',
+      paragraphs: [
+        'In Settings › Privacy › Cookies and device data you can see everything that’s stored, turn each optional category on and off and delete the preferences and personalization on this device. Turning a category off immediately deletes what it had stored.',
+        'Logging out deletes the session from this device. Clearing the site data in your browser deletes everything else; you just need to log in again.',
+      ],
+    },
+    {
+      title: '10. Your rights (LGPD)',
+      paragraphs: [
+        'You can withdraw your consent at any time, free of charge and as easily as you gave it. You can also request confirmation, access, correction, portability or deletion of your data (LGPD, art. 18). You can do much of this directly in the app; for the rest, use the contact below.',
+      ],
+    },
+    { title: '11. Contact', paragraphs: [contactEn] },
   ],
   ads: [
     {

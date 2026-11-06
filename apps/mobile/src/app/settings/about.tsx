@@ -21,6 +21,7 @@ export default function AboutSettingsScreen() {
         <SettingsRow testID="settings-privacy-policy" icon="lock-closed-outline" label={t('legal.privacy')} onPress={() => router.push('/legal/privacy')} />
         <SettingsRow testID="settings-guardians" icon="people-outline" label={t('legal.guardians')} onPress={() => router.push('/legal/guardians')} />
         <SettingsRow testID="settings-cookies" icon="browsers-outline" label={t('legal.cookies')} onPress={() => router.push('/legal/cookies')} />
+        <SettingsRow testID="settings-cookie-choices" icon="shield-checkmark-outline" label={t('cookies.title')} onPress={() => router.push('/cookies')} />
         <SettingsRow testID="settings-ads" icon="megaphone-outline" label={t('legal.ads')} onPress={() => router.push('/legal/ads')} last />
       </SettingsSection>
       <SettingsSection>

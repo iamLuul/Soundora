@@ -100,6 +100,7 @@ function Footer() {
     { key: 'accessibility', label: t('desktop.accessibility'), href: '/settings/accessibility' },
     { key: 'ads', label: t('legal.ads'), href: '/legal/ads' },
     { key: 'cookies', label: t('legal.cookies'), href: '/legal/cookies' },
+    { key: 'cookie-choices', label: t('cookies.footer'), href: '/cookies' },
     { key: 'language', label: t('desktop.language'), href: '/settings/preferences' },
     { key: 'privacy', label: t('legal.privacy'), href: '/legal/privacy' },
     { key: 'terms', label: t('legal.terms'), href: '/legal/terms' },
