@@ -3,6 +3,7 @@
 import { extractFirstUrl, parseStreamingUrl } from '../_shared/links/platforms.ts';
 import { readJsonLimited } from '../_shared/body.ts';
 import { buildLinkPreview, LinkPreviewError, type FetchLike, type LinkPreview } from '../_shared/links/preview.ts';
+import { corsFor, describeError, jsonWith } from '../_shared/http.ts';
 
 export const CACHE_DAYS = 7;
 export const MAX_BODY_BYTES = 8 * 1024;
@@ -12,11 +13,7 @@ export const PREVIEW_RATE = [
   { max: 500, windowSeconds: 86_400 },
 ];
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const corsHeaders = corsFor();
 
 export interface PreviewRow {
   id: string;
@@ -78,17 +75,9 @@ export interface Deps {
   log?: (...args: unknown[]) => void;
 }
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-}
+const json = jsonWith(corsHeaders);
 
 const STATUS: Record<string, number> = { unsupported: 422, blocked_host: 422, not_found: 404, fetch_failed: 502 };
-
-function describe(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`;
-  if (err && typeof err === 'object') return JSON.stringify(err);
-  return String(err);
-}
 
 export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
@@ -118,7 +107,7 @@ export function createHandler(deps: Deps) {
       userId = await deps.getUserId(req.headers.get('Authorization') ?? '');
     } catch (err) {
       log('link-preview: falha ao validar o usuário', err);
-      return json({ error: 'not_authenticated', ...(deps.debug ? { detail: describe(err) } : {}) }, 401);
+      return json({ error: 'not_authenticated', ...(deps.debug ? { detail: describeError(err) } : {}) }, 401);
     }
     if (!userId) return json({ error: 'not_authenticated' }, 401);
 
@@ -129,7 +118,7 @@ export function createHandler(deps: Deps) {
       }
     } catch (err) {
       log('link-preview: falha no limite de pedidos', err);
-      return json({ error: 'internal', ...(deps.debug ? { detail: describe(err) } : {}) }, 500);
+      return json({ error: 'internal', ...(deps.debug ? { detail: describeError(err) } : {}) }, 500);
     }
 
     const read = await readJsonLimited(req, MAX_BODY_BYTES);
@@ -164,7 +153,7 @@ export function createHandler(deps: Deps) {
       return json({ preview: saved, cached: false });
     } catch (err) {
       log('link-preview: erro', parsed.platform, parsed.url, err);
-      const detail = deps.debug ? { detail: describe(err) } : {};
+      const detail = deps.debug ? { detail: describeError(err) } : {};
       if (err instanceof LinkPreviewError) return json({ error: err.code, ...detail }, STATUS[err.code] ?? 500);
       return json({ error: 'internal', ...detail }, 500);
     }

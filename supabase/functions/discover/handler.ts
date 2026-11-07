@@ -12,6 +12,7 @@ import { readJsonLimited } from '../_shared/body.ts';
 import { chartKey, isTrackSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, type LastfmTrackInfo, type PlatformTracks, type StreamingChoice } from '../_shared/links/charts.ts';
 import { checksDeezerGenre, fitsGenre, previewUsable, type Candidate, type DeezerAlbum, type DeezerTrack, type Seeds, type TrackRef } from '../_shared/links/discover.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
+import { corsFor, jsonWith } from '../_shared/http.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
 /** Cartões por pilha. */
@@ -33,11 +34,7 @@ const LINK_ONLY: StreamingChoice[] = ['spotify', 'youtube_music', 'amazon_music'
 /** Pedidos por pessoa (por minuto). */
 export const RATE = { deck: 12, link: 30, audio: 30, albums: 40, album: 20, tracks: 40, track: 20 } as const;
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const corsHeaders = corsFor();
 
 /** Cartão de música guardado (public.link_previews). */
 export interface TrackRow {
@@ -181,9 +178,7 @@ export interface Deps {
   log?: (...args: unknown[]) => void;
 }
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-}
+const json = jsonWith(corsHeaders);
 
 /** Slug de gênero do catálogo (milhares; os que não existem só não dão sugestão). */
 const isGenre = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9_]{1,80}$/.test(v);

@@ -13,6 +13,7 @@
 import { readJsonLimited } from '../_shared/body.ts';
 import { isChartSourceUrl, isStreamingChoice, LastfmKeyError, platformSearchUrl, rankWithMoves, type ChartEntry, type TrackMeta } from '../_shared/links/charts.ts';
 import type { Platform } from '../_shared/links/platforms.ts';
+import { corsFor, describeError, jsonWith } from '../_shared/http.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024;
 
@@ -67,11 +68,7 @@ export const LINKS_TTL_MS = 30 * 86_400_000;
 /** Pedidos por pessoa (por minuto). */
 export const RATE = { chart: 30, link: 30 } as const;
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const corsHeaders = corsFor();
 
 export interface Snapshot {
   taken_on: string;
@@ -105,14 +102,7 @@ export interface Deps {
   log?: (...args: unknown[]) => void;
 }
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-}
-
-function describe(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`;
-  return String(err);
-}
+const json = jsonWith(corsHeaders);
 
 export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
@@ -250,7 +240,7 @@ export function createHandler(deps: Deps) {
       return body.action === 'chart' ? await chart(period) : await link(body);
     } catch (err) {
       log('music-charts: erro', err);
-      return json({ error: 'internal', ...(deps.debug ? { detail: describe(err) } : {}) }, 500);
+      return json({ error: 'internal', ...(deps.debug ? { detail: describeError(err) } : {}) }, 500);
     }
   };
 }

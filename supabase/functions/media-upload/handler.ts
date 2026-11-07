@@ -14,12 +14,9 @@
 import { readLimited } from '../_shared/body.ts';
 import { CONTENT_TYPES, EXTENSIONS, inspectImage, type ImageLimits } from '../profile-image/image.ts';
 import { inspectVideo, VIDEO_LIMITS } from './video.ts';
+import { corsFor, describeError, jsonWith } from '../_shared/http.ts';
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const corsHeaders = corsFor();
 
 export type MediaType = 'photo' | 'video';
 export type Target = 'vibe' | 'post';
@@ -50,15 +47,7 @@ export interface Deps {
   log?: (...args: unknown[]) => void;
 }
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-}
-
-function describe(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`;
-  if (err && typeof err === 'object') return JSON.stringify(err);
-  return String(err);
-}
+const json = jsonWith(corsHeaders);
 
 export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
@@ -132,7 +121,7 @@ export function createHandler(deps: Deps) {
       return json(result);
     } catch (err) {
       log('media-upload: erro', err);
-      return json({ error: 'internal', ...(deps.debug ? { detail: describe(err) } : {}) }, 500);
+      return json({ error: 'internal', ...(deps.debug ? { detail: describeError(err) } : {}) }, 500);
     }
   };
 }

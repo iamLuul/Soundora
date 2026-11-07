@@ -8,12 +8,9 @@
 // Supabase Auth. A tentativa nasce como falha e só vira sucesso no fim, então pedidos
 // simultâneos não furam o limite.
 import { readJsonLimited } from '../_shared/body.ts';
+import { corsFor, describeError, jsonWith } from '../_shared/http.ts';
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const corsHeaders = corsFor();
 
 export type Action = 'password' | 'send_code' | 'verify_code';
 const ACTIONS: readonly Action[] = ['password', 'send_code', 'verify_code'];
@@ -84,21 +81,13 @@ export function clientIp(req: Request): string | null {
   return null;
 }
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-}
-
-function describe(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`;
-  if (err && typeof err === 'object') return JSON.stringify(err);
-  return String(err);
-}
+const json = jsonWith(corsHeaders);
 
 const RATE_LIMIT_CODES = new Set(['over_email_send_rate_limit', 'over_request_rate_limit', 'over_sms_send_rate_limit']);
 
 export function createHandler(deps: Deps) {
   const log = deps.log ?? console.error;
-  const detail = (err: unknown) => (deps.debug ? { detail: describe(err) } : {});
+  const detail = (err: unknown) => (deps.debug ? { detail: describeError(err) } : {});
 
   /** Traduz o erro do Supabase Auth num código que o app conhece. */
   function authError(action: Action, err: AuthFailure): Response {
