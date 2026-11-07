@@ -22,11 +22,14 @@ Este repositório tem a fundação do MVP e o primeiro fluxo completo:
 
 ## Estrutura
 
+Como as camadas se ligam, como encaixar uma funcionalidade nova e as decisões de arquitetura: [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
+
 ```
 apps/mobile/            App Expo (Android, iOS e Web no mesmo código)
   src/app/              Telas (Expo Router: cada arquivo é uma rota)
   src/components/       Componentes (cartão de música, post, lista, menu)
-  src/lib/              Supabase, autenticação, API, i18n, consultas
+  src/lib/              Supabase, autenticação, i18n, consultas (queries.ts) e chaves do cache (query-keys.ts)
+  src/lib/api/          API do app, um arquivo por assunto (posts, perfil, vibes, mensagens…)
   src/locales/          Textos em pt-BR e en
   __tests__/            Testes de componentes e lógica (Jest)
   .maestro/             Testes ponta a ponta no celular/emulador (Maestro)
@@ -42,7 +45,7 @@ supabase/
   config.toml           Configuração do Supabase local
 tests/db/               Testes do banco e das regras de acesso (Vitest + PostgreSQL)
 scripts/sync-shared.mjs Copia o indexador do core para a Edge Function
-docs/                   Guia de instalação no Windows e guia de testes
+docs/                   Arquitetura (ARQUITETURA.md), instalação no Windows, testes e segurança
 ```
 
 ## Começo rápido
