@@ -7,13 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader, RingAvatar, TopTabs } from '../../components/figma';
 import { setFollowing, type FollowStatus, type PersonRow } from '../../lib/api';
 import { formatError } from '../../lib/errors';
-import { keys, usePeople } from '../../lib/queries';
+import { usePeople } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
 import { Verified } from '../../components/Verified';
 import { ErrorState } from '../../components/ErrorState';
+import { keys } from '../../lib/query-keys';
 
 type List = 'followers' | 'following';
 
@@ -80,9 +81,9 @@ function PersonItem({ person, username, list }: { person: PersonRow; username: s
     setBusy(true);
     try {
       setStatus(await setFollowing(person.id, !following));
-      void qc.invalidateQueries({ queryKey: ['following'] });
+      void qc.invalidateQueries({ queryKey: keys.followingIds });
       void qc.invalidateQueries({ queryKey: keys.people(username, list) });
-      void qc.invalidateQueries({ queryKey: ['profile'] });
+      void qc.invalidateQueries({ queryKey: keys.profiles });
     } catch {
       // mantém o estado anterior
     } finally {

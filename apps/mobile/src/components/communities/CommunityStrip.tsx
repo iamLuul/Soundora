@@ -11,6 +11,7 @@ import { colors, fonts, glass, space } from '../../theme';
 import { Carousel } from '../Carousel';
 import { showToast } from '../Toast';
 import { CommunityAvatar } from './CommunityAvatar';
+import { keys } from '../../lib/query-keys';
 
 /**
  * "Comunidades para você" no meio do Para você: parecidas com o seu gosto (gêneros, artistas,
@@ -34,7 +35,7 @@ export function CommunityStrip() {
       const status = await joinCommunity(c.id);
       setJoined((j) => ({ ...j, [c.id]: status === 'pending' ? 'pending' : 'active' }));
       showToast(status === 'pending' ? t('communities.requestSent') : t('communities.joined', { name: c.name }));
-      void qc.invalidateQueries({ queryKey: ['communities', 'mine'] });
+      void qc.invalidateQueries({ queryKey: keys.myCommunities });
     } catch (err) {
       notify(formatError(t, err));
     }

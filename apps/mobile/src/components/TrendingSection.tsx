@@ -7,11 +7,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CHART_PERIOD_DAYS, chartTrackLink, fetchTopAlbums, fetchWorldChart, type ChartPeriod, type ChartTrack } from '../lib/api';
 import { ChartPeriodPicker } from './ChartPeriodPicker';
 import { formatError } from '../lib/errors';
-import { keys } from '../lib/queries';
+
 import { colors, fonts, glass, radius, space, text } from '../theme';
 import { useStreamingOpener } from './StreamingOpener';
 import { TopAlbumList } from './TopAlbums';
 import { WorldChartList } from './WorldChart';
+import { keys } from '../lib/query-keys';
 
 type TrendingView = 'global' | 'reviews';
 
@@ -26,7 +27,7 @@ export function TrendingSection() {
   const [period, setPeriod] = useState<ChartPeriod>('week');
   const chart = useQuery({ queryKey: keys.worldChart(period), queryFn: () => fetchWorldChart(period), staleTime: 10 * 60_000, enabled: view === 'global' });
   const days = chart.data?.days ?? null;
-  const top = useQuery({ queryKey: ['top-albums'], queryFn: () => fetchTopAlbums(), staleTime: 60_000, enabled: view === 'reviews' });
+  const top = useQuery({ queryKey: keys.topAlbums, queryFn: () => fetchTopAlbums(), staleTime: 60_000, enabled: view === 'reviews' });
   const { open, opening, message, platform, chooser } = useStreamingOpener((target, choice) => chartTrackLink(target.key, choice));
   const onPress = (item: ChartTrack) => open({ key: item.key, title: item.title, artist: item.artist });
 

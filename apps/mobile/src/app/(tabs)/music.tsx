@@ -17,6 +17,7 @@ import { PullToRefresh } from '../../components/PullToRefresh';
 import { Spinner } from '../../components/Spinner';
 import { ErrorState } from '../../components/ErrorState';
 import { useTabBarInset } from '../../components/TabBar';
+import { keys } from '../../lib/query-keys';
 
 type Tab = 'reviews' | 'liked' | 'mine';
 
@@ -32,7 +33,7 @@ export default function MusicScreen() {
   const [tab, setTab] = useState<Tab>('reviews');
   const [query, setQuery] = useState('');
   const tracks = useQuery({
-    queryKey: ['my-music', tab],
+    queryKey: keys.myMusic(tab),
     queryFn: tab === 'liked' ? fetchLikedTracks : fetchMyTracks,
     enabled: tab !== 'reviews',
   });

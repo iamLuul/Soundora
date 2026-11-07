@@ -6,13 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type AlbumCard, createReview, REVIEW_BODY } from '../lib/api';
 import { formatError } from '../lib/errors';
-import { reviewKeys } from '../lib/reviews';
+
 import { webTouch } from '../lib/touch';
 import { colors, fonts, space } from '../theme';
 import { AlbumPicker } from './AlbumPicker';
 import { StarRatingInput } from './StarRating';
 import { Button, ErrorText, KeyboardView } from './ui';
 import { showToast } from './Toast';
+import { keys, reviewKeys } from '../lib/query-keys';
 
 /**
  * Postar › Review: escolher o álbum (obrigatório), dar a nota (0 a 10 nas 5 estrelas) e
@@ -41,8 +42,8 @@ export function ReviewComposer({ onPublished }: { onPublished: () => void }) {
       setRating(null);
       setBody('');
       await qc.invalidateQueries({ queryKey: reviewKeys.all });
-      void qc.invalidateQueries({ queryKey: ['top-albums'] });
-      void qc.invalidateQueries({ queryKey: ['album-summary'] });
+      void qc.invalidateQueries({ queryKey: keys.topAlbums });
+      void qc.invalidateQueries({ queryKey: keys.albumSummaryAll });
       showToast(t('toast.reviewPublished'));
       onPublished();
     } catch (err) {

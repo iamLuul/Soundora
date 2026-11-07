@@ -11,8 +11,9 @@ import { clearSearchHistory, fetchSearchHistory, setSearchHistoryEnabled, type S
 import { confirmAction } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
-import { keys } from '../../lib/queries';
+
 import { colors, fonts, glass, space, text } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 export const searchHistoryKey = ['search-history'] as const;
 

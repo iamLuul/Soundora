@@ -10,6 +10,7 @@ import { formatError } from '../../lib/errors';
 import { colors, fonts, space } from '../../theme';
 import { Spinner } from '../Spinner';
 import { showToast } from '../Toast';
+import { keys } from '../../lib/query-keys';
 
 /**
  * Responder a vibe por mensagem (como no Story): a caixa embaixo da vibe; escrevendo, a vibe
@@ -51,7 +52,7 @@ export function VibeReplyBar({
       Keyboard.dismiss();
       onTyping(false);
       showToast(t('messages.replySent', { username }));
-      void qc.invalidateQueries({ queryKey: ['dm'] });
+      void qc.invalidateQueries({ queryKey: keys.dm });
     } catch (err) {
       notify(formatError(t, err));
     } finally {

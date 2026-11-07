@@ -18,6 +18,7 @@ import { colors, fonts, radius, space, text } from '../../theme';
 import { GenrePicker } from '../GenrePicker';
 import { Button, TextField } from '../ui';
 import { colorForName, CommunityAvatar } from './CommunityAvatar';
+import { keys } from '../../lib/query-keys';
 
 /** "Fãs do Arctic Monkeys!" → "fas_do_arctic_monkeys" (sugestão de @). */
 export function slugFromName(name: string): string {
@@ -82,7 +83,7 @@ export function CommunityForm({
   // O @ é único entre pessoas e comunidades: confere enquanto a pessoa digita.
   const slugToCheck = useDebouncedValue(creating && slugOk ? finalSlug : '', 400);
   const available = useQuery({
-    queryKey: ['community-slug', slugToCheck],
+    queryKey: keys.communitySlug(slugToCheck),
     queryFn: () => communitySlugAvailable(slugToCheck),
     enabled: !!slugToCheck,
     staleTime: 30_000,

@@ -14,6 +14,7 @@ import { useDebouncedValue } from '../../lib/hooks';
 import { useMyCommunities, useRecommendedCommunities } from '../../lib/queries';
 import { webTouch } from '../../lib/touch';
 import { colors, fonts, glass, space, text } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 /** Explorar comunidades: buscar, as minhas, as recomendadas e criar uma nova. */
 export default function CommunitiesScreen() {
@@ -22,7 +23,7 @@ export default function CommunitiesScreen() {
   const [query, setQuery] = useState('');
   const q = useDebouncedValue(query.trim(), 300);
   const searching = q.length >= 2;
-  const results = useQuery({ queryKey: ['communities', 'search', q], queryFn: () => searchCommunities(q), enabled: searching });
+  const results = useQuery({ queryKey: keys.communitySearch(q), queryFn: () => searchCommunities(q), enabled: searching });
   const mine = useMyCommunities();
   const recommended = useRecommendedCommunities();
 

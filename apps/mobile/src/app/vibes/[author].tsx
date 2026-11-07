@@ -19,7 +19,7 @@ import { deleteVibe, fetchVibesOf, fetchVibeViewers, markVibeSeen, report, vibeM
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
-import { keys, useVibeMedia, useVibesOf, useVibesTray } from '../../lib/queries';
+import { useVibeMedia, useVibesOf, useVibesTray } from '../../lib/queries';
 import { colors, fonts, space } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
@@ -34,6 +34,7 @@ import { VibeReplyBar } from '../../components/vibes/VibeReplyBar';
 import { AdVibe } from '../../components/ads/AdVibe';
 import { useAds, withAds } from '../../lib/ads';
 import { useIsDesktop } from '../../lib/layout';
+import { keys } from '../../lib/query-keys';
 
 /** Tempo de cada vibe sem vídeo. */
 const STILL_MS = 5000;
@@ -256,7 +257,7 @@ async function prefetchAuthor(qc: QueryClient, authorId: string) {
   const first = list?.find((v) => !v.seen) ?? list?.[0];
   if (!first?.media_path) return;
   const path = first.media_path;
-  const url = await qc.fetchQuery({ queryKey: ['vibe-media', path], queryFn: () => vibeMediaUrl(path), staleTime: 50 * 60_000 }).catch(() => null);
+  const url = await qc.fetchQuery({ queryKey: keys.vibeMedia(path), queryFn: () => vibeMediaUrl(path), staleTime: 50 * 60_000 }).catch(() => null);
   if (url && first.kind === 'photo') void Image.prefetch(url).catch(() => undefined);
 }
 
@@ -403,7 +404,7 @@ function AuthorVibes({
     try {
       await deleteVibe(current.id);
       showToast(t('toast.vibeDeleted'));
-      await qc.invalidateQueries({ queryKey: ['vibes'] });
+      await qc.invalidateQueries({ queryKey: keys.vibes });
       if (list.length <= 1) close();
       else {
         resetClock();
@@ -601,7 +602,7 @@ function AuthorVibes({
 
 function ViewersSheet({ vibeId, onClose }: { vibeId: string | null; onClose: () => void }) {
   const { t } = useTranslation();
-  const viewers = useQuery({ queryKey: ['vibe-viewers', vibeId], queryFn: () => fetchVibeViewers(vibeId!), enabled: !!vibeId });
+  const viewers = useQuery({ queryKey: keys.vibeViewers(vibeId), queryFn: () => fetchVibeViewers(vibeId!), enabled: !!vibeId });
   return (
     <BottomSheet visible={!!vibeId} onClose={onClose} label={t('common.close')} style={styles.sheet}>
       <View style={{ gap: space.md, flexShrink: 1 }}>

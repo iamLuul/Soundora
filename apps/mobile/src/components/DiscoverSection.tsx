@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { fetchDiscoverCards, fetchRecommendations, refreshDiscoverAudio, swipeDiscover, trackLink } from '../lib/api';
 import { formatError } from '../lib/errors';
-import { genreLabel, keys, useGenreSearch, useGenres } from '../lib/queries';
+import { genreLabel, useGenreSearch, useGenres } from '../lib/queries';
 import type { DiscoverCard, LikedSong } from '../lib/types';
 import { colors, fonts, glass, space, text } from '../theme';
 import { DiscoverDeck } from './DiscoverDeck';
@@ -22,6 +22,7 @@ import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
 import { router } from 'expo-router';
 import { useTabBarInset } from './TabBar';
+import { keys } from '../lib/query-keys';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
 const REFILL_AT = 3;
@@ -81,7 +82,7 @@ export function DiscoverSection() {
 
   // Pilha nova: sugestões do algoritmo + (sem gênero escolhido) indicações da comunidade.
   const base = useQuery({
-    queryKey: ['discover-deck', genre],
+    queryKey: keys.discoverDeck(genre),
     queryFn: async () => {
       const [forYou, community] = await Promise.all([fetchRecommendations(genre), genre ? [] : fetchDiscoverCards(10).catch(() => [] as DiscoverCard[])]);
       return mergeDeck(forYou, community);
@@ -204,7 +205,7 @@ export function DiscoverSection() {
     if (deck.length - 1 <= REFILL_AT) refill();
     if (isLike) {
       // Aparece na hora em "Músicas curtidas".
-      qc.setQueryData<LikedSong[]>(['discover-liked'], (list) => [
+      qc.setQueryData<LikedSong[]>(keys.discoverLiked, (list) => [
         {
           link_preview_id: card.link_preview_id,
           url: card.url,
@@ -222,10 +223,10 @@ export function DiscoverSection() {
       .then(() => {
         if (!isLike) return;
         void qc.invalidateQueries({ queryKey: keys.feed });
-        void qc.invalidateQueries({ queryKey: ['profile'] });
-        void qc.invalidateQueries({ queryKey: ['liked-songs'] });
+        void qc.invalidateQueries({ queryKey: keys.profiles });
+        void qc.invalidateQueries({ queryKey: keys.likedSongsAll });
       })
-      .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
+      .catch(() => void qc.invalidateQueries({ queryKey: keys.discoverLiked }));
   };
 
   const openSong = (s: { link_preview_id: string; title: string; artist: string | null }) =>

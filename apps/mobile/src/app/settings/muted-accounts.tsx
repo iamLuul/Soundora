@@ -12,12 +12,13 @@ import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { ErrorState } from '../../components/ErrorState';
+import { keys, reviewKeys } from '../../lib/query-keys';
 
 /** Quem eu silenciei, com a opção de deixar de silenciar. */
 export default function MutedAccountsScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const muted = useQuery({ queryKey: ['muted-accounts'], queryFn: fetchMutedProfiles, staleTime: 0 });
+  const muted = useQuery({ queryKey: keys.mutedAccounts, queryFn: fetchMutedProfiles, staleTime: 0 });
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +27,9 @@ export default function MutedAccountsScreen() {
     setError(null);
     try {
       await setUserMuted(p.id, false);
-      qc.setQueryData<PersonCard[]>(['muted-accounts'], (list) => list?.filter((x) => x.id !== p.id));
-      qc.setQueryData(['muted', p.id], false);
-      for (const queryKey of [['feed'], ['feed-following'], ['vibes', 'tray'], ['reviews'], ['reviews-for-you']]) void qc.invalidateQueries({ queryKey });
+      qc.setQueryData<PersonCard[]>(keys.mutedAccounts, (list) => list?.filter((x) => x.id !== p.id));
+      qc.setQueryData(keys.muted(p.id), false);
+      for (const queryKey of [keys.feed, keys.followingFeed, keys.vibesTray, reviewKeys.all, keys.reviewsForYou]) void qc.invalidateQueries({ queryKey });
     } catch (err) {
       setError(formatError(t, err));
     } finally {

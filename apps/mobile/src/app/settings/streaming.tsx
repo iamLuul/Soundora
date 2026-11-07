@@ -8,8 +8,9 @@ import { StreamingPicker } from '../../components/StreamingPicker';
 import { ErrorText, Screen } from '../../components/ui';
 import { setStreamingPlatform } from '../../lib/api';
 import { formatError } from '../../lib/errors';
-import { keys, useStreamingPlatform } from '../../lib/queries';
+import { useStreamingPlatform } from '../../lib/queries';
 import { space, text } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 /** Trocar a plataforma de streaming (as músicas do Trending abrem nela). Salva ao tocar. */
 export default function StreamingSettingsScreen() {
@@ -26,7 +27,7 @@ export default function StreamingSettingsScreen() {
       await setStreamingPlatform(p);
       qc.setQueryData(keys.streamingPlatform, p);
       // O Descobrir e as curtidas mudam de prévia, link e capa.
-      for (const queryKey of [['discover-deck'], ['discover-liked'], ['liked-songs']]) void qc.invalidateQueries({ queryKey });
+      for (const queryKey of [keys.discoverDeckAll, keys.discoverLiked, keys.likedSongsAll]) void qc.invalidateQueries({ queryKey });
     } catch (err) {
       setError(formatError(t, err));
     } finally {

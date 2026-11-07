@@ -15,14 +15,14 @@ import { errorStatus, formatError } from '../lib/errors';
 import { ErrorScreen } from './ErrorScreen';
 import { openConversationWith } from './messages/open';
 import { pickAndUploadProfileImage } from '../lib/pick-image';
-import { keys, useProfilePosts, useVibesOf } from '../lib/queries';
+import { useProfilePosts, useVibesOf } from '../lib/queries';
 import type { ProfileSummary } from '../lib/types';
 import { colors, fonts, glass, gradients, radius, space } from '../theme';
 import { Reactive } from './Reactive';
 import { TopTabs } from './figma';
 import { OptionsSheet, type SheetOption } from './OptionsSheet';
 import { AccountSwitcher } from './AccountSwitcher';
-import { FavoriteSongs, ProfileGenres, profileKeys } from './ProfileExtras';
+import { FavoriteSongs, ProfileGenres } from './ProfileExtras';
 import { ProfileBadges } from './ProfileBadges';
 import { ReviewList } from './ReviewList';
 import { PostList } from './PostList';
@@ -35,6 +35,7 @@ import { notify } from '../lib/dialogs';
 import { showToast } from './Toast';
 import { ErrorState } from './ErrorState';
 import { useTabBarInset } from './TabBar';
+import { keys, profileKeys, reviewKeys } from '../lib/query-keys';
 
 /** Medidas do Figma (Profile page, 430 px): banner 120, foto 72 com anel de 8, cartões 42. */
 export const PROFILE_LAYOUT = { banner: 120, avatar: 72, ring: 8, overlap: 44, card: 42, gap: 12, margin: 20 };
@@ -141,7 +142,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
   const [switcherOpen, setSwitcherOpen] = useState(false);
   // Denunciar o perfil: segundo menu, com o motivo.
   const [reportOpen, setReportOpen] = useState(false);
-  const muted = useQuery({ queryKey: ['muted', p.id], queryFn: () => isUserMuted(p.id), enabled: !p.is_me });
+  const muted = useQuery({ queryKey: keys.muted(p.id), queryFn: () => isUserMuted(p.id), enabled: !p.is_me });
   const [uploading, setUploading] = useState<ProfileImageKind | null>(null);
 
   const vibes = useVibesOf(p.id);
@@ -179,7 +180,7 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
       if (status === 'requested') showToast(t('toast.followRequested'));
       await refresh();
       // A fila de quem você segue, no topo da Home.
-      for (const queryKey of [['following'], keys.followingIds, keys.requestedIds, keys.followingFeed, keys.vibesTray]) void qc.invalidateQueries({ queryKey });
+      for (const queryKey of [keys.followingIds, keys.requestedIds, keys.followingFeed, keys.vibesTray]) void qc.invalidateQueries({ queryKey });
     } catch (err) {
       notify(formatError(t, err));
     }
@@ -195,10 +196,10 @@ export function ProfileHeader({ profile: p, underStatusBar = false }: { profile:
     const next = !muted.data;
     try {
       await setUserMuted(p.id, next);
-      qc.setQueryData(['muted', p.id], next);
+      qc.setQueryData(keys.muted(p.id), next);
       showToast(t(next ? 'toast.muted' : 'toast.unmuted', { username: p.username }));
       // Os feeds passam a deixar a pessoa de fora (ou a mostrar de novo).
-      for (const queryKey of [keys.feed, keys.followingFeed, keys.vibesTray, ['reviews'], keys.reviewsForYou, ['muted-accounts']])
+      for (const queryKey of [keys.feed, keys.followingFeed, keys.vibesTray, reviewKeys.all, keys.reviewsForYou, keys.mutedAccounts])
         void qc.invalidateQueries({ queryKey });
     } catch (err) {
       notify(formatError(t, err));

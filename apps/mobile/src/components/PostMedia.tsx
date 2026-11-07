@@ -20,11 +20,12 @@ import { colors, fonts, gradients } from '../theme';
 import { MediaViewer, type ViewerItem } from './MediaViewer';
 import { lockSwipe, swallowNextClick } from './SwipeTabs';
 import { Spinner } from './Spinner';
+import { keys } from '../lib/query-keys';
 
 /** URLs assinadas (1 h) das mídias do post; os posts da mesma página assinam juntos (signPostMedia). */
 function useMediaUrls(media: Media[]) {
   const paths = media.map((m) => m.path);
-  return useQuery({ queryKey: ['post-media', ...paths], queryFn: () => signPostMedia(paths), enabled: paths.length > 0, staleTime: 50 * 60_000 });
+  return useQuery({ queryKey: keys.postMedia(paths), queryFn: () => signPostMedia(paths), enabled: paths.length > 0, staleTime: 50 * 60_000 });
 }
 
 /** Proporção da primeira mídia, entre 4:5 (em pé) e 16:9 (deitada), como no X/Instagram. */

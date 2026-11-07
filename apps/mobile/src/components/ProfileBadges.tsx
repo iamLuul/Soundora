@@ -8,11 +8,7 @@ import { badgeIcon } from '../assets/badgeIcons';
 import { fetchProfileBadges, fetchSupportUrl, type ProfileBadge } from '../lib/api';
 import { colors, fonts, glass, radius, space } from '../theme';
 import { SheetBackdrop } from './ui';
-
-export const badgeKeys = {
-  of: (userId: string) => ['profile-badges', userId] as const,
-  supportUrl: ['support-url'] as const,
-};
+import { badgeKeys } from '../lib/query-keys';
 
 /** Nome e descrição no idioma do app. */
 function texts(b: ProfileBadge, lang: string) {

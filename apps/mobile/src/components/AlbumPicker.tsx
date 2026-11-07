@@ -11,6 +11,7 @@ import { useDebouncedValue } from '../lib/hooks';
 import { colors, fonts, space } from '../theme';
 import { SearchField } from './figma';
 import { Spinner } from './Spinner';
+import { keys } from '../lib/query-keys';
 
 /**
  * Escolher o álbum da review, num campo só: digitar busca pelo nome do álbum ou do artista
@@ -26,9 +27,9 @@ export function AlbumPicker({ onPick }: { onPick: (album: AlbumCard) => void }) 
   const parsed = url ? parseStreamingUrl(url) : null;
   // Link curto ("unknown") só se sabe o tipo no servidor.
   const linkOk = !!parsed && (parsed.kind === 'album' || parsed.kind === 'unknown');
-  const results = useQuery({ queryKey: ['album-search', q], queryFn: () => searchAlbums(q), enabled: !url && q.length >= 2, staleTime: 5 * 60_000 });
+  const results = useQuery({ queryKey: keys.albumSearch(q), queryFn: () => searchAlbums(q), enabled: !url && q.length >= 2, staleTime: 5 * 60_000 });
   const fromLink = useQuery({
-    queryKey: ['album-link', url],
+    queryKey: keys.albumLink(url),
     queryFn: async () => {
       const p = await previewLink(url!);
       if (p.kind !== 'album') throw new AppError('not_album');

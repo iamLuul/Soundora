@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { previewLink } from './api';
 import { supabase } from './supabase';
+import { adminKeys, keys } from './query-keys';
 
 /**
  * Painel admin. Tudo passa por funções do banco que conferem se quem chama é admin
@@ -97,16 +98,6 @@ export interface BadgeHolder {
   granted_at: string;
 }
 
-export const adminKeys = {
-  isAdmin: ['is-admin'] as const,
-  overview: ['admin', 'overview'] as const,
-  reports: (status: ReportStatus) => ['admin', 'reports', status] as const,
-  users: (q: string, filter: UserFilter, sort: UserSort) => ['admin', 'users', q, filter, sort] as const,
-  featured: ['admin', 'featured'] as const,
-  badges: ['admin', 'badges'] as const,
-  badgeHolders: (badgeId: string) => ['admin', 'badges', badgeId, 'holders'] as const,
-};
-
 export function useIsAdmin(enabled = true) {
   return useQuery({
     queryKey: adminKeys.isAdmin,
@@ -196,7 +187,7 @@ export function useBadgeHolders(badgeId: string, enabled: boolean) {
 export function useAdminActions() {
   const qc = useQueryClient();
   const done = () => {
-    void qc.invalidateQueries({ queryKey: ['admin'] });
+    void qc.invalidateQueries({ queryKey: keys.admin });
   };
   return {
     resolve: useMutation({
@@ -207,7 +198,7 @@ export function useAdminActions() {
       onSuccess: () => {
         done();
         // O conteúdo removido some das listas do app também.
-        void qc.invalidateQueries({ queryKey: ['feed'] });
+        void qc.invalidateQueries({ queryKey: keys.feedAll });
       },
     }),
     verify: useMutation({
@@ -217,7 +208,7 @@ export function useAdminActions() {
       },
       onSuccess: () => {
         done();
-        void qc.invalidateQueries({ queryKey: ['verified-usernames'] });
+        void qc.invalidateQueries({ queryKey: keys.verifiedUsernames });
       },
     }),
     /** days: número de dias, null = sem data para voltar, 0 = reativar. */
@@ -244,7 +235,7 @@ export function useAdminActions() {
       },
       onSuccess: () => {
         done();
-        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+        void qc.invalidateQueries({ queryKey: keys.profileBadgesAll });
       },
     }),
     revokeBadge: useMutation({
@@ -254,7 +245,7 @@ export function useAdminActions() {
       },
       onSuccess: () => {
         done();
-        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+        void qc.invalidateQueries({ queryKey: keys.profileBadgesAll });
       },
     }),
     setBadgeOpen: useMutation({
@@ -264,7 +255,7 @@ export function useAdminActions() {
       },
       onSuccess: () => {
         done();
-        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+        void qc.invalidateQueries({ queryKey: keys.profileBadgesAll });
       },
     }),
     /** until: data ISO (a partir dela ninguém mais recebe; agora = encerrar já) ou null (tirar a data). */
@@ -275,7 +266,7 @@ export function useAdminActions() {
       },
       onSuccess: () => {
         done();
-        void qc.invalidateQueries({ queryKey: ['profile-badges'] });
+        void qc.invalidateQueries({ queryKey: keys.profileBadgesAll });
       },
     }),
     removeFeatured: useMutation({

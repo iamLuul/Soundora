@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import 'expo-sqlite/localStorage/install';
 import { registerPushToken, unregisterPushToken } from './api';
 import { AppError } from './errors';
+import { keys } from './query-keys';
 
 /** Token deste aparelho, guardado para descadastrar ao sair ou desligar. */
 const KEY = 'soundora.push-token';
@@ -111,8 +112,8 @@ export function usePushNavigation(enabled: boolean): void {
   useEffect(() => {
     if (!enabled || !Notifications) return;
     const sub = Notifications.addNotificationReceivedListener(() => {
-      void qc.invalidateQueries({ queryKey: ['notifications-unread'] });
-      void qc.invalidateQueries({ queryKey: ['notifications'] });
+      void qc.invalidateQueries({ queryKey: keys.unread });
+      void qc.invalidateQueries({ queryKey: keys.notificationsAll });
     });
     return () => sub.remove();
   }, [enabled, qc]);

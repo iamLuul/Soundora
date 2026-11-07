@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { checkUsernameAvailable } from './api';
 import { errorMessageKey } from './errors';
 import { useDebouncedValue } from './hooks';
+import { keys } from './query-keys';
 
 export type UsernameStatus =
   | { state: 'empty' }
@@ -30,7 +31,7 @@ export function useUsernameStatus(raw: string): UsernameStatus {
   const format = validateUsernameFormat(trimmed);
   const debounced = useDebouncedValue(format.ok ? format.username : '', 400);
   const query = useQuery({
-    queryKey: ['username-available', debounced],
+    queryKey: keys.usernameAvailable(debounced),
     queryFn: () => checkUsernameAvailable(debounced),
     enabled: debounced.length > 0,
     staleTime: 10_000,

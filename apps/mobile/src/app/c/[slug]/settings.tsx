@@ -15,6 +15,7 @@ import { confirmAction, notify } from '../../../lib/dialogs';
 import { formatError } from '../../../lib/errors';
 import { useCommunity } from '../../../lib/queries';
 import { colors, fonts, space, text } from '../../../theme';
+import { keys } from '../../../lib/query-keys';
 
 /** Configurações da comunidade (só a dona): editar tudo menos o @, ou apagar. */
 export default function CommunitySettingsScreen() {
@@ -35,7 +36,7 @@ export default function CommunitySettingsScreen() {
     if (!(await confirmAction(t('communities.deleteConfirm', { name: c.name }), t('communities.delete'), t('common.cancel')))) return;
     try {
       await deleteCommunity(c.id);
-      await qc.invalidateQueries({ queryKey: ['communities'] });
+      await qc.invalidateQueries({ queryKey: keys.communities });
       showToast(t('communities.deleted'));
       router.replace('/communities');
     } catch (err) {
@@ -72,7 +73,7 @@ export default function CommunitySettingsScreen() {
               await updateCommunity(c.id, value);
               if (value.photo) await uploadCommunityImage(c.id, value.photo);
               else if (value.photo === null) await removeCommunityImage(c.id);
-              await qc.invalidateQueries({ queryKey: ['communities'] });
+              await qc.invalidateQueries({ queryKey: keys.communities });
               showToast(t('communities.saved'));
               router.back();
             } catch (err) {

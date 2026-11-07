@@ -5,8 +5,9 @@ import { SvgXml } from 'react-native-svg';
 import { badgeIcon } from '../assets/badgeIcons';
 import { fetchSupportUrl } from '../lib/api';
 import { colors, fonts, glass, radius, space } from '../theme';
-import { badgeKeys } from './ProfileBadges';
+
 import { SettingsRow } from './Settings';
+import { badgeKeys } from '../lib/query-keys';
 
 /**
  * Apoio ao Soundhora (Patreon): só na versão Web. Nos apps, nada sobre doação aparece (regras

@@ -36,44 +36,12 @@ import {
   type PostCursor,
 } from './api';
 import { useDebouncedValue } from './hooks';
+import { useLiveConnected } from './live-status';
 import { seenSnapshot } from './seen-posts';
 import { supabase } from './supabase';
 import type { FeedItem } from './types';
+import { keys } from './query-keys';
 
-export const keys = {
-  feed: ['feed'] as const,
-  followingFeed: ['feed-following'] as const,
-  genrePosts: (slug: string) => ['genre-posts', slug] as const,
-  followingIds: ['following-ids'] as const,
-  /** Contas privadas para as quais pedi para seguir. */
-  requestedIds: ['requested-ids'] as const,
-  /** Pedidos para seguir que eu recebi. */
-  followRequests: ['follow-requests'] as const,
-  suggested: ['suggested-accounts'] as const,
-  reviewsForYou: ['reviews-for-you'] as const,
-  profilePosts: (authorId: string) => ['profile-posts', authorId] as const,
-  profile: (username: string) => ['profile', username] as const,
-  comments: (postId: string) => ['comments', postId] as const,
-  post: (postId: string) => ['post', postId] as const,
-  likedSongs: (userId: string) => ['liked-songs', userId] as const,
-  people: (username: string, list: string) => ['people', username, list] as const,
-  notifications: (filter: string) => ['notifications', filter] as const,
-  unread: ['notifications-unread'] as const,
-  vibesTray: ['vibes', 'tray'] as const,
-  vibesOf: (authorId: string) => ['vibes', 'of', authorId] as const,
-  streamingPlatform: ['streaming-platform'] as const,
-  worldChart: (period: string) => ['world-chart', period] as const,
-  /** Mensagens diretas (tudo começa com 'dm': o aviso ao vivo atualiza tudo de uma vez). */
-  dmInbox: (requests: boolean) => ['dm', 'inbox', requests] as const,
-  dmUnread: ['dm', 'unread'] as const,
-  dmConversation: (id: string) => ['dm', 'conversation', id] as const,
-  dmMessages: (id: string) => ['dm', 'messages', id] as const,
-  /** Comunidades (tudo começa com 'communities' para atualizar junto depois de entrar/sair). */
-  community: (slug: string) => ['communities', 'one', slug] as const,
-  communityPosts: (id: string | null) => ['communities', 'posts', id ?? 'all'] as const,
-  myCommunities: ['communities', 'mine'] as const,
-  recommendedCommunities: ['communities', 'recommended'] as const,
-};
 
 export function useCommunity(slug: string) {
   return useQuery({ queryKey: keys.community(slug), queryFn: () => fetchCommunity(slug), enabled: !!slug });
@@ -111,9 +79,20 @@ export function useDmInbox(requests: boolean) {
   });
 }
 
-/** Bolinha do ícone de mensagens. Atualiza ao vivo (aviso 'dm'), a cada minuto e ao voltar para o app. */
+/**
+ * Bolinha do ícone de mensagens. Atualiza ao vivo (aviso 'dm') e ao voltar para o app; só
+ * consulta a cada minuto quando o canal ao vivo não está conectado.
+ */
 export function useDmUnread(enabled = true) {
-  return useQuery({ queryKey: keys.dmUnread, queryFn: fetchDmUnread, enabled, refetchInterval: 60_000, refetchOnWindowFocus: true, staleTime: 10_000 });
+  const live = useLiveConnected();
+  return useQuery({
+    queryKey: keys.dmUnread,
+    queryFn: fetchDmUnread,
+    enabled,
+    refetchInterval: live ? false : 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 10_000,
+  });
 }
 
 export function useDmConversation(id: string | null) {
@@ -147,16 +126,20 @@ export function useVibesOf(authorId: string) {
 
 /** URL assinada da mídia (vale 1 h; renova antes). */
 export function useVibeMedia(path: string | null) {
-  return useQuery({ queryKey: ['vibe-media', path], queryFn: () => vibeMediaUrl(path!), enabled: !!path, staleTime: 50 * 60_000 });
+  return useQuery({ queryKey: keys.vibeMedia(path), queryFn: () => vibeMediaUrl(path!), enabled: !!path, staleTime: 50 * 60_000 });
 }
 
-/** Quantas notificações não lidas (bolinha no sino). Atualiza a cada minuto e ao voltar para o app. */
+/**
+ * Quantas notificações não lidas (bolinha no sino). Atualiza ao vivo e ao voltar para o app; só
+ * consulta a cada 30 s quando o canal ao vivo não está conectado.
+ */
 export function useUnreadNotifications(enabled = true) {
+  const live = useLiveConnected();
   return useQuery({
     queryKey: keys.unread,
     queryFn: fetchUnreadNotifications,
     enabled,
-    refetchInterval: 30_000,
+    refetchInterval: live ? false : 30_000,
     refetchOnWindowFocus: true,
     staleTime: 10_000,
   });
@@ -254,7 +237,7 @@ export function useGenrePosts(slug: string) {
 /** Posts cujo texto contém a palavra (Buscar, quando não é pessoa, música nem gênero). */
 export function useSearchPosts(query: string) {
   return useInfiniteQuery({
-    queryKey: ['search-posts', query],
+    queryKey: keys.searchPosts(query),
     enabled: query.length >= 2,
     queryFn: ({ pageParam }) => searchPosts(query, pageParam),
     initialPageParam: null as PostCursor | null,
@@ -268,7 +251,7 @@ export function useSearchPosts(query: string) {
 /** Um gênero pelo slug (nome em português e inglês), para o título da tela. */
 export function useGenre(slug: string) {
   return useQuery({
-    queryKey: ['genre', slug],
+    queryKey: keys.genre(slug),
     enabled: !!slug,
     staleTime: Infinity,
     queryFn: async () => {
@@ -381,7 +364,7 @@ export function useToggleLike() {
     mutationFn: (item: FeedItem) => setLiked(item.id, !item.liked_by_me),
     onMutate: async (item) => {
       await qc.cancelQueries({ queryKey: keys.feed });
-      await qc.cancelQueries({ queryKey: ['profile-posts'] });
+      await qc.cancelQueries({ queryKey: keys.profilePostsAll });
       await qc.cancelQueries({ queryKey: keys.followingFeed });
       const lists = qc.getQueriesData<InfiniteData<CachedPage>>({
         predicate: (q) => ['feed', 'feed-following', 'genre-posts', 'search-posts', 'profile-posts', 'liked-posts'].includes(String(q.queryKey[0])),
@@ -411,7 +394,7 @@ export interface GenreRow {
  */
 export function useGenres() {
   return useQuery({
-    queryKey: ['genres'],
+    queryKey: keys.genres,
     staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase.from('genres').select('slug, name_pt, name_en').eq('featured', true).order('name_pt');
@@ -432,7 +415,7 @@ export function useGenreSearch(query: string, limit = 20) {
     250,
   );
   return useQuery({
-    queryKey: ['genre-search', q, limit],
+    queryKey: keys.genreSearch(q, limit),
     enabled: q.length >= 1,
     staleTime: 5 * 60_000,
     queryFn: async () => {

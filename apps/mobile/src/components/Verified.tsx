@@ -5,6 +5,7 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import { colors } from '../theme';
+import { keys } from '../lib/query-keys';
 
 /**
  * Usernames dos perfis verificados. São poucos (a equipe verifica direto no banco), então o
@@ -12,7 +13,7 @@ import { colors } from '../theme';
  */
 export function useVerifiedUsernames() {
   return useQuery({
-    queryKey: ['verified-usernames'],
+    queryKey: keys.verifiedUsernames,
     staleTime: 10 * 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('username').eq('verified', true).limit(2000);

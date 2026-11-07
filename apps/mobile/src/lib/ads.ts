@@ -5,6 +5,7 @@ import { fetchMyAccount } from './api';
 import { initAds } from './ads-sdk';
 import { useAuth } from './auth';
 import { supabase } from './supabase';
+import { keys } from './query-keys';
 
 /**
  * Anúncios do Soundhora (AdMob): "posts anunciados" no feed da Início e "vibes anunciadas" na
@@ -46,7 +47,7 @@ export function useAds(): { ready: boolean; feedEvery: number; vibesEvery: numbe
   const config = useQuery({ queryKey: adsConfigKey, queryFn: fetchAdsConfig, enabled: on, staleTime: 10 * 60_000 });
   const enabled = on && !!config.data?.enabled;
   // Idade da conta: menores de 18 só recebem anúncios para adolescentes (classificação T do Google).
-  const account = useQuery({ queryKey: ['my-account'], queryFn: fetchMyAccount, enabled, staleTime: 10 * 60_000 });
+  const account = useQuery({ queryKey: keys.myAccount, queryFn: fetchMyAccount, enabled, staleTime: 10 * 60_000 });
   const minor = account.data ? account.data.is_minor : null;
   const [ready, setReady] = useState(false);
 

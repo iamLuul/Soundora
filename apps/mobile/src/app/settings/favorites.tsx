@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SearchField } from '../../components/figma';
-import { profileKeys } from '../../components/ProfileExtras';
+
 import { Spinner } from '../../components/Spinner';
 import { Button, ErrorText, Screen } from '../../components/ui';
 import { FAVORITE_SONGS_MAX, fetchFavoriteSongs, pickSong, previewLink, searchSongs, setFavoriteSongs, type FavoriteSong, type SongHit } from '../../lib/api';
@@ -17,6 +17,7 @@ import { useDebouncedValue } from '../../lib/hooks';
 import { webTouch } from '../../lib/touch';
 import { colors, fonts, space, text } from '../../theme';
 import { showToast } from '../../components/Toast';
+import { keys, profileKeys } from '../../lib/query-keys';
 
 type Song = Omit<FavoriteSong, 'slot'>;
 
@@ -32,7 +33,7 @@ export default function FavoritesScreen() {
   const list: Song[] = draft ?? current.data ?? [];
   const [query, setQuery] = useState('');
   const q = useDebouncedValue(query.trim(), 400);
-  const results = useQuery({ queryKey: ['song-search', q], queryFn: () => searchSongs(q), enabled: q.length >= 2, staleTime: 5 * 60_000 });
+  const results = useQuery({ queryKey: keys.songSearch(q), queryFn: () => searchSongs(q), enabled: q.length >= 2, staleTime: 5 * 60_000 });
   const [busy, setBusy] = useState<string | null>(null);
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);

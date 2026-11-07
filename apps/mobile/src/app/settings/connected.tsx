@@ -10,6 +10,7 @@ import { fetchIdentities, linkProvider, unlinkProvider, type LoginProvider } fro
 import { confirmAction, notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { colors, fonts, space } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 const PROVIDERS: { id: LoginProvider; name: string; icon: 'logo-google' | 'logo-apple' }[] = [
   { id: 'google', name: 'Google', icon: 'logo-google' },
@@ -23,7 +24,7 @@ const PROVIDERS: { id: LoginProvider; name: string; icon: 'logo-google' | 'logo-
 export default function ConnectedAccountsScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const identities = useQuery({ queryKey: ['identities'], queryFn: fetchIdentities, staleTime: 0 });
+  const identities = useQuery({ queryKey: keys.identities, queryFn: fetchIdentities, staleTime: 0 });
   const [busy, setBusy] = useState<LoginProvider | null>(null);
   const list = identities.data ?? [];
   const has = (p: LoginProvider) => list.some((i) => i.provider === p);
@@ -38,7 +39,7 @@ export default function ConnectedAccountsScreen() {
     try {
       if (connected) await unlinkProvider(p.id);
       else await linkProvider(p.id);
-      await qc.invalidateQueries({ queryKey: ['identities'] });
+      await qc.invalidateQueries({ queryKey: keys.identities });
     } catch (err) {
       notify(formatError(t, err));
     } finally {

@@ -10,6 +10,7 @@ import { LikedSongRow } from './LikedSongRow';
 import { TrackListSkeleton } from './Skeleton';
 import { Spinner } from './Spinner';
 import { useStreamingOpener } from './StreamingOpener';
+import { keys } from '../lib/query-keys';
 
 /** Quantas curtidas aparecem de cada vez (a lista chega com até 100; montar todas de uma vez pesava a tela). */
 const PAGE = 20;
@@ -23,18 +24,18 @@ export function DiscoverLiked({ panel = false }: { panel?: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [shown, setShown] = useState(PAGE);
-  const liked = useQuery({ queryKey: ['discover-liked'], queryFn: fetchLikedSongs });
+  const liked = useQuery({ queryKey: keys.discoverLiked, queryFn: fetchLikedSongs });
   const { open, opening, message, chooser } = useStreamingOpener((target, choice) => trackLink(target.key, choice));
 
   const openSong = (s: LikedSong) => open({ key: s.link_preview_id, title: s.title, artist: s.artist ?? '' });
   const unlike = (song: LikedSong) => {
-    qc.setQueryData<LikedSong[]>(['discover-liked'], (list) => list?.filter((s) => s.link_preview_id !== song.link_preview_id));
+    qc.setQueryData<LikedSong[]>(keys.discoverLiked, (list) => list?.filter((s) => s.link_preview_id !== song.link_preview_id));
     swipeDiscover({ link_preview_id: song.link_preview_id, post_id: null }, false)
       .then(() => {
-        void qc.invalidateQueries({ queryKey: ['profile'] });
-        void qc.invalidateQueries({ queryKey: ['liked-songs'] });
+        void qc.invalidateQueries({ queryKey: keys.profiles });
+        void qc.invalidateQueries({ queryKey: keys.likedSongsAll });
       })
-      .catch(() => void qc.invalidateQueries({ queryKey: ['discover-liked'] }));
+      .catch(() => void qc.invalidateQueries({ queryKey: keys.discoverLiked }));
   };
 
   return (

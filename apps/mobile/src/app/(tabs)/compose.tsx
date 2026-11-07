@@ -47,12 +47,13 @@ import {
 import { AppError, formatError } from "../../lib/errors";
 import { convertPostPhoto } from "../../lib/image-convert";
 import { prepareVideo } from "../../lib/video-prepare";
-import { keys, useMyCommunities } from "../../lib/queries";
+import { useMyCommunities } from "../../lib/queries";
 import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import type { LinkPreviewRow } from "../../lib/types";
 import { colors, fonts, space } from "../../theme";
 import { webTouch } from "../../lib/touch";
 import { showToast } from "../../components/Toast";
+import { keys } from '../../lib/query-keys';
 
 interface Picked {
   type: "photo" | "video";
@@ -133,7 +134,7 @@ export default function ComposeScreen() {
     if (params.community) setDestination(params.community);
   }
   const target = communities.data?.find((c) => c.id === destination) ?? null;
-  const myGenres = useQuery({ queryKey: ["my-genres"], queryFn: getMyGenres });
+  const myGenres = useQuery({ queryKey: keys.myGenres, queryFn: getMyGenres });
 
   const hasVideo = media.some((m) => m.type === "video");
   const canAddMedia = !hasVideo && media.length < POST_LIMITS.photos;
@@ -299,8 +300,8 @@ export default function ComposeScreen() {
       setShowLink(false);
       await Promise.all([
         qc.invalidateQueries({ queryKey: keys.feed }),
-        qc.invalidateQueries({ queryKey: ["profile-posts"] }),
-        qc.invalidateQueries({ queryKey: ["communities", "posts"] }),
+        qc.invalidateQueries({ queryKey: keys.profilePostsAll }),
+        qc.invalidateQueries({ queryKey: keys.communityPostsAll }),
       ]);
       setDestination(null);
       // Sai da aba de postar antes de abrir o post: ao fechar o post, volta para onde a pessoa estava.

@@ -12,6 +12,7 @@ import { fetchMutedGenres, setMutedGenres } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import { colors, text } from '../../theme';
 import { mutedGenresKey } from './privacy';
+import { keys } from '../../lib/query-keys';
 
 const MAX = 50;
 
@@ -34,7 +35,7 @@ export default function MutedGenresScreen() {
       await setMutedGenres(value);
       qc.setQueryData(mutedGenresKey, value);
       // O que aparece no Para você e no Descobrir muda.
-      for (const queryKey of [['feed'], ['discover-deck']]) void qc.invalidateQueries({ queryKey });
+      for (const queryKey of [keys.feed, keys.discoverDeckAll]) void qc.invalidateQueries({ queryKey });
       showToast(t('settings.mutedSaved'));
       router.back();
     } catch (err) {

@@ -7,9 +7,10 @@ import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/S
 import { fetchFollowRequests, fetchMutedGenres, fetchMyAccount, fetchSearchHistory, setPrivateAccount } from '../../lib/api';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
-import { keys } from '../../lib/queries';
+
 import { myAccountKey } from './account';
 import { searchHistoryKey } from './search-history';
+import { keys } from '../../lib/query-keys';
 
 export const mutedGenresKey = ['muted-genres'] as const;
 

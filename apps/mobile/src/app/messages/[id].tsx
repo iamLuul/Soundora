@@ -21,9 +21,10 @@ import { useAuth } from '../../lib/auth';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { errorStatus, formatError } from '../../lib/errors';
 import { uniqueBy } from '../../lib/hooks';
-import { keys, useDmConversation, useDmMessages, useVibeMedia } from '../../lib/queries';
+import { useDmConversation, useDmMessages, useVibeMedia } from '../../lib/queries';
 import { webTouch } from '../../lib/touch';
 import { colors, fonts, glass, gradients, space, text } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 type Params = { id: string; to?: string; username?: string; name?: string; avatar?: string };
 
@@ -69,7 +70,7 @@ export default function ConversationScreen() {
       .catch(() => undefined);
   }, [id, newest, isRequest, qc]);
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['dm'] });
+  const refresh = () => qc.invalidateQueries({ queryKey: keys.dm });
 
   const send = async () => {
     const text = body.trim();

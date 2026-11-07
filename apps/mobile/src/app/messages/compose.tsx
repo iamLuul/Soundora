@@ -15,6 +15,7 @@ import { formatError } from '../../lib/errors';
 import { useDebouncedValue } from '../../lib/hooks';
 import type { PersonCard } from '../../lib/types';
 import { colors, fonts, glass, space, text } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 /** Nova mensagem: buscar a pessoa pelo nome ou @. */
 export default function ComposeMessageScreen() {
@@ -23,7 +24,7 @@ export default function ComposeMessageScreen() {
   const { profile } = useAuth();
   const [query, setQuery] = useState('');
   const q = useDebouncedValue(query.trim(), 300);
-  const people = useQuery({ queryKey: ['search-people', q], queryFn: () => searchProfiles(q), enabled: q.length >= 2 });
+  const people = useQuery({ queryKey: keys.searchPeople(q), queryFn: () => searchProfiles(q), enabled: q.length >= 2 });
   const list = (people.data ?? []).filter((p) => p.id !== profile?.id && !p.blocked_by_me);
   const [opening, setOpening] = useState<string | null>(null);
 

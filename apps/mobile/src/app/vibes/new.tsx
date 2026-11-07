@@ -23,6 +23,7 @@ import { convertVibePhoto } from '../../lib/image-convert';
 import { vibeCanvas } from '../../lib/vibe-canvas';
 import { canCreateVibes } from '../../lib/vibes-create';
 import { colors, fonts, space } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 type Params = {
   postId?: string;
@@ -183,7 +184,7 @@ function NewVibe() {
       } else {
         await createVibe({ kind: 'text', style, textItems });
       }
-      await qc.invalidateQueries({ queryKey: ['vibes'] });
+      await qc.invalidateQueries({ queryKey: keys.vibes });
       close();
     } catch (err) {
       setError(formatError(t, err));

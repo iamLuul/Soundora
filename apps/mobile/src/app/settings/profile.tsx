@@ -17,6 +17,7 @@ import { colors, fonts, space } from '../../theme';
 import { webTouch } from '../../lib/touch';
 import { Spinner } from '../../components/Spinner';
 import { showToast } from '../../components/Toast';
+import { keys } from '../../lib/query-keys';
 
 /** Editar perfil: banner, foto (centralizada sobre o banner, como no perfil), nome e bio. */
 export default function EditProfileScreen() {
@@ -28,7 +29,7 @@ export default function EditProfileScreen() {
   const [busy, setBusy] = useState<null | ProfileImageKind | 'save'>(null);
   const [error, setError] = useState<string | null>(null);
   // Gêneros do perfil: alimentam as sugestões do Descobrir.
-  const myGenres = useQuery({ queryKey: ['my-genres'], queryFn: getMyGenres });
+  const myGenres = useQuery({ queryKey: keys.myGenres, queryFn: getMyGenres });
   const allGenres = useGenres();
   const [genres, setGenres] = useState<string[] | null>(null);
   const shownGenres = genres ?? myGenres.data ?? [];
@@ -38,9 +39,9 @@ export default function EditProfileScreen() {
 
   const refreshEverywhere = async () => {
     await refreshProfile();
-    await qc.invalidateQueries({ queryKey: ['profile'] });
-    await qc.invalidateQueries({ queryKey: ['feed'] });
-    await qc.invalidateQueries({ queryKey: ['profile-posts'] });
+    await qc.invalidateQueries({ queryKey: keys.profiles });
+    await qc.invalidateQueries({ queryKey: keys.feedAll });
+    await qc.invalidateQueries({ queryKey: keys.profilePostsAll });
   };
 
   const run = async (kind: NonNullable<typeof busy>, task: () => Promise<unknown>) => {
@@ -73,10 +74,10 @@ export default function EditProfileScreen() {
       await updateProfile({ displayName, bio });
       if (genres) {
         await setMyGenres(genres);
-        await qc.invalidateQueries({ queryKey: ['my-genres'] });
-        await qc.invalidateQueries({ queryKey: ['discover-deck'] });
+        await qc.invalidateQueries({ queryKey: keys.myGenres });
+        await qc.invalidateQueries({ queryKey: keys.discoverDeckAll });
         // Os gêneros que aparecem no perfil.
-        await qc.invalidateQueries({ queryKey: ['user-genres'] });
+        await qc.invalidateQueries({ queryKey: keys.userGenresAll });
       }
       await refreshEverywhere();
     });

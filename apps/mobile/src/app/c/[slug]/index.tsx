@@ -31,8 +31,9 @@ import { useAuth } from '../../../lib/auth';
 import { confirmAction, notify } from '../../../lib/dialogs';
 import { errorStatus, formatError } from '../../../lib/errors';
 import { uniqueBy } from '../../../lib/hooks';
-import { genreLabel, keys, useCommunity, useCommunityPosts, useGenres } from '../../../lib/queries';
+import { genreLabel, useCommunity, useCommunityPosts, useGenres } from '../../../lib/queries';
 import { colors, fonts, glass, space, text } from '../../../theme';
+import { keys } from '../../../lib/query-keys';
 
 type Tab = 'posts' | 'members' | 'requests' | 'banned';
 
@@ -117,7 +118,7 @@ function Hero({ community: c }: { community: Community }) {
   const genres = useGenres();
   const [busy, setBusy] = useState(false);
   const closed = c.visibility === 'closed';
-  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['communities'] }), qc.invalidateQueries({ queryKey: keys.suggested })]);
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: keys.communities }), qc.invalidateQueries({ queryKey: keys.suggested })]);
 
   const join = async () => {
     setBusy(true);
@@ -268,7 +269,7 @@ function Members({ community: c, status, header, isMod }: { community: Community
   const { profile } = useAuth();
   const enabled = status === 'active' ? c.can_view : isMod;
   const members = useInfiniteQuery({
-    queryKey: ['communities', 'members', c.id, status],
+    queryKey: keys.communityMembers(c.id, status),
     enabled,
     queryFn: ({ pageParam }) => fetchCommunityMembers(c.id, status, pageParam),
     initialPageParam: 0,
@@ -282,7 +283,7 @@ function Members({ community: c, status, header, isMod }: { community: Community
     try {
       await fn();
       if (done) showToast(done);
-      await qc.invalidateQueries({ queryKey: ['communities'] });
+      await qc.invalidateQueries({ queryKey: keys.communities });
     } catch (err) {
       notify(formatError(t, err));
     }

@@ -11,13 +11,14 @@ import { Stars } from '../../components/StarRating';
 import { fetchAlbumSummary } from '../../lib/api';
 import { formatRating } from '../../lib/reviews';
 import { colors, fonts, space } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 /** Um álbum: capa, média das notas, posição no Top Reviews e todas as reviews dele. */
 export default function AlbumScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const summary = useQuery({ queryKey: ['album-summary', id], queryFn: () => fetchAlbumSummary(id), enabled: !!id });
+  const summary = useQuery({ queryKey: keys.albumSummary(id), queryFn: () => fetchAlbumSummary(id), enabled: !!id });
   const a = summary.data;
 
   const header = a ? (

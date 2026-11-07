@@ -1,8 +1,10 @@
 import { useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useEffect } from 'react';
-import { keys } from './queries';
+import { setLiveConnected } from './live-status';
+
 import { supabase } from './supabase';
+import { keys } from './query-keys';
 
 /** Aviso que chega do banco (migration live_notifications): só o tipo e o post, nada de quem fez. */
 export interface LiveNotification {
@@ -50,8 +52,9 @@ function refresh(qc: QueryClient, events: LiveNotification[], me: { id: string; 
 /**
  * Notificações ao vivo: ouve o canal privado da pessoa no Supabase Realtime e atualiza o sino,
  * a lista de notificações, os comentários e os seguidores assim que algo acontece, sem
- * precisar puxar para atualizar. Se o Realtime cair, o sino continua se atualizando sozinho
- * a cada 30 s e ao voltar para o app (useUnreadNotifications).
+ * precisar puxar para atualizar. Enquanto o canal está conectado, o sino e as mensagens não
+ * consultam o servidor de tempos em tempos (live-status); se o Realtime cair, voltam a consultar
+ * sozinhos (a cada 30 s / 1 min) e ao voltar para o app.
  */
 export function useLiveNotifications(me: { id: string; username: string } | null) {
   const qc = useQueryClient();
@@ -90,7 +93,7 @@ export function useLiveNotifications(me: { id: string; username: string } | null
         .on('broadcast', { event: 'dm' }, () => {
           dmTimer ??= setTimeout(() => {
             dmTimer = null;
-            if (alive) void qc.invalidateQueries({ queryKey: ['dm'] });
+            if (alive) void qc.invalidateQueries({ queryKey: keys.dm });
           }, BATCH_MS);
         })
         .on('broadcast', { event: 'notification' }, ({ payload }) => {
@@ -100,11 +103,13 @@ export function useLiveNotifications(me: { id: string; username: string } | null
           timer ??= setTimeout(flush, BATCH_MS);
         })
         .subscribe((status) => {
+          if (!alive) return;
+          setLiveConnected(status === 'SUBSCRIBED');
           // Voltou a conectar depois de cair: busca o que pode ter chegado nesse meio tempo.
           if (status !== 'SUBSCRIBED') return;
           if (connectedBefore) {
             refresh(qc, [], who);
-            void qc.invalidateQueries({ queryKey: ['dm'] });
+            void qc.invalidateQueries({ queryKey: keys.dm });
           }
           connectedBefore = true;
         });
@@ -112,6 +117,7 @@ export function useLiveNotifications(me: { id: string; username: string } | null
 
     return () => {
       alive = false;
+      setLiveConnected(false);
       if (timer) clearTimeout(timer);
       if (dmTimer) clearTimeout(dmTimer);
       if (channel) void supabase.removeChannel(channel);

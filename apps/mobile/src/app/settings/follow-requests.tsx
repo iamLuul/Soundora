@@ -9,9 +9,10 @@ import { PeopleSkeleton } from '../../components/Skeleton';
 import { fetchFollowRequests } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import { relativeTime } from '../../lib/i18n';
-import { keys } from '../../lib/queries';
+
 import { colors, fonts, space, text } from '../../theme';
 import { RequestActions } from '../notifications';
+import { keys } from '../../lib/query-keys';
 
 /** Pedidos para seguir (conta privada): aceitar ou recusar. */
 export default function FollowRequestsScreen() {

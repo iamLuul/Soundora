@@ -9,6 +9,15 @@ import { nextUsernameChange } from '../src/lib/username';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock não aceita import
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
+
+// lib/api reexporta os arquivos de cada assunto: o spy vai no arquivo que tem a função.
+const apiModules: Record<string, unknown>[] = ['profile', 'posts', 'vibes', 'social', 'music'].map((m) => jest.requireActual(`../src/lib/api/${m}`));
+function apiFor(modules: Record<string, unknown>[], name: string) {
+  const found = modules.find((m) => name in m);
+  if (!found) throw new Error(`lib/api não tem ${name}`);
+  return found as Record<string, (...a: unknown[]) => Promise<unknown>>;
+}
+
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a), back: jest.fn() } }));
 jest.mock('../src/lib/auth', () => ({ useAuth: () => ({ refreshProfile: jest.fn() }) }));
@@ -102,14 +111,14 @@ describe('utilitários do perfil', () => {
 });
 
 describe('perfil: gêneros, músicas favoritas, vibes e abas', () => {
-  const api = jest.requireActual('../src/lib/api');
+  const api = apiModules;
   beforeEach(() => {
-    jest.spyOn(api, 'fetchUserGenres').mockResolvedValue(['rock', 'mpb', 'jazz', 'pop', 'indie', 'emo', 'funk_br']);
-    jest.spyOn(api, 'fetchFavoriteSongs').mockResolvedValue([
+    jest.spyOn(apiFor(api, 'fetchUserGenres'), 'fetchUserGenres').mockResolvedValue(['rock', 'mpb', 'jazz', 'pop', 'indie', 'emo', 'funk_br']);
+    jest.spyOn(apiFor(api, 'fetchFavoriteSongs'), 'fetchFavoriteSongs').mockResolvedValue([
       { slot: 1, link_preview_id: 'p1', title: 'Espresso', artist: 'Sabrina Carpenter', image_url: null, url: 'https://x', platform: 'deezer' },
       { slot: 2, link_preview_id: 'p2', title: 'antes', artist: 'Link do Zap', image_url: null, url: 'https://y', platform: 'deezer' },
     ]);
-    jest.spyOn(api, 'fetchVibesOf').mockResolvedValue([]);
+    jest.spyOn(apiFor(api, 'fetchVibesOf'), 'fetchVibesOf').mockResolvedValue([]);
   });
   afterEach(() => jest.restoreAllMocks());
 
@@ -131,7 +140,7 @@ describe('perfil: gêneros, músicas favoritas, vibes e abas', () => {
   });
 
   test('quem visita sem favoritas não vê o bloco; o dono vê o convite', async () => {
-    jest.spyOn(api, 'fetchFavoriteSongs').mockResolvedValue([]);
+    jest.spyOn(apiFor(api, 'fetchFavoriteSongs'), 'fetchFavoriteSongs').mockResolvedValue([]);
     await render(<ProfileHeader profile={{ ...me, is_me: false }} />, { wrapper });
     await screen.findAllByTestId(/^profile-genre-/);
     expect(screen.queryByTestId('favorite-songs')).toBeNull();
@@ -140,7 +149,7 @@ describe('perfil: gêneros, músicas favoritas, vibes e abas', () => {
   });
 
   test('com vibes ativas: argola na foto e tocar abre as vibes', async () => {
-    jest.spyOn(api, 'fetchVibesOf').mockResolvedValue([{ id: 'v1', seen: false }]);
+    jest.spyOn(apiFor(api, 'fetchVibesOf'), 'fetchVibesOf').mockResolvedValue([{ id: 'v1', seen: false }]);
     await render(<ProfileHeader profile={{ ...me, is_me: false }} />, { wrapper });
     expect(await screen.findByTestId('profile-vibes-ring')).toBeTruthy();
     expect(StyleSheet.flatten(screen.getByTestId('profile-avatar').props.style)).toMatchObject({ borderWidth: 3 });
@@ -150,18 +159,18 @@ describe('perfil: gêneros, músicas favoritas, vibes e abas', () => {
 });
 
 describe('conta privada', () => {
-  const api = jest.requireActual('../src/lib/api');
+  const api = apiModules;
   beforeEach(() => {
-    jest.spyOn(api, 'fetchUserGenres').mockResolvedValue([]);
-    jest.spyOn(api, 'fetchFavoriteSongs').mockResolvedValue([]);
-    jest.spyOn(api, 'fetchVibesOf').mockResolvedValue([]);
+    jest.spyOn(apiFor(api, 'fetchUserGenres'), 'fetchUserGenres').mockResolvedValue([]);
+    jest.spyOn(apiFor(api, 'fetchFavoriteSongs'), 'fetchFavoriteSongs').mockResolvedValue([]);
+    jest.spyOn(apiFor(api, 'fetchVibesOf'), 'fetchVibesOf').mockResolvedValue([]);
   });
   afterEach(() => jest.restoreAllMocks());
 
   test('quem não segue vê o cabeçalho e o cadeado; pedido pendente mostra "Solicitado"', async () => {
     const locked = { ...me, is_me: false, is_private: true, locked: true, requested: true };
-    jest.spyOn(api, 'fetchProfileSummary').mockResolvedValue(locked);
-    const posts = jest.spyOn(api, 'fetchProfilePosts').mockResolvedValue([]);
+    jest.spyOn(apiFor(api, 'fetchProfileSummary'), 'fetchProfileSummary').mockResolvedValue(locked);
+    const posts = jest.spyOn(apiFor(api, 'fetchProfilePosts'), 'fetchProfilePosts').mockResolvedValue([]);
     await render(<ProfileView username="luul" />, { wrapper });
     expect(await screen.findByTestId('profile-locked')).toBeTruthy();
     expect(screen.getByText('Esta conta é privada')).toBeTruthy();

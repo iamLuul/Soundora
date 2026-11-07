@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { chartTrackLink, fetchWorldChart, type ChartPeriod, type ChartTrack } from '../../lib/api';
 import { ChartPeriodPicker } from '../ChartPeriodPicker';
-import { keys } from '../../lib/queries';
+
 import { colors, fonts, space, text } from '../../theme';
 import { DiscoverLiked } from '../DiscoverLiked';
 import { SearchField } from '../figma';
@@ -14,6 +14,7 @@ import { useStreamingOpener } from '../StreamingOpener';
 import { SuggestedAccounts } from '../SuggestedAccounts';
 import { SupportCard } from '../SupportLink';
 import { ChartRow } from '../WorldChart';
+import { keys } from '../../lib/query-keys';
 
 /** Músicas da lista "mais ouvidas" na coluna (Figma: 10). */
 const CHART_ROWS = 10;

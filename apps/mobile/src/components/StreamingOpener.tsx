@@ -6,10 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { setStreamingPlatform } from '../lib/api';
 import { formatError } from '../lib/errors';
-import { keys, useStreamingPlatform } from '../lib/queries';
+import { useStreamingPlatform } from '../lib/queries';
 import { colors, fonts, space, text } from '../theme';
 import { StreamingPicker } from './StreamingPicker';
 import { BottomSheet } from './BottomSheet';
+import { keys } from '../lib/query-keys';
 
 /** Música para abrir: identifica o pedido e serve para a busca se o servidor não responder. */
 export interface OpenTarget {

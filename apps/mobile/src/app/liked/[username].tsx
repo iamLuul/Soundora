@@ -9,7 +9,7 @@ import { useStreamingOpener } from '../../components/StreamingOpener';
 import { swipeDiscover, trackLink } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatError } from '../../lib/errors';
-import { keys, useProfileLikedSongs } from '../../lib/queries';
+import { useProfileLikedSongs } from '../../lib/queries';
 import type { LikedSong } from '../../lib/types';
 import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
@@ -18,6 +18,7 @@ import { listPerf } from '../../lib/list';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { Spinner } from '../../components/Spinner';
 import { ErrorState } from '../../components/ErrorState';
+import { keys } from '../../lib/query-keys';
 
 /** Perfil › Curtidas: as músicas que a pessoa curtiu no Descobrir (a mais recente primeiro). */
 export default function LikedSongsScreen() {
@@ -37,12 +38,12 @@ export default function LikedSongsScreen() {
     qc.setQueryData<InfiniteData<LikedSong[]>>(keys.likedSongs(id), (d) =>
       d ? { ...d, pages: d.pages.map((p) => p.filter((s) => s.link_preview_id !== song.link_preview_id)) } : d,
     );
-    qc.setQueryData<LikedSong[]>(['discover-liked'], (list) => list?.filter((s) => s.link_preview_id !== song.link_preview_id));
+    qc.setQueryData<LikedSong[]>(keys.discoverLiked, (list) => list?.filter((s) => s.link_preview_id !== song.link_preview_id));
     swipeDiscover({ link_preview_id: song.link_preview_id, post_id: null }, false)
       .catch(() => undefined)
       .finally(() => {
-        void qc.invalidateQueries({ queryKey: ['profile'] });
-        void qc.invalidateQueries({ queryKey: ['discover-liked'] });
+        void qc.invalidateQueries({ queryKey: keys.profiles });
+        void qc.invalidateQueries({ queryKey: keys.discoverLiked });
         void qc.invalidateQueries({ queryKey: keys.likedSongs(id) });
       });
   };

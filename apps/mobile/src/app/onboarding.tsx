@@ -20,6 +20,7 @@ import { errorMessageKey, formatError } from '../lib/errors';
 import { useGenres } from '../lib/queries';
 import { useUsernameStatus, validateUsernameFormat } from '../lib/username';
 import { colors, fonts, glass, space, text } from '../theme';
+import { keys } from '../lib/query-keys';
 
 type Step = 'password' | 'profile' | 'birthdate' | 'genres' | 'platform' | 'cookies' | 'terms';
 
@@ -69,7 +70,7 @@ export default function Onboarding() {
   const [checkingNext, setCheckingNext] = useState(false);
   const usernameStatus = useUsernameStatus(username);
 
-  const config = useQuery({ queryKey: ['app-config'], queryFn: getAppConfig });
+  const config = useQuery({ queryKey: keys.appConfig, queryFn: getAppConfig });
   const genreList = useGenres();
 
   const policy: AgePolicy | null = config.data

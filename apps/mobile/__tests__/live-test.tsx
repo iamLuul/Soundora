@@ -4,6 +4,7 @@ import { PullToRefresh } from '../src/components/PullToRefresh';
 import { Spinner } from '../src/components/Spinner';
 import i18n from '../src/lib/i18n';
 import { keysToRefresh, parseLiveNotification } from '../src/lib/live';
+import { isLiveConnected, setLiveConnected, useLiveConnected } from '../src/lib/live-status';
 
 jest.mock('../src/lib/supabase', () => ({ supabase: {}, supabaseUrl: 'http://localhost:54321' }));
 
@@ -15,6 +16,19 @@ beforeAll(async () => {
 });
 
 describe('notificações ao vivo', () => {
+  test('estado do canal ao vivo: as telas ficam sabendo quando conecta e quando cai', async () => {
+    function Status() {
+      return <Text>{useLiveConnected() ? 'ao vivo' : 'consultando'}</Text>;
+    }
+    await render(<Status />);
+    expect(screen.getByText('consultando')).toBeTruthy();
+    await act(async () => setLiveConnected(true));
+    expect(screen.getByText('ao vivo')).toBeTruthy();
+    await act(async () => setLiveConnected(false));
+    expect(screen.getByText('consultando')).toBeTruthy();
+    expect(isLiveConnected()).toBe(false);
+  });
+
   test('aceita só avisos no formato do banco', () => {
     expect(parseLiveNotification({ kind: 'like', post_id: POST, removed: false })).toEqual({ kind: 'like', post_id: POST, removed: false });
     expect(parseLiveNotification({ kind: 'follow', post_id: null })).toEqual({ kind: 'follow', post_id: null, removed: false });

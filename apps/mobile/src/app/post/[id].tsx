@@ -17,7 +17,7 @@ import { buildCommentRows } from '../../lib/comment-thread';
 import { useAuth } from '../../lib/auth';
 import { errorStatus, formatError } from '../../lib/errors';
 import { ErrorScreen } from '../../components/ErrorScreen';
-import { keys, useMyCommunities, usePost, useToggleLike } from '../../lib/queries';
+import { useMyCommunities, usePost, useToggleLike } from '../../lib/queries';
 import { colors, fonts, glass, space } from '../../theme';
 import { CommentsSkeleton, PostSkeleton } from '../../components/Skeleton';
 import { listPerf } from '../../lib/list';
@@ -26,6 +26,7 @@ import { Spinner } from '../../components/Spinner';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { showToast } from '../../components/Toast';
 import { ErrorState } from '../../components/ErrorState';
+import { keys } from '../../lib/query-keys';
 
 /** Post aberto em tela cheia, com os comentários embaixo e a caixa de responder fixa (como no X). */
 export default function PostScreen() {

@@ -13,7 +13,7 @@ import { showToast } from '../components/Toast';
 import { formatError } from '../lib/errors';
 import { relativeTime } from '../lib/i18n';
 import { enablePush, pushAvailability, pushEnabled } from '../lib/push';
-import { keys, useNotifications } from '../lib/queries';
+import { useNotifications } from '../lib/queries';
 import { colors, fonts, glass, space, text } from '../theme';
 import { uniqueBy } from '../lib/hooks';
 import { PeopleSkeleton } from '../components/Skeleton';
@@ -22,6 +22,7 @@ import { webTouch } from '../lib/touch';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { Spinner } from '../components/Spinner';
 import { ErrorState } from '../components/ErrorState';
+import { keys } from '../lib/query-keys';
 
 /** Notificações (Figma: Notifications page): Todas e Respostas, com push opcional no celular. */
 export default function NotificationsScreen() {

@@ -17,6 +17,7 @@ import { Button } from './ui';
 import { PeopleSkeleton, TrackListSkeleton } from './Skeleton';
 import { Verified } from './Verified';
 import { useTabBarInset } from './TabBar';
+import { keys } from '../lib/query-keys';
 
 export const MIN_QUERY = 2;
 /** Busca no texto dos posts: com menos letras o índice do banco não ajuda. */
@@ -176,10 +177,10 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
   const [query, setQuery] = useState(initialQuery);
   const q = useDebouncedValue(query.trim());
   const enabled = q.length >= MIN_QUERY;
-  const people = useQuery({ queryKey: ['search-people', q], queryFn: () => searchProfiles(q), enabled });
-  const tracks = useQuery({ queryKey: ['search-tracks', q], queryFn: () => searchTracks(q), enabled });
-  const genres = useQuery({ queryKey: ['search-genres-posts', q], queryFn: () => searchPostGenres(q), enabled, staleTime: 60_000 });
-  const communities = useQuery({ queryKey: ['communities', 'search', q], queryFn: () => searchCommunities(q), enabled });
+  const people = useQuery({ queryKey: keys.searchPeople(q), queryFn: () => searchProfiles(q), enabled });
+  const tracks = useQuery({ queryKey: keys.searchTracks(q), queryFn: () => searchTracks(q), enabled });
+  const genres = useQuery({ queryKey: keys.searchGenrePosts(q), queryFn: () => searchPostGenres(q), enabled, staleTime: 60_000 });
+  const communities = useQuery({ queryKey: keys.communitySearch(q), queryFn: () => searchCommunities(q), enabled });
   // Pesquisas feitas de verdade (Enter, abrir um gênero, buscar nos posts, ou vindo da busca do
   // desktop) vão para o histórico usado nas recomendações; o que é só digitado, não.
   const openGenre = (slug: string) => {
@@ -214,9 +215,9 @@ export function SearchPanel({ initialQuery = '' }: { initialQuery?: string } = {
     try {
       await unblockUser(person.id);
       // Na hora: a pessoa volta ao normal na busca; o resto do app recarrega.
-      qc.setQueryData<PersonCard[]>(['search-people', q], (list) => list?.map((x) => (x.id === person.id ? { ...x, blocked_by_me: false } : x)));
-      void qc.invalidateQueries({ queryKey: ['blocked'] });
-      void qc.invalidateQueries({ queryKey: ['feed'] });
+      qc.setQueryData<PersonCard[]>(keys.searchPeople(q), (list) => list?.map((x) => (x.id === person.id ? { ...x, blocked_by_me: false } : x)));
+      void qc.invalidateQueries({ queryKey: keys.blocked });
+      void qc.invalidateQueries({ queryKey: keys.feedAll });
     } catch (err) {
       setMessage(formatError(t, err));
     } finally {

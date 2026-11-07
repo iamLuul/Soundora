@@ -9,13 +9,9 @@ import { genreLabel, useGenres } from '../lib/queries';
 import { webTouch } from '../lib/touch';
 import { colors, fonts, glass, space } from '../theme';
 import { useStreamingOpener } from './StreamingOpener';
+import { profileKeys } from '../lib/query-keys';
 
 const MARGIN = 20;
-
-export const profileKeys = {
-  favorites: (userId: string) => ['favorite-songs', userId] as const,
-  genres: (userId: string) => ['user-genres', userId] as const,
-};
 
 /** Os gêneros que a pessoa escolheu (até 5), acima da bio. Tocar abre os posts do gênero. */
 export function ProfileGenres({ userId }: { userId: string }) {

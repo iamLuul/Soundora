@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
 import { uniqueBy } from '../lib/hooks';
 import { listPerf } from '../lib/list';
-import { removeReviewFromCache, reviewKeys, type ReviewFilter, useReviews, useToggleReviewLike } from '../lib/reviews';
+import { removeReviewFromCache, type ReviewFilter, useReviews, useToggleReviewLike } from '../lib/reviews';
 import { colors, space, text } from '../theme';
 import { PostActions, type PostAction } from './PostActions';
 import { PullToRefresh } from './PullToRefresh';
@@ -19,7 +19,7 @@ import { useStreamingOpener } from './StreamingOpener';
 import { confirmAction, notify } from '../lib/dialogs';
 import { showToast } from './Toast';
 import { ErrorState } from './ErrorState';
-
+import { keys, reviewKeys } from '../lib/query-keys';
 
 /** Lista de reviews (da mais nova à mais velha), com curtir, menu e abrir o álbum. */
 export function ReviewList({
@@ -64,8 +64,8 @@ export function ReviewList({
         showToast(t('toast.reviewDeleted'));
         removeReviewFromCache(qc, item.id);
         void qc.invalidateQueries({ queryKey: reviewKeys.all });
-        void qc.invalidateQueries({ queryKey: ['top-albums'] });
-        void qc.invalidateQueries({ queryKey: ['album-summary'] });
+        void qc.invalidateQueries({ queryKey: keys.topAlbums });
+        void qc.invalidateQueries({ queryKey: keys.albumSummaryAll });
       }
     } catch (err) {
       notify(formatError(t, err));

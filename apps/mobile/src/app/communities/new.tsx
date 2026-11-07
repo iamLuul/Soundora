@@ -11,6 +11,7 @@ import { showToast } from '../../components/Toast';
 import { createCommunity, uploadCommunityImage } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import { colors, fonts, space, text } from '../../theme';
+import { keys } from '../../lib/query-keys';
 
 /** Criar uma comunidade: quem cria vira a dona. */
 export default function NewCommunityScreen() {
@@ -50,7 +51,7 @@ export default function NewCommunityScreen() {
                   showToast(t('communities.photoFailed'));
                 }
               }
-              await qc.invalidateQueries({ queryKey: ['communities'] });
+              await qc.invalidateQueries({ queryKey: keys.communities });
               router.replace(`/c/${value.slug}`);
             } catch (err) {
               setError(formatError(t, err));

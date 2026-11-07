@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Text, type ListViewToken } from 'react-native';
 import { VisiblePosts, VisiblePostsContext } from '../lib/feed-video';
 import { type AlbumReview, blockUser, deletePost, deleteReview, removeCommunityPost, report } from '../lib/api';
-import { removeReviewFromCache, reviewKeys, useToggleReviewLike } from '../lib/reviews';
+import { removeReviewFromCache, useToggleReviewLike } from '../lib/reviews';
 import { ReviewCard } from './ReviewCard';
 import { useAuth } from '../lib/auth';
 import { formatError } from '../lib/errors';
@@ -25,6 +25,7 @@ import { ErrorState } from './ErrorState';
 import { AdPostCard } from './ads/AdPostCard';
 import { withAds } from '../lib/ads';
 import { useTabBarInset } from './TabBar';
+import { keys, reviewKeys } from '../lib/query-keys';
 
 /** Linha da lista: um post, uma review, o bloco extra no meio (ex.: contas sugeridas), uma faixa (ex.: reviews) ou um post anunciado. */
 type Row =
@@ -176,8 +177,8 @@ export function PostList({
         showToast(t('toast.reviewDeleted'));
         removeReviewFromCache(qc, item.id);
         void qc.invalidateQueries({ queryKey: reviewKeys.all });
-        void qc.invalidateQueries({ queryKey: ['top-albums'] });
-        void qc.invalidateQueries({ queryKey: ['album-summary'] });
+        void qc.invalidateQueries({ queryKey: keys.topAlbums });
+        void qc.invalidateQueries({ queryKey: keys.albumSummaryAll });
       }
     } catch (err) {
       notify(formatError(t, err));

@@ -1,15 +1,9 @@
 // Reviews de álbuns: lista (com páginas) e curtir com resposta imediata na tela.
 import { type InfiniteData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type AlbumReview, fetchFollowingReviews, fetchReviews, REVIEWS_PAGE, type ReviewCursor, setReviewLiked } from './api';
+import { reviewKeys } from './query-keys';
 
 export type ReviewFilter = { author?: string; album?: string };
-
-export const reviewKeys = {
-  all: ['reviews'] as const,
-  list: (f: ReviewFilter = {}) => ['reviews', f.author ?? '', f.album ?? ''] as const,
-  /** Dentro de "reviews": curtir e apagar já atualizam esta lista também. */
-  following: ['reviews', 'following'] as const,
-};
 
 export function useReviews(filter: ReviewFilter = {}, enabled = true) {
   return useInfiniteQuery({

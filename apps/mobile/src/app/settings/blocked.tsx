@@ -12,12 +12,13 @@ import { colors, fonts, space, text } from '../../theme';
 import { uniqueBy } from '../../lib/hooks';
 import { PeopleSkeleton } from '../../components/Skeleton';
 import { ErrorState } from '../../components/ErrorState';
+import { keys } from '../../lib/query-keys';
 
 /** Quem eu bloqueei, com a opção de desbloquear. */
 export default function BlockedScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const blocked = useQuery({ queryKey: ['blocked'], queryFn: fetchBlockedProfiles, staleTime: 0 });
+  const blocked = useQuery({ queryKey: keys.blocked, queryFn: fetchBlockedProfiles, staleTime: 0 });
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +27,9 @@ export default function BlockedScreen() {
     setError(null);
     try {
       await unblockUser(p.id);
-      qc.setQueryData<PersonCard[]>(['blocked'], (list) => list?.filter((x) => x.id !== p.id));
-      void qc.invalidateQueries({ queryKey: ['feed'] });
-      void qc.invalidateQueries({ queryKey: ['search-people'] });
+      qc.setQueryData<PersonCard[]>(keys.blocked, (list) => list?.filter((x) => x.id !== p.id));
+      void qc.invalidateQueries({ queryKey: keys.feedAll });
+      void qc.invalidateQueries({ queryKey: keys.searchPeopleAll });
     } catch (err) {
       setError(formatError(t, err));
     } finally {
