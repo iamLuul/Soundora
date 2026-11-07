@@ -4,6 +4,10 @@ Versão em 5 números: **GRANDE.MÉDIA.PEQUENA.MÊS.ANO** (regras no README, se�
 
 Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHub: cada funcionalidade nova sobe a MÉDIA e cada ajuste ou correção sobe a PEQUENA. Commits só de ferramentas (CI, testes, scripts de dados de teste, configuração local, merges) não mudam a versão; eles estão no fim.
 
+## 0.59 · Comunidades: criar em 3 etapas e foto da comunidade
+
+- `0.59.0.11.26` · 07/11/2026 · Comunidades: criar em 3 etapas e foto da comunidade (c796fd2)
+
 ## 0.58 · LGPD: aviso de cookies, tela Cookies e dados do aparelho e nova Política de Cookies
 
 - `0.58.2.11.26` · 07/11/2026 · Web: aviso de cookies no canto; chaves bloqueadas sem cor; sem tutoriais (2a78290)
