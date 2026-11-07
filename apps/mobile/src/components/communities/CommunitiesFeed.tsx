@@ -50,7 +50,7 @@ export function CommunitiesFeed({ active }: { active: boolean }) {
           onPress={() => setFilter(c.id)}
           style={[styles.chip, selected === c.id && styles.chipOn]}
         >
-          <CommunityAvatar name={c.name} color={c.color} size={20} />
+          <CommunityAvatar name={c.name} color={c.color} image={c.avatar_url} size={20} />
           <Text style={styles.chipText} numberOfLines={1}>
             {c.name}
           </Text>

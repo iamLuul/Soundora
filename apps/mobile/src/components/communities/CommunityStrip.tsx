@@ -56,7 +56,7 @@ export function CommunityStrip() {
           return (
             <View key={c.id} style={styles.card}>
               <Pressable accessibilityRole="link" accessibilityLabel={c.name} onPress={() => router.push(`/c/${c.slug}`)} style={styles.who}>
-                <CommunityAvatar name={c.name} color={c.color} size={56} closed={c.visibility === 'closed'} />
+                <CommunityAvatar name={c.name} color={c.color} image={c.avatar_url} size={56} closed={c.visibility === 'closed'} />
                 <Text style={styles.name} numberOfLines={2}>
                   {c.name}
                 </Text>

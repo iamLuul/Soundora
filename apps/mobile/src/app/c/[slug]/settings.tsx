@@ -10,7 +10,7 @@ import { BackHeader } from '../../../components/figma';
 import { Spinner } from '../../../components/Spinner';
 import { showToast } from '../../../components/Toast';
 import { Button, keyboardBehavior } from '../../../components/ui';
-import { deleteCommunity, updateCommunity } from '../../../lib/api';
+import { deleteCommunity, removeCommunityImage, updateCommunity, uploadCommunityImage } from '../../../lib/api';
 import { confirmAction, notify } from '../../../lib/dialogs';
 import { formatError } from '../../../lib/errors';
 import { useCommunity } from '../../../lib/queries';
@@ -53,7 +53,15 @@ export default function CommunitySettingsScreen() {
         </Text>
         <CommunityForm
           creating={false}
-          initial={{ name: c.name, description: c.description, visibility: c.visibility, genres: c.genres, artists: c.artists, color: c.color }}
+          initial={{
+            name: c.name,
+            description: c.description,
+            visibility: c.visibility,
+            genres: c.genres,
+            artists: c.artists,
+            color: c.color,
+            avatar_url: c.avatar_url,
+          }}
           busy={busy}
           error={error}
           submitLabel={t('common.save')}
@@ -62,6 +70,8 @@ export default function CommunitySettingsScreen() {
             setError(null);
             try {
               await updateCommunity(c.id, value);
+              if (value.photo) await uploadCommunityImage(c.id, value.photo);
+              else if (value.photo === null) await removeCommunityImage(c.id);
               await qc.invalidateQueries({ queryKey: ['communities'] });
               showToast(t('communities.saved'));
               router.back();

@@ -20,7 +20,7 @@ test('termos: título, data e as seções', async () => {
   mockDoc = 'terms';
   await render(<LegalScreen />);
   expect(screen.getByText('Termos de Uso')).toBeTruthy();
-  expect(screen.getByText(/Última atualização: 6 de novembro de 2026/)).toBeTruthy();
+  expect(screen.getByText(/Última atualização: 7 de novembro de 2026/)).toBeTruthy();
   expect(screen.getByText('2. Quem pode usar')).toBeTruthy();
 });
 

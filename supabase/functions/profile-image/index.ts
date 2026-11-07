@@ -1,6 +1,7 @@
 // Edge Function: profile-image
 //
-// Única forma de trocar a foto (kind=avatar) e o banner (kind=banner) do perfil. O app manda
+// Única forma de trocar a foto (kind=avatar) e o banner (kind=banner) do perfil e a foto da
+// comunidade (kind=community, só a dona). O app manda
 // os bytes da imagem (POST) ou pede para remover (DELETE). A função confere login, limite,
 // tamanho e o arquivo em si (image.ts) e só então grava no bucket e no perfil, com a chave secreta.
 //
@@ -39,7 +40,24 @@ Deno.serve(
       const { error } = await admin.storage.from(KINDS[kind].bucket).upload(path, bytes, { contentType, upsert: false, cacheControl: '31536000' });
       if (error) throw error;
     },
-    async setImage(userId, kind, storedPath) {
+    async isCommunityOwner(userId, communityId) {
+      const { data, error } = await admin
+        .from('community_members')
+        .select('role')
+        .eq('community_id', communityId)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (error) throw error;
+      return data?.role === 'owner';
+    },
+    async setImage(userId, kind, storedPath, communityId) {
+      if (kind === 'community') {
+        // A função do banco confere de novo que é a dona e devolve o caminho anterior.
+        const { data, error } = await admin.rpc('community_set_avatar', { p_user: userId, p_community: communityId, p_path: storedPath });
+        if (error) throw error;
+        return (data as string | null) ?? null;
+      }
       const column = COLUMN[kind];
       const { data: before, error: readError } = await admin.from('profiles').select(column).eq('id', userId).maybeSingle();
       if (readError) throw readError;

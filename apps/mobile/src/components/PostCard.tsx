@@ -73,7 +73,7 @@ export function PostCard({ item, onToggleLike, onMore, onOpenComments, onOpenLin
           pressScale={0.97}
           style={({ hovered }) => [styles.community, hovered && styles.communityHover]}
         >
-          <CommunityAvatar name={item.community.name} color={item.community.color} size={22} />
+          <CommunityAvatar name={item.community.name} color={item.community.color} image={item.community.avatar_url} size={22} />
           <Text style={styles.communityText} numberOfLines={1}>
             <Text style={styles.communityName}>{item.community.name}</Text> · {t('communities.postedBy', { username: item.author_username })}
           </Text>

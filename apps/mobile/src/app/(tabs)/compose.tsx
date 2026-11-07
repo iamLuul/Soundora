@@ -393,7 +393,7 @@ export default function ComposeScreen() {
                           target?.id === c.id && styles.destinationOn,
                         ]}
                       >
-                        <CommunityAvatar name={c.name} color={c.color} size={18} />
+                        <CommunityAvatar name={c.name} color={c.color} image={c.avatar_url} size={18} />
                         <Text style={styles.destinationText} numberOfLines={1}>
                           {c.name}
                         </Text>

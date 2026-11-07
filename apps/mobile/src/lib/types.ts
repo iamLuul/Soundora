@@ -79,6 +79,8 @@ export interface PostCommunity {
   slug: string;
   name: string;
   color: number;
+  /** Caminho da foto no Storage (null = inicial sobre a cor). */
+  avatar_url?: string | null;
   closed: boolean;
 }
 

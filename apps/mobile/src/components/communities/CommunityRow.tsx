@@ -22,7 +22,7 @@ export function CommunityRow({ item, right }: { item: CommunityCard; right?: Rea
         pressed && { backgroundColor: glass.pressed },
       ]}
     >
-      <CommunityAvatar name={item.name} color={item.color} size={48} closed={closed} />
+      <CommunityAvatar name={item.name} color={item.color} image={item.avatar_url} size={48} closed={closed} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.name} numberOfLines={1}>
           {item.name}

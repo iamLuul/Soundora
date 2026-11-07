@@ -16,3 +16,10 @@ export function bannerUrl(path: string | null | undefined): string | null {
   if (!/^banners\/[\w-]+\/banner-\d+\.(jpg|png|webp)$/.test(path)) return null;
   return `${supabaseUrl}/storage/v1/object/public/${path}`;
 }
+
+/** Foto da comunidade ("community-avatars/{id}/avatar-123.webp"). */
+export function communityImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (!/^community-avatars\/[\w-]+\/avatar-\d+\.(jpg|png|webp)$/.test(path)) return null;
+  return `${supabaseUrl}/storage/v1/object/public/${path}`;
+}

@@ -149,7 +149,7 @@ function Hero({ community: c }: { community: Community }) {
   return (
     <View style={styles.hero}>
       <View style={styles.heroTop}>
-        <CommunityAvatar name={c.name} color={c.color} size={76} closed={closed} />
+        <CommunityAvatar name={c.name} color={c.color} image={c.avatar_url} size={76} closed={closed} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.name} accessibilityRole="header">
             {c.name}

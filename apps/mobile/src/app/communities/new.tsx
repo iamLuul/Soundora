@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CommunityForm } from '../../components/communities/CommunityForm';
 import { BackHeader } from '../../components/figma';
 import { keyboardBehavior } from '../../components/ui';
-import { createCommunity } from '../../lib/api';
+import { showToast } from '../../components/Toast';
+import { createCommunity, uploadCommunityImage } from '../../lib/api';
 import { formatError } from '../../lib/errors';
 import { colors, fonts, space, text } from '../../theme';
 
@@ -39,7 +40,16 @@ export default function NewCommunityScreen() {
             setBusy(true);
             setError(null);
             try {
-              await createCommunity(value);
+              const id = await createCommunity(value);
+              // A foto vai depois que a comunidade existe (a pasta dela é o id). Se falhar, a
+              // comunidade já está criada: avisa e a dona tenta de novo nas configurações.
+              if (value.photo) {
+                try {
+                  await uploadCommunityImage(id, value.photo);
+                } catch {
+                  showToast(t('communities.photoFailed'));
+                }
+              }
               await qc.invalidateQueries({ queryKey: ['communities'] });
               router.replace(`/c/${value.slug}`);
             } catch (err) {

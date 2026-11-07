@@ -21,6 +21,9 @@ const mockJoin = jest.fn(async (_id: string) => 'active');
 const mockRespond = jest.fn(async (..._a: unknown[]) => undefined);
 const mockCreate = jest.fn(async (_c: unknown) => 'new-id');
 const mockMine = jest.fn(async (): Promise<unknown[]> => []);
+const mockPick = jest.fn(async (): Promise<unknown> => null);
+const mockUploadImage = jest.fn(async (..._a: unknown[]) => 'community-avatars/new-id/avatar-1.webp');
+jest.mock('../src/lib/pick-image', () => ({ pickSquareImage: () => mockPick() }));
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   Link: ({ children }: { children: React.ReactNode }) => children,
@@ -43,6 +46,7 @@ jest.mock('../src/lib/api', () => ({
   joinCommunity: (id: string) => mockJoin(id),
   respondCommunityRequest: (...a: unknown[]) => mockRespond(...a),
   createCommunity: (c: unknown) => mockCreate(c),
+  uploadCommunityImage: (...a: unknown[]) => mockUploadImage(...a),
   fetchMyCommunities: () => mockMine(),
   fetchRecommendedCommunities: async () => [],
   communitySlugAvailable: async (slug: string) => slug !== 'raul',
@@ -58,6 +62,7 @@ const community = (over: Partial<Community> = {}): Community => ({
   description: 'Para quem ama a banda',
   visibility: 'open',
   color: 0,
+  avatar_url: null,
   artists: ['Arctic Monkeys'],
   genres: [],
   member_count: 12,
@@ -181,29 +186,47 @@ describe('Explorar e criar', () => {
     expect(await screen.findByText('Comunidade Achada')).toBeTruthy();
   });
 
-  test('criar: @ sugerido pelo nome, artistas e fechada', async () => {
+  test('criar em 3 etapas: nome e foto, sobre, o som; com foto', async () => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    mockPick.mockResolvedValue({ uri: 'file:///foto.jpg', width: 800, height: 800 });
     await wrap(<NewCommunityScreen />);
+    // Etapa 1: nome e foto. Sem nome válido, não avança.
+    expect(screen.getByText('Etapa 1 de 3')).toBeTruthy();
+    expect(screen.getByTestId('community-next').props.accessibilityState.disabled).toBe(true);
     await fireEvent.changeText(screen.getByTestId('community-name'), 'Fãs do Arctic Monkeys!');
     expect(screen.getByTestId('community-slug').props.value).toBe('fas_do_arctic_monkeys');
+    await fireEvent.press(screen.getByTestId('community-photo-pick'));
+    expect(await screen.findByTestId('community-photo-remove')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('community-next'));
+    // Etapa 2: sobre e quem entra.
+    expect(screen.getByTestId('community-step-about')).toBeTruthy();
+    expect(screen.queryByTestId('community-name')).toBeNull();
+    await fireEvent.press(screen.getByTestId('community-visibility-closed'));
+    // Voltar mantém o que foi preenchido.
+    await fireEvent.press(screen.getByTestId('community-back'));
+    expect(screen.getByTestId('community-name').props.value).toBe('Fãs do Arctic Monkeys!');
+    await fireEvent.press(screen.getByTestId('community-next'));
+    await fireEvent.press(screen.getByTestId('community-next'));
+    // Etapa 3: o som da comunidade.
+    expect(screen.getByText('Etapa 3 de 3')).toBeTruthy();
     await fireEvent.changeText(screen.getByTestId('community-artist'), 'Arctic Monkeys');
     await fireEvent.press(screen.getByTestId('community-artist-add'));
-    await fireEvent.press(screen.getByTestId('community-visibility-closed'));
-    await fireEvent.press(screen.getByTestId('community-color-3'));
     await fireEvent.press(screen.getByTestId('community-submit'));
     await waitFor(() =>
       expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ slug: 'fas_do_arctic_monkeys', name: 'Fãs do Arctic Monkeys!', visibility: 'closed', artists: ['Arctic Monkeys'], color: 3 }),
+        expect.objectContaining({ slug: 'fas_do_arctic_monkeys', name: 'Fãs do Arctic Monkeys!', visibility: 'closed', artists: ['Arctic Monkeys'] }),
       ),
     );
+    // A foto vai para a comunidade recém-criada.
+    await waitFor(() => expect(mockUploadImage).toHaveBeenCalledWith('new-id', { uri: 'file:///foto.jpg', width: 800, height: 800 }));
     expect(mockReplace).toHaveBeenCalledWith('/c/fas_do_arctic_monkeys');
   });
 
-  test('@ já usado (por pessoa ou comunidade): avisa e não deixa criar', async () => {
+  test('@ já usado (por pessoa ou comunidade): avisa e não deixa avançar', async () => {
     await wrap(<NewCommunityScreen />);
     await fireEvent.changeText(screen.getByTestId('community-name'), 'Raul');
     expect(await screen.findByText('Esse @ já está em uso (por uma pessoa ou uma comunidade).')).toBeTruthy();
-    expect(screen.getByTestId('community-submit').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByTestId('community-next').props.accessibilityState.disabled).toBe(true);
   });
 
   test('slug a partir do nome', () => {

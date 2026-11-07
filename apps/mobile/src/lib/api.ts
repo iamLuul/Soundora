@@ -1496,6 +1496,8 @@ export interface Community {
   description: string;
   visibility: CommunityVisibility;
   color: number;
+  /** Caminho da foto no Storage (null = inicial sobre a cor). */
+  avatar_url: string | null;
   artists: string[];
   genres: string[];
   member_count: number;
@@ -1515,6 +1517,7 @@ export interface CommunityCard {
   description?: string;
   visibility: CommunityVisibility;
   color: number;
+  avatar_url?: string | null;
   member_count: number;
   joined?: boolean;
   genres?: string[];
@@ -1570,6 +1573,24 @@ export async function updateCommunity(id: string, c: CommunityInput): Promise<vo
     p_color: c.color,
   });
   if (error) throw error;
+}
+
+/** Troca a foto da comunidade (só a dona): mesma conversão e conferência da foto do perfil. */
+export async function uploadCommunityImage(communityId: string, image: { uri: string; width: number; height: number }): Promise<string> {
+  const bytes = await convertProfileImage('avatar', image.uri, image.width, image.height);
+  const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const { data, error } = await invokeFunction<{ path: string }>(`profile-image?kind=community&community=${encodeURIComponent(communityId)}`, {
+    body,
+    headers: { 'Content-Type': imageContentType(bytes) },
+  });
+  if (error) throw await functionError('profile-image', error, 'generic');
+  if (!data?.path) throw new AppError('generic');
+  return data.path;
+}
+
+export async function removeCommunityImage(communityId: string): Promise<void> {
+  const { error } = await invokeFunction(`profile-image?kind=community&community=${encodeURIComponent(communityId)}`, { method: 'DELETE' });
+  if (error) throw await functionError('profile-image', error, 'generic');
 }
 
 export async function deleteCommunity(id: string): Promise<void> {

@@ -12,6 +12,7 @@ function assertEquals(actual: unknown, expected: unknown, msg = '') {
 }
 
 const USER = '11111111-1111-1111-1111-111111111111';
+const COMMUNITY = '22222222-2222-2222-2222-222222222222';
 
 /** PNG válido com largura e altura trocadas no cabeçalho (como uma bomba de pixels). */
 function pngWithSize(width: number, height: number): Uint8Array<ArrayBuffer> {
@@ -88,7 +89,8 @@ Deno.test('readLimited para de ler no limite, mesmo sem Content-Length', async (
 function makeDeps(overrides: Partial<Deps> = {}) {
   const uploaded: { kind: string; path: string; contentType: string; size: number }[] = [];
   const removed: string[] = [];
-  const images: Record<string, string | null> = { avatar: `avatars/${USER}/avatar-1000.jpg`, banner: null };
+  const images: Record<string, string | null> = { avatar: `avatars/${USER}/avatar-1000.jpg`, banner: null, community: null };
+  const setCalls: (string | null)[] = [];
   let calls = 0;
   const deps: Deps = {
     debug: true,
@@ -99,7 +101,9 @@ function makeDeps(overrides: Partial<Deps> = {}) {
     upload: async (kind, path, bytes, contentType) => {
       uploaded.push({ kind, path, contentType, size: bytes.byteLength });
     },
-    setImage: async (_u, kind, path) => {
+    isCommunityOwner: async (u, c) => u === USER && c === COMMUNITY,
+    setImage: async (_u, kind, path, community) => {
+      setCalls.push(community);
       const previous = images[kind] ?? null;
       images[kind] = path;
       return previous;
@@ -109,7 +113,7 @@ function makeDeps(overrides: Partial<Deps> = {}) {
     },
     ...overrides,
   };
-  return { deps, uploaded, removed, getAvatar: () => images.avatar, getBanner: () => images.banner };
+  return { deps, uploaded, removed, setCalls, getAvatar: () => images.avatar, getBanner: () => images.banner, getCommunity: () => images.community };
 }
 
 function post(body: BodyInit | null, headers: Record<string, string> = {}) {
@@ -205,5 +209,55 @@ Deno.test('tipo de imagem desconhecido é recusado', async () => {
     new Request('http://localhost/profile-image?kind=../avatars', { method: 'POST', body: fixtures.png, headers: { Authorization: 'Bearer valido' } }),
   );
   assertEquals(res.status, 400);
+  assertEquals(uploaded, []);
+});
+
+function communityReq(method: 'POST' | 'DELETE', community: string, body: BodyInit | null = null) {
+  return new Request(`http://localhost/profile-image?kind=community&community=${encodeURIComponent(community)}`, {
+    method,
+    body,
+    headers: { Authorization: 'Bearer valido' },
+  });
+}
+
+Deno.test('comunidade: a dona troca a foto, que vai para a pasta da comunidade', async () => {
+  const { deps, uploaded, setCalls, getCommunity, getAvatar } = makeDeps();
+  const handler = createHandler(deps);
+  const res = await handler(communityReq('POST', COMMUNITY, fixtures.webpLossy));
+  assertEquals(await res.json(), { path: `community-avatars/${COMMUNITY}/avatar-1760000000000.webp`, width: 64, height: 64 });
+  assertEquals(uploaded, [
+    { kind: 'community', path: `${COMMUNITY}/avatar-1760000000000.webp`, contentType: 'image/webp', size: fixtures.webpLossy.byteLength },
+  ]);
+  assertEquals(getCommunity(), `community-avatars/${COMMUNITY}/avatar-1760000000000.webp`);
+  assertEquals(setCalls, [COMMUNITY]);
+  assertEquals(getAvatar(), `avatars/${USER}/avatar-1000.jpg`, 'a foto do perfil não muda');
+
+  const del = await handler(communityReq('DELETE', COMMUNITY));
+  assertEquals(await del.json(), { path: null });
+  assertEquals(getCommunity(), null);
+});
+
+Deno.test('comunidade: quem não é a dona é recusado antes de ler o arquivo; id inválido também', async () => {
+  let read = false;
+  const body = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        read = true;
+        controller.enqueue(fixtures.png);
+        controller.close();
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  const { deps, uploaded } = makeDeps();
+  const handler = createHandler(deps);
+  const other = '33333333-3333-3333-3333-333333333333';
+  const res = await handler(communityReq('POST', other, body));
+  assertEquals([res.status, await res.json()], [403, { error: 'forbidden' }]);
+  if (read) throw new Error('leu o corpo de quem não é a dona');
+  assertEquals((await handler(communityReq('DELETE', other))).status, 403);
+  for (const bad of ['', '../avatars', `${COMMUNITY}/../x`, 'nao-e-uuid']) {
+    assertEquals((await handler(communityReq('POST', bad, fixtures.png))).status, 400, bad);
+  }
   assertEquals(uploaded, []);
 });
