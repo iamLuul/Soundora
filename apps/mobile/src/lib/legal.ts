@@ -6,7 +6,7 @@
 
 /** E-mail de contato para privacidade e denúncias. null = ainda não definido (o texto avisa). */
 export const LEGAL_CONTACT: string | null = null;
-export const LEGAL_UPDATED_AT = '2026-11-06';
+export const LEGAL_UPDATED_AT = '2026-11-07';
 
 export type LegalDoc = 'terms' | 'privacy' | 'guardians' | 'cookies' | 'ads';
 export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'guardians', 'cookies', 'ads'];
@@ -161,7 +161,7 @@ const PT: Record<LegalDoc, LegalSection[]> = {
       paragraphs: [
         'Só com o seu consentimento (LGPD, art. 7º, I). Desligado, a escolha vale só até você fechar o app e nada é gravado.',
         'Acessibilidade: tamanho do texto e dos ícones e a opção de reduzir movimento. Dura até você mudar ou apagar.',
-        'Dicas já vistas: para as dicas de primeira vez não aparecerem de novo. Dura até você apagar.',
+        'Avisos já vistos: para avisos que aparecem uma vez só (como o de anúncios) não aparecerem de novo. Dura até você apagar.',
       ],
     },
     {
@@ -389,7 +389,7 @@ const EN: Record<LegalDoc, LegalSection[]> = {
       paragraphs: [
         'Only with your consent (LGPD, art. 7, I). When off, the choice only lasts until you close the app and nothing is stored.',
         'Accessibility: text and icon size and the reduce motion option. Lasts until you change or delete it.',
-        'Tips you’ve seen: so first-time tips don’t show up again. Lasts until you delete it.',
+        'Notices you’ve seen: so one-time notices (like the ads notice) don’t show up again. Lasts until you delete it.',
       ],
     },
     {

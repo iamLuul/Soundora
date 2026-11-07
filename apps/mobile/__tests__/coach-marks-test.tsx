@@ -1,4 +1,4 @@
-// Dicas de primeira vez: aparecem uma vez, "Próxima" avança, "Pular"/"Entendi" fecham de vez.
+// Avisos de primeira vez: aparecem uma vez, "Próxima" avança, "Pular"/"Entendi" fecham de vez.
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { CoachMarks, useFirstTimeTip } from '../src/components/CoachMarks';
 import i18n from '../src/lib/i18n';
@@ -11,7 +11,7 @@ const steps = [
 ];
 
 function Host() {
-  const [open, close] = useFirstTimeTip('vibe-view');
+  const [open, close] = useFirstTimeTip('ads-intro');
   return <CoachMarks testID="coach-x" visible={open} steps={steps} onClose={close} />;
 }
 
@@ -22,7 +22,7 @@ beforeEach(() => {
   // Preferências aceitas: "já vi a dica" fica gravado no aparelho.
   resetConsentForTests();
   saveConsent({ preferences: true, personalization: false });
-  globalThis.localStorage?.removeItem('soundora.tip.vibe-view');
+  globalThis.localStorage?.removeItem('soundora.tip.ads-intro');
 });
 
 test('avança passo a passo e não aparece de novo depois de concluída', async () => {
@@ -34,11 +34,11 @@ test('avança passo a passo e não aparece de novo depois de concluída', async 
   expect(screen.queryByTestId('coach-x-skip')).toBeNull();
   await fireEvent.press(screen.getByTestId('coach-x-next'));
   expect(screen.queryByTestId('coach-x')).toBeNull();
-  expect(tipSeen('vibe-view')).toBe(true);
+  expect(tipSeen('ads-intro')).toBe(true);
 });
 
 test('dica já vista não aparece', async () => {
-  globalThis.localStorage?.setItem('soundora.tip.vibe-view', '1');
+  globalThis.localStorage?.setItem('soundora.tip.ads-intro', '1');
   await render(<Host />);
   expect(screen.queryByTestId('coach-x')).toBeNull();
 });
@@ -47,13 +47,13 @@ test('pular fecha e marca como vista', async () => {
   await render(<Host />);
   await fireEvent.press(screen.getByTestId('coach-x-skip'));
   expect(screen.queryByTestId('coach-x')).toBeNull();
-  expect(tipSeen('vibe-view')).toBe(true);
+  expect(tipSeen('ads-intro')).toBe(true);
 });
 
 test('sem aceitar Preferências: a dica vista vale nesta abertura, mas nada é gravado no aparelho', async () => {
   saveConsent({ preferences: false, personalization: false });
   await render(<Host />);
   await fireEvent.press(screen.getByTestId('coach-x-skip'));
-  expect(tipSeen('vibe-view')).toBe(true);
-  expect(globalThis.localStorage?.getItem('soundora.tip.vibe-view') ?? null).toBeNull();
+  expect(tipSeen('ads-intro')).toBe(true);
+  expect(globalThis.localStorage?.getItem('soundora.tip.ads-intro') ?? null).toBeNull();
 });

@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
+import { useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,15 +28,18 @@ export function CookieConsent() {
   const insets = useSafeAreaInsets();
   const layout = useWebLayout();
   const path = usePathname();
+  // Só depois de abrir no navegador: o HTML gerado no servidor não sabe a largura da tela (ficaria
+  // no layout de celular) nem se a pessoa já escolheu (o aviso piscaria para quem já escolheu).
+  const mounted = useSyncExternalStore(noSubscribe, inBrowser, onServer);
   // A escolha feita antes de entrar vai para a conta assim que ela existe de fato (com perfil).
   useConsentSync(profile ? userId : null);
 
   // App do celular, já escolheu, ou está na própria tela de escolher / lendo a política.
-  if (Platform.OS !== 'web' || consent || path === '/cookies' || path.startsWith('/legal')) return null;
+  if (Platform.OS !== 'web' || !mounted || consent || path === '/cookies' || path.startsWith('/legal')) return null;
 
   const mobile = layout === 'mobile';
   // No celular com o app aberto, fica acima da barra de abas flutuante.
-  const bottom = mobile && profile ? tabBarSpace(insets.bottom) : insets.bottom + space.md;
+  const bottom = mobile && profile ? tabBarSpace(insets.bottom) : insets.bottom + (mobile ? space.md : space.xl);
   const choose = (all: boolean) => chooseConsent({ preferences: all, personalization: all }, userId);
 
   return (
@@ -82,11 +86,16 @@ export function CookieConsent() {
   );
 }
 
+const noSubscribe = () => () => {};
+const inBrowser = () => true;
+const onServer = () => false;
+
 const styles = StyleSheet.create({
   layer: { justifyContent: 'flex-end', zIndex: 50 },
   card: { ...glass.sheet, borderRadius: radius.lg, padding: space.lg, gap: space.md },
   cardMobile: { marginHorizontal: space.md },
-  cardDesktop: { alignSelf: 'center', width: '100%', maxWidth: 560 },
+  // Computador: no canto inferior direito, sem cobrir o meio da tela.
+  cardDesktop: { alignSelf: 'flex-end', width: '100%', maxWidth: 420, marginRight: space.xl },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   title: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
   body: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: colors.text },

@@ -2,7 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Toggle } from '../../components/Toggle';
 import { ErrorState } from '../../components/ErrorState';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { Button, ErrorText } from '../../components/ui';
@@ -69,12 +70,11 @@ export default function SearchHistoryScreen() {
           icon="search-outline"
           label={t('searchHistory.use')}
           right={
-            <Switch
+            <Toggle
               testID="search-history-switch"
               value={enabled}
               onValueChange={toggle}
               disabled={!history.data || busy !== null}
-              trackColor={{ true: colors.primary, false: colors.surface }}
               accessibilityLabel={t('searchHistory.use')}
             />
           }

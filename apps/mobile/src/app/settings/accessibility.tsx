@@ -2,7 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { reloadAppAsync } from 'expo';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Toggle } from '../../components/Toggle';
 import { ChoiceRow, SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { Button } from '../../components/ui';
 import { display, ICON_SIZES, readDisplayPrefs, saveDisplayPrefs, TEXT_SIZES, type DisplayPrefs, type IconSize, type TextSize } from '../../lib/display';
@@ -66,11 +67,10 @@ export default function AccessibilitySettingsScreen() {
           label={t('settings.reduceMotion')}
           value={t('settings.reduceMotionHint')}
           right={
-            <Switch
+            <Toggle
               testID="reduce-motion-switch"
               value={prefs.reduceMotion}
               onValueChange={(v) => update({ reduceMotion: v })}
-              trackColor={{ true: colors.primary, false: colors.surface }}
               accessibilityLabel={t('settings.reduceMotion')}
             />
           }

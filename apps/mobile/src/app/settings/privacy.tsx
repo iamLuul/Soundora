@@ -2,13 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Switch } from 'react-native';
+import { Toggle } from '../../components/Toggle';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { fetchFollowRequests, fetchMutedGenres, fetchMyAccount, fetchSearchHistory, setPrivateAccount } from '../../lib/api';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { keys } from '../../lib/queries';
-import { colors } from '../../theme';
 import { myAccountKey } from './account';
 import { searchHistoryKey } from './search-history';
 
@@ -48,12 +47,11 @@ export default function PrivacySettingsScreen() {
           icon="lock-closed-outline"
           label={t('settings.private')}
           right={
-            <Switch
+            <Toggle
               testID="settings-private-switch"
               value={isPrivate}
               onValueChange={togglePrivate}
               disabled={busy || !account.data}
-              trackColor={{ true: colors.primary, false: colors.surface }}
               accessibilityLabel={t('settings.private')}
             />
           }

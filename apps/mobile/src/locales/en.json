@@ -854,25 +854,6 @@
     "cookies": "Cookie Policy",
     "ads": "Ads"
   },
-  "tips": {
-    "next": "Next",
-    "done": "Got it",
-    "skip": "Skip",
-    "discoverSwipeTitle": "Like or skip",
-    "discoverSwipeBody": "Swipe the card right to like and left to skip. The buttons below do the same.",
-    "discoverPlayTitle": "Hear a snippet",
-    "discoverPlayBody": "Tap play to hear 30 seconds of the song. The ring around it shows how much has played.",
-    "discoverLikedTitle": "Your likes are saved",
-    "discoverLikedBody": "Everything you like shows up in Liked songs, just below, and improves the next suggestions.",
-    "vibeNewTypeTitle": "Choose the type",
-    "vibeNewTypeBody": "Tap the button to take a photo or hold it to record a video. You can also pick from the gallery or create with just text (Aa).",
-    "vibeNewTextTitle": "Write anywhere",
-    "vibeNewTextBody": "Tap the vibe to write. Drag text to move it; use two fingers to resize and rotate. Drag it to the trash to delete.",
-    "vibeNewTimeTitle": "Gone in 24 hours",
-    "vibeNewTimeBody": "The vibe is visible for 24 hours and then disappears. You can see who viewed it.",
-    "vibeViewTitle": "How to watch vibes",
-    "vibeViewBody": "Tap the right side for the next one and the left side to go back. Hold the screen to pause."
-  },
   "a11y": {
     "musicLink": "Song link",
     "songLink": "Favorite song link",
@@ -1141,7 +1122,7 @@
     "footer": "Cookie preferences",
     "settingsHint": "What is stored on this device",
     "bannerTitle": "Your privacy",
-    "bannerBody": "Soundhora stores on this device only what it needs to work, like your login. With your permission, it also stores your preferences (accessibility and tips you've seen) and what you've already seen in For you. We don't use advertising or tracking cookies.",
+    "bannerBody": "Soundhora stores on this device only what it needs to work, like your login. With your permission, it also stores your preferences (accessibility and notices you've seen) and what you've already seen in For you. We don't use advertising or tracking cookies.",
     "acceptAll": "Accept all",
     "onlyNecessary": "Only necessary",
     "customize": "Choose what to store",
@@ -1171,8 +1152,8 @@
     "item_display": "Accessibility",
     "item_display_desc": "Text and icon size and the reduce motion option.",
     "item_display_keep": "Until you change or delete it",
-    "item_tips": "Tips you've seen",
-    "item_tips_desc": "So first-time tips (Discover, vibes) don't show up again.",
+    "item_tips": "Notices you've seen",
+    "item_tips_desc": "So one-time notices (like the ads notice) don't show up again.",
     "item_tips_keep": "Until you delete it",
     "item_seenPosts": "Posts seen in For you",
     "item_seenPosts_desc": "The latest posts that appeared on your screen, so For you shows what's new first. Stays only on this device.",
@@ -1190,5 +1171,10 @@
     "deleteAccount": "Delete account and all data",
     "needPreferences": "To store text and icon size on this device, Soundhora needs your permission for Preferences (Cookies and device data). Allow?",
     "allowAndApply": "Allow and apply"
+  },
+  "tips": {
+    "next": "Next",
+    "done": "Got it",
+    "skip": "Skip"
   }
 }

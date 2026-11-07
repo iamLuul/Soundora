@@ -3,7 +3,8 @@ import { checkAge, displayNameSchema, MIN_GENRES, passwordSchema, usernameSchema
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, Pressable, StyleSheet, Switch, Text, View, type TextInputInstance } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
+import { Toggle } from '../components/Toggle';
 import { PasswordField } from '../components/auth/PasswordField';
 import { BackHeader } from '../components/figma';
 import { GenrePicker } from '../components/GenrePicker';
@@ -331,11 +332,10 @@ export default function Onboarding() {
                   <Text style={styles.cookieName}>{t(`cookies.cat_${c}`)}</Text>
                   <Text style={styles.cookieNote}>{t(`cookies.cat_${c}_note`)}</Text>
                 </View>
-                <Switch
+                <Toggle
                   testID={`onboarding-cookie-${c}`}
                   value={cookieChoice[c]}
                   onValueChange={(v) => setCookieChoice((x) => ({ ...x, [c]: v }))}
-                  trackColor={{ true: colors.primary, false: colors.surface }}
                   accessibilityLabel={t(`cookies.cat_${c}`)}
                 />
               </View>

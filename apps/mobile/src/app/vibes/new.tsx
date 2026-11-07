@@ -6,7 +6,6 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 import { RingAvatar } from '../../components/figma';
 import { Spinner } from '../../components/Spinner';
 import { VIBE_BACKGROUND } from '../../components/vibes/colors';
@@ -55,7 +54,6 @@ export default function NewVibeScreen() {
 
 function NewVibe() {
   const { t } = useTranslation();
-  const [tipOpen, closeTip] = useFirstTimeTip('vibe-new');
   const params = useLocalSearchParams<Params>();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
@@ -200,17 +198,6 @@ function NewVibe() {
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-      <CoachMarks
-        testID="coach-vibe-new"
-        visible={tipOpen}
-        onClose={closeTip}
-        steps={[
-          { icon: 'camera-outline', title: t('tips.vibeNewTypeTitle'), body: t('tips.vibeNewTypeBody') },
-          { icon: 'text-outline', title: t('tips.vibeNewTextTitle'), body: t('tips.vibeNewTextBody') },
-          { icon: 'time-outline', title: t('tips.vibeNewTimeTitle'), body: t('tips.vibeNewTimeBody') },
-        ]}
-      />
-
       {!background ? (
         <View style={{ paddingTop: canvas.top, alignItems: 'center' }}>
           <VibeCamera

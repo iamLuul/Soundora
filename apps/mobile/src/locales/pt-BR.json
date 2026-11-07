@@ -854,25 +854,6 @@
     "cookies": "Política de cookies",
     "ads": "Anúncios"
   },
-  "tips": {
-    "next": "Próxima",
-    "done": "Entendi",
-    "skip": "Pular",
-    "discoverSwipeTitle": "Curta ou pule",
-    "discoverSwipeBody": "Arraste o cartão para a direita para curtir e para a esquerda para pular. Os botões embaixo fazem o mesmo.",
-    "discoverPlayTitle": "Ouça um trecho",
-    "discoverPlayBody": "Toque no play para ouvir 30 segundos da música. O anel em volta mostra quanto já tocou.",
-    "discoverLikedTitle": "Suas curtidas ficam guardadas",
-    "discoverLikedBody": "Tudo o que você curte aparece em Músicas curtidas, logo abaixo, e vai melhorando as próximas sugestões.",
-    "vibeNewTypeTitle": "Escolha o tipo",
-    "vibeNewTypeBody": "Toque no botão para tirar foto ou segure para gravar vídeo. Também dá para escolher da galeria ou criar só com texto (Aa).",
-    "vibeNewTextTitle": "Escreva onde quiser",
-    "vibeNewTextBody": "Toque na vibe para escrever. Arraste o texto para mover; com dois dedos, aumenta e gira. Arraste até a lixeira para apagar.",
-    "vibeNewTimeTitle": "Some em 24 horas",
-    "vibeNewTimeBody": "A vibe fica visível por 24 horas e depois some. Você vê quem viu.",
-    "vibeViewTitle": "Como ver as vibes",
-    "vibeViewBody": "Toque na direita para a próxima e na esquerda para voltar. Segure a tela para pausar."
-  },
   "a11y": {
     "musicLink": "Link da música",
     "songLink": "Link da música favorita",
@@ -1141,7 +1122,7 @@
     "footer": "Preferências de cookies",
     "settingsHint": "O que fica guardado neste aparelho",
     "bannerTitle": "Sua privacidade",
-    "bannerBody": "O Soundhora guarda neste aparelho só o necessário para funcionar, como o seu login. Com a sua permissão, também guarda suas preferências (acessibilidade e dicas já vistas) e o que você já viu no Para você. Não usamos cookies de publicidade nem de rastreamento.",
+    "bannerBody": "O Soundhora guarda neste aparelho só o necessário para funcionar, como o seu login. Com a sua permissão, também guarda suas preferências (acessibilidade e avisos já vistos) e o que você já viu no Para você. Não usamos cookies de publicidade nem de rastreamento.",
     "acceptAll": "Aceitar todos",
     "onlyNecessary": "Só os necessários",
     "customize": "Escolher o que guardar",
@@ -1171,8 +1152,8 @@
     "item_display": "Acessibilidade",
     "item_display_desc": "Tamanho do texto e dos ícones e a opção de reduzir movimento.",
     "item_display_keep": "Até você mudar ou apagar",
-    "item_tips": "Dicas já vistas",
-    "item_tips_desc": "Para as dicas de primeira vez (Descobrir, vibes) não aparecerem de novo.",
+    "item_tips": "Avisos já vistos",
+    "item_tips_desc": "Para avisos que aparecem uma vez só (como o aviso de anúncios) não aparecerem de novo.",
     "item_tips_keep": "Até você apagar",
     "item_seenPosts": "Posts já vistos no Para você",
     "item_seenPosts_desc": "Os últimos posts que apareceram na sua tela, para o Para você mostrar primeiro o que é novo. Fica só neste aparelho.",
@@ -1190,5 +1171,10 @@
     "deleteAccount": "Excluir conta e todos os dados",
     "needPreferences": "Para guardar o tamanho do texto e dos ícones neste aparelho, o Soundhora precisa da sua permissão para Preferências (Cookies e dados do aparelho). Permitir?",
     "allowAndApply": "Permitir e aplicar"
+  },
+  "tips": {
+    "next": "Próxima",
+    "done": "Entendi",
+    "skip": "Pular"
   }
 }

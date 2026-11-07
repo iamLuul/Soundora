@@ -1,8 +1,8 @@
-// Dicas de primeira vez (Descobrir, criar vibe, ver vibes): aparecem uma vez por aparelho.
+// Avisos de primeira vez (hoje, só o aviso de anúncios): aparecem uma vez por aparelho.
 // "Já vi" é uma preferência (lib/consent): sem o "sim" da pessoa, vale só enquanto o app está aberto.
 import { storedGet, storedSet } from './consent';
 
-export type TipKey = 'discover' | 'vibe-new' | 'vibe-view' | 'ads-intro';
+export type TipKey = 'ads-intro';
 const key = (tip: TipKey) => `soundora.tip.${tip}`;
 
 export function tipSeen(tip: TipKey): boolean {

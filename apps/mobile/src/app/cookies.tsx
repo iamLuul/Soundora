@@ -2,7 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Toggle } from '../components/Toggle';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../components/Settings';
 import { showToast } from '../components/Toast';
 import { Button } from '../components/ui';
@@ -67,12 +68,11 @@ export default function CookiesScreen() {
     <SettingsSection title={t(`cookies.cat_${id}`)} note={t(`cookies.cat_${id}_note`)}>
       <View style={styles.catHeader}>
         <Text style={styles.catLabel}>{toggle ? t('cookies.allow') : t('cookies.alwaysOn')}</Text>
-        <Switch
+        <Toggle
           testID={`cookie-switch-${id}`}
           value={toggle ? toggle.value : true}
           disabled={!toggle}
           onValueChange={toggle?.onChange}
-          trackColor={{ true: colors.primary, false: colors.surface }}
           accessibilityLabel={t(`cookies.cat_${id}`)}
         />
       </View>

@@ -20,8 +20,7 @@ import { useWebLayout } from '../lib/layout';
 import { DeckSkeleton } from './Skeleton';
 import { webTouch } from '../lib/touch';
 import { Spinner } from './Spinner';
-import { CoachMarks, type CoachStep, useFirstTimeTip } from './CoachMarks';
-import { router, useIsFocused } from 'expo-router';
+import { router } from 'expo-router';
 import { useTabBarInset } from './TabBar';
 
 /** Quando restam poucos cartões, já busca mais sugestões. */
@@ -66,10 +65,6 @@ export function mergeDeck(forYou: DiscoverCard[], community: DiscoverCard[]): Di
 export function DiscoverSection() {
   const tabInset = useTabBarInset();
   const { t, i18n } = useTranslation();
-  // Primeira vez no Descobrir: como curtir, pular e ouvir.
-  const [tipOpen, closeTip] = useFirstTimeTip('discover');
-  // A aba pode estar montada fora da tela (carrossel das abas): a dica espera ela abrir.
-  const focused = useIsFocused();
   const qc = useQueryClient();
   const { height } = useWindowDimensions();
   const genres = useGenres();
@@ -246,15 +241,8 @@ export function DiscoverSection() {
 
   const stackHeight = Math.max(320, Math.min(460, height * 0.52));
 
-  const discoverTips: CoachStep[] = [
-    { icon: 'swap-horizontal', title: t('tips.discoverSwipeTitle'), body: t('tips.discoverSwipeBody') },
-    { icon: 'play', title: t('tips.discoverPlayTitle'), body: t('tips.discoverPlayBody') },
-    { icon: 'star', title: t('tips.discoverLikedTitle'), body: t('tips.discoverLikedBody') },
-  ];
-
   return (
     <ScrollView contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl + tabInset }} keyboardShouldPersistTaps="handled">
-      <CoachMarks testID="coach-discover" visible={tipOpen && focused} steps={discoverTips} onClose={closeTip} />
       {/* Figma: "Search genres" — a pilha passa a ser só desse gênero. */}
       {genre ? (
         <View style={styles.genreChosen}>

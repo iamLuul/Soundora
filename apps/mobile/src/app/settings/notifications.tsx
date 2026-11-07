@@ -1,14 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Switch } from 'react-native';
+import { Toggle } from '../../components/Toggle';
 import { ErrorState } from '../../components/ErrorState';
 import { SettingsRow, SettingsScreen, SettingsSection } from '../../components/Settings';
 import { fetchMutedNotificationKinds, setMutedNotificationKinds, type NotificationKind } from '../../lib/api';
 import { notify } from '../../lib/dialogs';
 import { formatError } from '../../lib/errors';
 import { disablePush, enablePush, pushAvailability, pushEnabled } from '../../lib/push';
-import { colors } from '../../theme';
 
 /** Tipos de aviso agrupados como a pessoa pensa neles (cada grupo liga/desliga junto). */
 export const NOTIFICATION_GROUPS: {
@@ -66,12 +65,11 @@ export default function NotificationSettingsScreen() {
                 label={t(`settings.notif${g.key}`)}
                 value={hint || undefined}
                 right={
-                  <Switch
+                  <Toggle
                     testID={`notif-${g.key.toLowerCase()}-switch`}
                     value={on}
                     disabled={!muted.data}
                     onValueChange={(v) => toggleGroup(g.kinds, v)}
-                    trackColor={{ true: colors.primary, false: colors.surface }}
                     accessibilityLabel={t(`settings.notif${g.key}`)}
                   />
                 }
@@ -118,15 +116,7 @@ function PushRow() {
       icon="phone-portrait-outline"
       label={t('settings.push')}
       value={!available.ok ? t('settings.pushUnavailable') : (message ?? undefined)}
-      right={
-        <Switch
-          value={on}
-          onValueChange={toggle}
-          disabled={!available.ok || busy}
-          trackColor={{ true: colors.primary, false: colors.surface }}
-          accessibilityLabel={t('settings.push')}
-        />
-      }
+      right={<Toggle value={on} onValueChange={toggle} disabled={!available.ok || busy} accessibilityLabel={t('settings.push')} />}
       last
     />
   );

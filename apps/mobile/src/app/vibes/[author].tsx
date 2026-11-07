@@ -29,7 +29,6 @@ import { webTouch } from '../../lib/touch';
 import { Verified } from '../../components/Verified';
 import { confirmAction, notify } from '../../lib/dialogs';
 import { showToast } from '../../components/Toast';
-import { CoachMarks, useFirstTimeTip } from '../../components/CoachMarks';
 import { itemsOf } from '../../components/vibes/textStyle';
 import { VibeReplyBar } from '../../components/vibes/VibeReplyBar';
 import { AdVibe } from '../../components/ads/AdVibe';
@@ -285,8 +284,6 @@ function AuthorVibes({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  // Primeira vez vendo vibes: tocar para passar, segurar para pausar (a vibe espera a dica fechar).
-  const [tipOpen, closeTip] = useFirstTimeTip('vibe-view');
   const canvas = useViewerCanvas();
   const qc = useQueryClient();
   const { profile } = useAuth();
@@ -322,7 +319,7 @@ function AuthorVibes({
   const mediaReady = !current?.media_path || !!media.data;
   // Vibe de música não toca prévia (as licenças das lojas não cobrem esse uso): é só o cartão.
   const duration = current?.kind === 'video' ? (current.duration_ms ?? STILL_MS) : STILL_MS;
-  const paused = !active || holding || typing || !!menu || !!viewersFor || !mediaReady || tipOpen;
+  const paused = !active || holding || typing || !!menu || !!viewersFor || !mediaReady;
 
   const resetClock = () => {
     elapsedRef.current = 0;
@@ -441,12 +438,6 @@ function AuthorVibes({
 
   return (
     <>
-      <CoachMarks
-        testID="coach-vibe-view"
-        visible={tipOpen && active}
-        onClose={closeTip}
-        steps={[{ icon: 'hand-left-outline', title: t('tips.vibeViewTitle'), body: t('tips.vibeViewBody') }]}
-      />
       {!current ? (
         <Spinner color={colors.text} style={{ flex: 1 }} />
       ) : (
