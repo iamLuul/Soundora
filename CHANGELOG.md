@@ -6,6 +6,7 @@ Até a 0.40.0.10.26 o histórico foi reconstruído a partir dos commits do GitHu
 
 ## 0.59 · Comunidades: criar em 3 etapas e foto da comunidade
 
+- `0.59.1.11.26` · 08/11/2026 · Mensagens: abrir arrastando com o Início parado, igual ao fechar (8958ec2)
 - `0.59.0.11.26` · 07/11/2026 · Comunidades: criar em 3 etapas e foto da comunidade (c796fd2)
 
 ## 0.58 · LGPD: aviso de cookies, tela Cookies e dados do aparelho e nova Política de Cookies
