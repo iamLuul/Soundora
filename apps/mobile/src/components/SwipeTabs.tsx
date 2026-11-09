@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Animated, Dimensions, Easing, Platform, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { MessagesInbox } from '../app/messages';
+import { Backdrop } from './Backdrop';
 import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { display } from '../lib/display';
@@ -47,7 +48,7 @@ export function swipeNeighbors(current: string): { left: string | null; right: s
 export function dragOffset(current: string, dx: number): number {
   const moved = Math.sign(dx) * Math.max(0, Math.abs(dx) - ACTIVATE);
   const { left, right } = swipeNeighbors(current);
-  // No Início, à esquerda ficam as Mensagens: a tela vai junto com o dedo e mostra a prévia delas.
+  // No Início, à esquerda ficam as Mensagens: elas entram por cima, acompanhando o dedo.
   if (current === 'index' && moved > 0) return moved;
   const hasNeighbor = moved < 0 ? !!right : !!left;
   return hasNeighbor ? moved : moved * EDGE_RESISTANCE;
@@ -68,8 +69,13 @@ export function dragOffset(current: string, dx: number): number {
 /** Largura da área das telas (atualizada pelo onLayout). */
 const width = new Animated.Value(Dimensions.get('window').width);
 let widthNow = Dimensions.get('window').width;
-/** Deslocamento do dedo (px). */
+/** Deslocamento do dedo (px) que leva as abas junto. */
 const drag = new Animated.Value(0);
+/**
+ * Início puxado para a direita: quanto as Mensagens já entraram por cima dele (px). O Início
+ * fica parado (como ao fechar as Mensagens): só elas andam.
+ */
+const peekDrag = new Animated.Value(0);
 let dragging = false;
 /** 1 = a cena anda com o dedo (a atual e as vizinhas); 0 = fica parada. */
 const lanes = new Map<string, Animated.Value>();
@@ -127,25 +133,28 @@ export function onTabTransition(name: string) {
 
 function springBack() {
   releasing = false;
-  Animated.spring(drag, { toValue: 0, useNativeDriver, bounciness: 0, speed: 18 }).start(() => showPeek(false));
+  Animated.parallel([
+    Animated.spring(drag, { toValue: 0, useNativeDriver, bounciness: 0, speed: 18 }),
+    Animated.spring(peekDrag, { toValue: 0, useNativeDriver, bounciness: 0, speed: 18 }),
+  ]).start(() => showPeek(false));
 }
 
-/** Prévia das Mensagens à esquerda do Início, montada só enquanto o Início é arrastado. */
+/** Prévia das Mensagens (MessagesPeek), montada só enquanto o Início é arrastado. */
 let peekListener: ((show: boolean) => void) | null = null;
 function showPeek(show: boolean) {
   peekListener?.(show);
 }
 
 /**
- * Soltou o Início puxado para as Mensagens: a prévia termina de entrar e a tela de verdade abre
- * já no lugar (sem deslizar de novo). Depois o Início volta para o lugar, escondido atrás dela.
+ * Soltou o Início puxado para as Mensagens: a prévia termina de entrar por cima dele e a tela de
+ * verdade abre já no lugar (sem deslizar de novo). Depois a prévia sai, escondida atrás dela.
  */
 function openMessages() {
   releasing = false;
-  Animated.timing(drag, { toValue: widthNow, duration: display.reduceMotion ? 0 : 160, easing: Easing.out(Easing.cubic), useNativeDriver }).start(() => {
+  Animated.timing(peekDrag, { toValue: widthNow, duration: display.reduceMotion ? 0 : 160, easing: Easing.out(Easing.cubic), useNativeDriver }).start(() => {
     router.push({ pathname: '/messages', params: { peek: '1' } });
     setTimeout(() => {
-      drag.setValue(0);
+      peekDrag.setValue(0);
       showPeek(false);
     }, 400);
   });
@@ -166,7 +175,9 @@ function startDrag(route: string) {
   if (route === 'index') showPeek(true);
   releasing = false;
   drag.stopAnimation();
+  peekDrag.stopAnimation();
   drag.setValue(0);
+  peekDrag.setValue(0);
   slide.setValue(1);
   const { left, right } = swipeNeighbors(route);
   const moving = new Set([route, left, right].filter(Boolean) as string[]);
@@ -175,7 +186,16 @@ function startDrag(route: string) {
 
 function moveDrag(route: string, dx: number) {
   if (display.reduceMotion) return;
-  if (dragging) drag.setValue(dragOffset(route, dx));
+  if (!dragging) return;
+  const offset = dragOffset(route, dx);
+  // Início puxado para a direita: o Início fica parado e as Mensagens entram por cima.
+  if (route === 'index' && offset > 0) {
+    drag.setValue(0);
+    peekDrag.setValue(offset);
+  } else {
+    peekDrag.setValue(0);
+    drag.setValue(offset);
+  }
 }
 
 /** Soltou: troca de aba (e a cena termina o caminho) ou volta para o lugar. */
@@ -262,15 +282,6 @@ export function SwipeTabs({
   );
   // Desktop: troca de aba pela barra lateral; arrastar com o mouse não troca.
   const desktop = useIsDesktop();
-  const [peek, setPeek] = useState(false);
-  const isHome = route === 'index' && !desktop;
-  useEffect(() => {
-    if (!isHome) return;
-    peekListener = setPeek;
-    return () => {
-      if (peekListener === setPeek) peekListener = null;
-    };
-  }, [isHome]);
   const enabled = !desktop && active && (SWIPE_TABS as readonly string[]).includes(route);
   const pan = Gesture.Pan()
     .enabled(enabled)
@@ -312,17 +323,37 @@ export function SwipeTabs({
         aria-hidden={!focused}
       >
         {children}
-        {isHome && peek ? (
-          // À esquerda do Início (anda junto com ele): as Mensagens, só para ver durante o arrasto.
-          <View pointerEvents="none" style={[styles.peek, { left: -widthNow, width: widthNow }]}>
-            <MessagesInbox preview />
-          </View>
-        ) : null}
       </View>
     </GestureDetector>
   );
 }
 
+/**
+ * Prévia das Mensagens enquanto o Início é puxado para a direita: entra pela esquerda por cima
+ * de tudo (inclusive da barra de abas), com o Início parado atrás, igual à tela de Mensagens
+ * saindo ao fechar (SidePage). Fica nas abas, acima do navegador (app/(tabs)/_layout).
+ */
+export function MessagesPeek() {
+  const desktop = useIsDesktop();
+  const [peek, setPeek] = useState(false);
+  useEffect(() => {
+    if (desktop) return;
+    peekListener = setPeek;
+    return () => {
+      if (peekListener === setPeek) peekListener = null;
+    };
+  }, [desktop]);
+  if (desktop || !peek) return null;
+  return (
+    <Animated.View pointerEvents="none" style={[styles.peek, { transform: [{ translateX: Animated.subtract(peekDrag, width) }] }]}>
+      <Backdrop>
+        <MessagesInbox preview />
+      </Backdrop>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
-  peek: { position: 'absolute', top: 0, bottom: 0, boxShadow: '8px 0 24px rgba(10, 6, 30, 0.45)' },
+  // Sombra na borda direita: separa a prévia do Início que fica atrás (a mesma da SidePage).
+  peek: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, boxShadow: '8px 0 24px rgba(10, 6, 30, 0.45)' },
 });

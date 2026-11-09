@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { carouselOptions, onTabTransition, SwipeTabs } from '../../components/SwipeTabs';
+import { View } from 'react-native';
+import { carouselOptions, MessagesPeek, onTabTransition, SwipeTabs } from '../../components/SwipeTabs';
 import { TabBar } from '../../components/TabBar';
 import { useIsDesktop } from '../../lib/layout';
 import { onTabFocus } from '../../lib/tab-focus';
@@ -11,36 +12,40 @@ export default function TabsLayout() {
   // Desktop: a barra lateral troca de aba na hora (o carrossel é só do celular).
   const desktop = useIsDesktop();
   return (
-    <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      // Fechar o "postar" (o X) volta para a aba de onde a pessoa veio.
-      backBehavior="history"
-      // Carrossel: arrastar para os lados puxa a aba vizinha (Início ↔ Descobrir ↔ Músicas ↔
-      // Perfil) e a troca desliza. As abas não são desligadas fora da tela (detachInactiveScreens
-      // false): desligar e religar durante a animação fazia telas não carregarem no celular.
-      detachInactiveScreens={false}
-      screenLayout={({ children, route, navigation }) => (
-        <SwipeTabs
-          route={route.name}
-          focused={navigation.isFocused()}
-          onNavigate={(name) => navigation.navigate(name)}
-          onPreload={(name) => navigation.preload(name)}
-          focusEvents={navigation}
-        >
-          {children}
-        </SwipeTabs>
-      )}
-      // Desktop: as abas fora da tela ficam congeladas (React Activity), como o freezeOnBlur antigo.
-      activityEnabled={desktop}
-      // focus: o Início sabe quando a pessoa volta de outra aba (para trazer conteúdo novo).
-      screenListeners={({ route }) => ({ transitionStart: () => onTabTransition(route.name), focus: () => onTabFocus(route.name) })}
-      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: 'transparent' }, ...carouselOptions(route.name, !desktop) })}
-    >
-      <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
-      <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />
-      <Tabs.Screen name="compose" options={{ title: t('tabs.compose') }} />
-      <Tabs.Screen name="music" options={{ title: t('tabs.music') }} />
-      <Tabs.Screen name="me" options={{ title: t('tabs.profile') }} />
-    </Tabs>
+    // A prévia das Mensagens (arrasto do Início para a direita) fica por cima das abas e da barra.
+    <View style={{ flex: 1 }}>
+      <Tabs
+        tabBar={(props) => <TabBar {...props} />}
+        // Fechar o "postar" (o X) volta para a aba de onde a pessoa veio.
+        backBehavior="history"
+        // Carrossel: arrastar para os lados puxa a aba vizinha (Início ↔ Descobrir ↔ Músicas ↔
+        // Perfil) e a troca desliza. As abas não são desligadas fora da tela (detachInactiveScreens
+        // false): desligar e religar durante a animação fazia telas não carregarem no celular.
+        detachInactiveScreens={false}
+        screenLayout={({ children, route, navigation }) => (
+          <SwipeTabs
+            route={route.name}
+            focused={navigation.isFocused()}
+            onNavigate={(name) => navigation.navigate(name)}
+            onPreload={(name) => navigation.preload(name)}
+            focusEvents={navigation}
+          >
+            {children}
+          </SwipeTabs>
+        )}
+        // Desktop: as abas fora da tela ficam congeladas (React Activity), como o freezeOnBlur antigo.
+        activityEnabled={desktop}
+        // focus: o Início sabe quando a pessoa volta de outra aba (para trazer conteúdo novo).
+        screenListeners={({ route }) => ({ transitionStart: () => onTabTransition(route.name), focus: () => onTabFocus(route.name) })}
+        screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: 'transparent' }, ...carouselOptions(route.name, !desktop) })}
+      >
+        <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
+        <Tabs.Screen name="discover" options={{ title: t('tabs.discover') }} />
+        <Tabs.Screen name="compose" options={{ title: t('tabs.compose') }} />
+        <Tabs.Screen name="music" options={{ title: t('tabs.music') }} />
+        <Tabs.Screen name="me" options={{ title: t('tabs.profile') }} />
+      </Tabs>
+      <MessagesPeek />
+    </View>
   );
 }
